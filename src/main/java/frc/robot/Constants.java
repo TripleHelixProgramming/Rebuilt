@@ -13,6 +13,9 @@
 
 package frc.robot;
 
+import static edu.wpi.first.units.Units.*;
+
+import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.RobotBase;
 
 /**
@@ -33,5 +36,25 @@ public final class Constants {
 
     /** Replaying from a log file. */
     REPLAY
+  }
+
+  public final class RobotConstants {
+    public static final double kNominalVoltage = 12.0;
+  }
+
+  public static final class MotorConstants {
+    public static final class NEOConstants {
+      public static final AngularVelocity kFreeSpeed = RPM.of(5676);
+      public static final int kDefaultCurrentLimit = 60;
+    }
+
+    public static final class NEO550Constants {
+      public static final AngularVelocity kFreeSpeed = RPM.of(11000);
+      public static final int kDefaultCurrentLimit = 20;
+    }
+
+    public static final class NEOVortexConstants {
+      public static final int kDefaultCurrentLimit = 60;
+    }
   }
 }

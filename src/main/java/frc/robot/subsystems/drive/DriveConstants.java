@@ -19,26 +19,27 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
+import frc.robot.Constants.MotorConstants.NEOVortexConstants;
 
 public class DriveConstants {
   public static final double maxSpeedMetersPerSec = 3.0; // Commented out on reefscape bot
   public static final double odometryFrequency = 100.0; // Hz
-  public static final double trackWidth = Units.inchesToMeters(21);
   public static final double wheelBase = Units.inchesToMeters(27);
+  public static final double trackWidth = Units.inchesToMeters(21);
   public static final double driveBaseRadius = Math.hypot(trackWidth / 2.0, wheelBase / 2.0);
   public static final Translation2d[] moduleTranslations =
       new Translation2d[] {
-        new Translation2d(trackWidth / 2.0, wheelBase / 2.0),
-        new Translation2d(trackWidth / 2.0, -wheelBase / 2.0),
-        new Translation2d(-trackWidth / 2.0, wheelBase / 2.0),
-        new Translation2d(-trackWidth / 2.0, -wheelBase / 2.0)
+        new Translation2d(wheelBase / 2.0, trackWidth / 2.0),
+        new Translation2d(wheelBase / 2.0, -trackWidth / 2.0),
+        new Translation2d(-wheelBase / 2.0, trackWidth / 2.0),
+        new Translation2d(-wheelBase / 2.0, -trackWidth / 2.0)
       };
 
   // Zeroed rotation values for each module, see setup instructions
-  public static final Rotation2d frontLeftZeroRotation = new Rotation2d(-2.2887);
-  public static final Rotation2d frontRightZeroRotation = new Rotation2d(6.5440);
-  public static final Rotation2d backLeftZeroRotation = new Rotation2d(1.4450);
-  public static final Rotation2d backRightZeroRotation = new Rotation2d(-1.8484);
+  public static final Rotation2d frontLeftZeroRotation = new Rotation2d(2.287);
+  public static final Rotation2d frontRightZeroRotation = new Rotation2d(-0.273);
+  public static final Rotation2d backLeftZeroRotation = new Rotation2d(-1.399);
+  public static final Rotation2d backRightZeroRotation = new Rotation2d(1.846);
 
   // Device CAN IDs
   public static final int gyroCanId = 0;
@@ -59,7 +60,6 @@ public class DriveConstants {
   public static final int backRightTurnAbsoluteEncoderCanId = 31;
 
   // Drive motor configuration
-  public static final int driveMotorCurrentLimit = 50;
   public static final double wheelRadiusMeters = 0.0235;
   public static final double driveMotorReduction = 6.75; // SDS MK4 L2
   public static final DCMotor driveGearbox = DCMotor.getNeoVortex(1);
@@ -82,12 +82,13 @@ public class DriveConstants {
 
   // Turn motor configuration
   public static final boolean turnInverted = false;
-  public static final int turnMotorCurrentLimit = 20;
   public static final double turnMotorReduction = 12.8; // SDS MK4
   public static final DCMotor turnGearbox = DCMotor.getNEO(1);
 
-  // Turn encoder configuration
-  public static final boolean turnEncoderInverted = true;
+  // Absolute turn encoder configuration
+  public static final boolean turnEncoderInverted = false;
+
+  // Relative turn encoder configuration
   public static final double turnEncoderPositionFactor =
       (2 * Math.PI) / turnMotorReduction; // Rotations -> Radians
   public static final double turnEncoderVelocityFactor =
@@ -114,7 +115,7 @@ public class DriveConstants {
               maxSpeedMetersPerSec,
               wheelCOF,
               driveGearbox.withReduction(driveMotorReduction),
-              driveMotorCurrentLimit,
+              NEOVortexConstants.kDefaultCurrentLimit,
               1),
           moduleTranslations);
 }
