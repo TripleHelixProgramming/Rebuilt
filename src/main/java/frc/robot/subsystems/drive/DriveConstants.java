@@ -22,7 +22,7 @@ import edu.wpi.first.math.util.Units;
 import frc.robot.Constants.MotorConstants.NEOVortexConstants;
 
 public class DriveConstants {
-  public static final double maxSpeedMetersPerSec = 3.0; // Commented out on reefscape bot
+  public static final double maxSpeedMetersPerSec = 1.0; // Commented out on reefscape bot
   public static final double odometryFrequency = 100.0; // Hz
   public static final double wheelBase = Units.inchesToMeters(27);
   public static final double trackWidth = Units.inchesToMeters(21);
@@ -36,23 +36,23 @@ public class DriveConstants {
       };
 
   // Zeroed rotation values for each module, see setup instructions
-  public static final Rotation2d frontLeftZeroRotation = new Rotation2d(2.287);
-  public static final Rotation2d frontRightZeroRotation = new Rotation2d(-0.273);
-  public static final Rotation2d backLeftZeroRotation = new Rotation2d(-1.399);
-  public static final Rotation2d backRightZeroRotation = new Rotation2d(1.846);
+  public static final Rotation2d frontLeftZeroRotation = new Rotation2d(1.156);
+  public static final Rotation2d frontRightZeroRotation = new Rotation2d(4.396);
+  public static final Rotation2d backLeftZeroRotation = new Rotation2d(4.252);
+  public static final Rotation2d backRightZeroRotation = new Rotation2d(5.977);
 
   // Device CAN IDs
   public static final int gyroCanId = 0;
 
   public static final int frontLeftDriveCanId = 28;
-  public static final int backLeftDriveCanId = 12;
+  public static final int backLeftDriveCanId = 10;
   public static final int frontRightDriveCanId = 20;
-  public static final int backRightDriveCanId = 10;
+  public static final int backRightDriveCanId = 12;
 
   public static final int frontLeftTurnCanId = 29;
-  public static final int backLeftTurnCanId = 13;
+  public static final int backLeftTurnCanId = 11;
   public static final int frontRightTurnCanId = 21;
-  public static final int backRightTurnCanId = 11;
+  public static final int backRightTurnCanId = 13;
 
   public static final int frontLeftTurnAbsoluteEncoderCanId = 43;
   public static final int backLeftTurnAbsoluteEncoderCanId = 45;
