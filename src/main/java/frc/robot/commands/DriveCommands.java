@@ -67,7 +67,7 @@ public class DriveCommands {
   /**
    * Field relative drive command using two joysticks (controlling linear and angular velocities).
    */
-  public static Command joystickDrive(
+  public static Command fieldRelativeJoystickDrive(
       Drive drive,
       DoubleSupplier xSupplier,
       DoubleSupplier ySupplier,
@@ -104,7 +104,7 @@ public class DriveCommands {
   /**
    * Robot relative drive command using two joysticks (controlling linear and angular velocities).
    */
-  public static Command robotRelativeDrive(
+  public static Command robotRelativeJoystickDrive(
       Drive drive,
       DoubleSupplier xSupplier,
       DoubleSupplier ySupplier,
@@ -136,7 +136,7 @@ public class DriveCommands {
    * Possible use cases include snapping to an angle, aiming at a vision target, or controlling
    * absolute rotation with a joystick.
    */
-  public static Command joystickDriveAtAngle(
+  public static Command joystickDriveAtFixedOrientation(
       Drive drive,
       DoubleSupplier xSupplier,
       DoubleSupplier ySupplier,

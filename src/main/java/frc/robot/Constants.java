@@ -64,4 +64,9 @@ public final class Constants {
     // max length is 8
     public static final int[] kAutonomousModeSelectorPorts = {0, 1, 2};
   }
+
+  public static final class OIConstants {
+    public static final int kDefaultDriverControllerPort = 0;
+    public static final int kDefaultOperatorControllerPort = 1;
+  }
 }

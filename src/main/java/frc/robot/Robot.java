@@ -23,14 +23,19 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.GenericHID;
+import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.StartEndCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import frc.lib.AllianceSelector;
 import frc.lib.AutoOption;
 import frc.lib.AutoSelector;
+import frc.lib.CommandZorroController;
+import frc.lib.ControllerPatroller;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.auto.R_MoveStraight;
 import frc.robot.commands.DriveCommands;
@@ -63,10 +68,12 @@ public class Robot extends LoggedRobot {
           AutoConstants.kAutonomousModeSelectorPorts, allianceSelector::getAllianceColor);
 
   // Subsystems
-  private final Drive drive;
+  private Drive drive;
 
-  // Controller
-  private final CommandXboxController controller = new CommandXboxController(0);
+  // Controllers
+  private CommandZorroController driver;
+  private CommandXboxController operator;
+  private Notifier controllerChecker;
 
   public Robot() {
     // Record metadata
@@ -143,6 +150,12 @@ public class Robot extends LoggedRobot {
     // Start AdvantageKit logger
     Logger.start();
 
+    controllerChecker = new Notifier(this::checkControllers);
+    RobotModeTriggers.disabled()
+        .whileTrue(
+            new StartEndCommand(
+                () -> controllerChecker.startPeriodic(0.1), () -> controllerChecker.stop()));
+
     configureButtonBindings();
     configureAutoOptions();
   }
@@ -191,14 +204,6 @@ public class Robot extends LoggedRobot {
   @Override
   public void teleopInit() {
     autoSelector.cancelAuto();
-
-    // Drive in field-relative mode by default
-    drive.setDefaultCommand(
-        DriveCommands.joystickDrive(
-            drive,
-            () -> -controller.getLeftY(),
-            () -> -controller.getLeftX(),
-            () -> -controller.getRightX()));
   }
 
   /** This function is called periodically during operator control. */
@@ -224,6 +229,13 @@ public class Robot extends LoggedRobot {
   @Override
   public void simulationPeriodic() {}
 
+  private void checkControllers() {
+    if (ControllerPatroller.getInstance().controllersChanged()) {
+      // Reset the joysticks & button mappings.
+      configureButtonBindings();
+    }
+  }
+
   /**
    * Use this method to define your button->command mappings. Buttons can be created by
    * instantiating a {@link GenericHID} or one of its subclasses ({@link
@@ -231,22 +243,41 @@ public class Robot extends LoggedRobot {
    * edu.wpi.first.wpilibj2.command.button.JoystickButton}.
    */
   private void configureButtonBindings() {
-    // Lock to 0° when A button is held
-    controller
-        .a()
+    // Clear any active buttons.
+    CommandScheduler.getInstance().getActiveButtonLoop().clear();
+
+    var cp = ControllerPatroller.getInstance();
+
+    // We use two different types of controllers - Zorro & Xbox.
+    // Create Command*Controller objects of the specific types.
+    driver = new CommandZorroController(cp.findDriverPort());
+    operator = new CommandXboxController(cp.findOperatorPort());
+
+    configureDriverButtonBindings();
+    configureOperatorButtonBindings();
+  }
+
+  private void configureDriverButtonBindings() {
+    // Drive in field-relative mode while switch E is up
+    driver.EUp()
         .whileTrue(
-            DriveCommands.joystickDriveAtAngle(
+            DriveCommands.fieldRelativeJoystickDrive(
                 drive,
-                () -> -controller.getLeftY(),
-                () -> -controller.getLeftX(),
-                () -> Rotation2d.kZero));
+                () -> -driver.getRightYAxis(),
+                () -> -driver.getRightXAxis(),
+                () -> -driver.getLeftXAxis()));
 
-    // Switch to X pattern when X button is pressed
-    controller.x().onTrue(Commands.runOnce(drive::stopWithX, drive));
+    // Drive in robot-relative mode while switch E is down
+    driver.EDown()
+        .whileTrue(
+            DriveCommands.robotRelativeJoystickDrive(
+                drive,
+                () -> -driver.getRightYAxis(),
+                () -> -driver.getRightXAxis(),
+                () -> -driver.getLeftXAxis()));
 
-    // Reset gyro to 0° when B button is pressed
-    controller
-        .b()
+    // Reset gyro to 0° when button G is pressed
+    driver.GIn()
         .onTrue(
             Commands.runOnce(
                     () ->
@@ -254,7 +285,21 @@ public class Robot extends LoggedRobot {
                             new Pose2d(drive.getPose().getTranslation(), Rotation2d.kZero)),
                     drive)
                 .ignoringDisable(true));
+
+    // Lock to 0° while button A is held
+    driver.AIn()
+        .whileTrue(
+            DriveCommands.joystickDriveAtFixedOrientation(
+                drive,
+                () -> -driver.getRightYAxis(),
+                () -> -driver.getRightXAxis(),
+                () -> Rotation2d.kZero));
+
+    // Switch to X pattern when button D is pressed
+    driver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
   }
+
+  private void configureOperatorButtonBindings() {}
 
   public void configureAutoOptions() {
     autoSelector.addAuto(new AutoOption(Alliance.Red, 1, new R_MoveStraight(drive)));
