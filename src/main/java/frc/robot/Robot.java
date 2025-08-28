@@ -37,6 +37,7 @@ import frc.lib.AutoSelector;
 import frc.lib.CommandZorroController;
 import frc.lib.ControllerPatroller;
 import frc.robot.Constants.AutoConstants;
+import frc.robot.auto.R_MoveAndRotate;
 import frc.robot.auto.R_MoveStraight;
 import frc.robot.commands.DriveCommands;
 import frc.robot.subsystems.drive.Drive;
@@ -303,6 +304,7 @@ public class Robot extends LoggedRobot {
 
   public void configureAutoOptions() {
     autoSelector.addAuto(new AutoOption(Alliance.Red, 1, new R_MoveStraight(drive)));
+    autoSelector.addAuto(new AutoOption(Alliance.Red, 2, new R_MoveAndRotate(drive)));
   }
 
   public Command getPathOnTheFlyCommand() {

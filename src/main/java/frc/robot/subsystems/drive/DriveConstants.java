@@ -13,20 +13,28 @@
 
 package frc.robot.subsystems.drive;
 
+import static edu.wpi.first.units.Units.*;
+
 import com.pathplanner.lib.config.ModuleConfig;
 import com.pathplanner.lib.config.RobotConfig;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.units.measure.Distance;
+import edu.wpi.first.units.measure.LinearVelocity;
+import edu.wpi.first.units.measure.Mass;
+import edu.wpi.first.units.measure.MomentOfInertia;
 import frc.robot.Constants.MotorConstants.NEOVortexConstants;
 
 public class DriveConstants {
-  public static final double maxSpeedMetersPerSec = 1.0; // Commented out on reefscape bot
+  public static final LinearVelocity maxSpeed =
+      MetersPerSecond.of(1.1); // Commented out on reefscape bot
   public static final double odometryFrequency = 100.0; // Hz
-  public static final double wheelBase = Units.inchesToMeters(27);
-  public static final double trackWidth = Units.inchesToMeters(21);
-  public static final double driveBaseRadius = Math.hypot(trackWidth / 2.0, wheelBase / 2.0);
+  private static final double wheelBase = Units.inchesToMeters(27);
+  private static final double trackWidth = Units.inchesToMeters(21);
+  public static final Distance driveBaseRadius =
+      Meters.of(Math.hypot(trackWidth / 2.0, wheelBase / 2.0));
   public static final Translation2d[] moduleTranslations =
       new Translation2d[] {
         new Translation2d(wheelBase / 2.0, trackWidth / 2.0),
@@ -60,7 +68,7 @@ public class DriveConstants {
   public static final int backRightTurnAbsoluteEncoderCanId = 31;
 
   // Drive motor configuration
-  public static final double wheelRadiusMeters = 0.0235;
+  public static final Distance wheelRadius = Inches.of(2);
   public static final double driveMotorReduction = 6.75; // SDS MK4 L2
   public static final DCMotor driveGearbox = DCMotor.getNeoVortex(1);
 
@@ -103,16 +111,16 @@ public class DriveConstants {
   public static final double turnPIDMaxInput = 2 * Math.PI; // Radians
 
   // PathPlanner configuration
-  public static final double robotMassKg = 74.088;
-  public static final double robotMOI = 6.883;
+  public static final Mass robotMass = Pounds.of(150);
+  public static final MomentOfInertia robotMOI = KilogramSquareMeters.of(6);
   public static final double wheelCOF = 1.2;
   public static final RobotConfig ppConfig =
       new RobotConfig(
-          robotMassKg,
-          robotMOI,
+          robotMass.in(Kilograms),
+          robotMOI.in(KilogramSquareMeters),
           new ModuleConfig(
-              wheelRadiusMeters,
-              maxSpeedMetersPerSec,
+              wheelRadius.in(Meters),
+              maxSpeed.in(MetersPerSecond),
               wheelCOF,
               driveGearbox.withReduction(driveMotorReduction),
               NEOVortexConstants.kDefaultCurrentLimit,

@@ -5,21 +5,21 @@ import choreo.auto.AutoTrajectory;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.subsystems.drive.Drive;
 
-public class R_MoveStraight extends AutoMode {
+public class R_MoveAndRotate extends AutoMode {
 
-  public R_MoveStraight(Drive drivetrain) {
+  public R_MoveAndRotate(Drive drivetrain) {
     super(drivetrain);
   }
 
   // Define routine
-  AutoRoutine routine = super.getAutoFactory().newRoutine("moveForward1m");
+  AutoRoutine routine = super.getAutoFactory().newRoutine("moveAndRotate");
 
   // Load the routine's trajectories
-  AutoTrajectory trajectory = routine.trajectory("moveForward1m");
+  AutoTrajectory trajectory = routine.trajectory("moveAndRotate");
 
   @Override
   public String getName() {
-    return "R_MoveStraight";
+    return "R_MoveAndRotate";
   }
 
   @Override

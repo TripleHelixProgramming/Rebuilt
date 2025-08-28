@@ -1,5 +1,6 @@
 package frc.lib;
 
+import choreo.trajectory.SwerveSample;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.util.Color;
@@ -65,6 +66,10 @@ public class AutoOption {
 
   public Optional<Pose2d> getInitialPose() {
     return (autoMode == null) ? Optional.empty() : autoMode.getInitialPose();
+  }
+
+  public Optional<SwerveSample[]> getInitialTrajectory() {
+    return (autoMode == null) ? Optional.empty() : Optional.of(autoMode.getLoggableTrajectory());
   }
 
   public synchronized String getName() {
