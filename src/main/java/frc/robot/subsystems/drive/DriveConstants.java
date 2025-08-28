@@ -28,8 +28,7 @@ import edu.wpi.first.units.measure.MomentOfInertia;
 import frc.robot.Constants.MotorConstants.NEOVortexConstants;
 
 public class DriveConstants {
-  public static final LinearVelocity maxSpeed =
-      MetersPerSecond.of(1.1); // Commented out on reefscape bot
+  public static final LinearVelocity maxChassisSpeed = MetersPerSecond.of(1.1);
   public static final double odometryFrequency = 100.0; // Hz
   private static final double wheelBase = Units.inchesToMeters(27);
   private static final double trackWidth = Units.inchesToMeters(21);
@@ -75,6 +74,12 @@ public class DriveConstants {
   // Drive encoder configuration
   public static final double driveEncoderPositionFactor =
       2 * Math.PI / driveMotorReduction; // Rotor Rotations -> Wheel Radians
+  public static final LinearVelocity maxWheelSpeed =
+      MetersPerSecond.of(
+          0.9
+              * wheelRadius.in(Meters)
+              * NEOVortexConstants.kFreeSpeed.in(RotationsPerSecond)
+              * driveMotorReduction);
   public static final double driveEncoderVelocityFactor =
       (2 * Math.PI) / 60.0 / driveMotorReduction; // Rotor RPM -> Wheel Rad/Sec
 
@@ -120,7 +125,7 @@ public class DriveConstants {
           robotMOI.in(KilogramSquareMeters),
           new ModuleConfig(
               wheelRadius.in(Meters),
-              maxSpeed.in(MetersPerSecond),
+              maxChassisSpeed.in(MetersPerSecond),
               wheelCOF,
               driveGearbox.withReduction(driveMotorReduction),
               NEOVortexConstants.kDefaultCurrentLimit,

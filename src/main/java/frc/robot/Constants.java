@@ -54,6 +54,7 @@ public final class Constants {
     }
 
     public static final class NEOVortexConstants {
+      public static final AngularVelocity kFreeSpeed = RPM.of(6784);
       public static final int kDefaultCurrentLimit = 60;
     }
   }

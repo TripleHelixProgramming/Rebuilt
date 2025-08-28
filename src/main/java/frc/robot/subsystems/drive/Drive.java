@@ -199,7 +199,7 @@ public class Drive extends SubsystemBase {
     // Calculate module setpoints
     ChassisSpeeds discreteSpeeds = ChassisSpeeds.discretize(speeds, 0.02);
     SwerveModuleState[] setpointStates = kinematics.toSwerveModuleStates(discreteSpeeds);
-    SwerveDriveKinematics.desaturateWheelSpeeds(setpointStates, maxSpeed.in(MetersPerSecond));
+    SwerveDriveKinematics.desaturateWheelSpeeds(setpointStates, maxWheelSpeed.in(MetersPerSecond));
 
     // Log unoptimized setpoints
     Logger.recordOutput("SwerveStates/Setpoints", setpointStates);
@@ -337,11 +337,11 @@ public class Drive extends SubsystemBase {
 
   /** Returns the maximum linear speed in meters per sec. */
   public double getMaxLinearSpeedMetersPerSec() {
-    return maxSpeed.in(MetersPerSecond);
+    return maxChassisSpeed.in(MetersPerSecond);
   }
 
   /** Returns the maximum angular speed in radians per sec. */
   public double getMaxAngularSpeedRadPerSec() {
-    return maxSpeed.in(MetersPerSecond) / driveBaseRadius.in(Meters);
+    return maxChassisSpeed.in(MetersPerSecond) / driveBaseRadius.in(Meters);
   }
 }
