@@ -260,22 +260,14 @@ public class Robot extends LoggedRobot {
 
   private void configureDriverButtonBindings() {
     // Drive in field-relative mode while switch E is up
-    driver.EUp()
-        .whileTrue(
-            DriveCommands.fieldRelativeJoystickDrive(
-                drive,
-                () -> -driver.getRightYAxis(),
-                () -> -driver.getRightXAxis(),
-                () -> -driver.getLeftXAxis()));
-
     // Drive in robot-relative mode while switch E is down
-    driver.EDown()
-        .whileTrue(
-            DriveCommands.robotRelativeJoystickDrive(
-                drive,
-                () -> -driver.getRightYAxis(),
-                () -> -driver.getRightXAxis(),
-                () -> -driver.getLeftXAxis()));
+    drive.setDefaultCommand(
+        DriveCommands.joystickDrive(
+            drive,
+            () -> -driver.getRightYAxis(),
+            () -> -driver.getRightXAxis(),
+            () -> -driver.getLeftXAxis(),
+            () -> driver.getHID().getEUp()));
 
     // Reset gyro to 0° when button G is pressed
     driver.GIn()

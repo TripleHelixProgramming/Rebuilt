@@ -28,7 +28,7 @@ import edu.wpi.first.units.measure.MomentOfInertia;
 import frc.robot.Constants.MotorConstants.NEOVortexConstants;
 
 public class DriveConstants {
-  public static final LinearVelocity maxChassisSpeed = MetersPerSecond.of(1.1);
+  public static final LinearVelocity maxChassisSpeed = MetersPerSecond.of(2.5);
   public static final double odometryFrequency = 100.0; // Hz
   private static final double wheelBase = Units.inchesToMeters(27);
   private static final double trackWidth = Units.inchesToMeters(21);
