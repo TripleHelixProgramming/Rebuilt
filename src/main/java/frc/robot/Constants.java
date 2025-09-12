@@ -67,7 +67,7 @@ public final class Constants {
   }
 
   public static final class OIConstants {
-    public static final int kDefaultDriverControllerPort = 0;
-    public static final int kDefaultOperatorControllerPort = 1;
+    public static final int kDefaultDriverPort = 0;
+    public static final int kDefaultOperatorPort = 1;
   }
 }

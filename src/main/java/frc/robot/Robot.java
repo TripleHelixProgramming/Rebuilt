@@ -1,16 +1,3 @@
-// Copyright 2021-2025 FRC 6328
-// http://github.com/Mechanical-Advantage
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// version 3 as published by the Free Software Foundation or
-// available in the root directory of this project.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-
 package frc.robot;
 
 import com.pathplanner.lib.auto.AutoBuilder;
@@ -22,20 +9,18 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
-import edu.wpi.first.wpilibj.GenericHID;
-import edu.wpi.first.wpilibj.Notifier;
-import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.StartEndCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
-import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import frc.lib.AllianceSelector;
 import frc.lib.AutoOption;
 import frc.lib.AutoSelector;
 import frc.lib.CommandZorroController;
-import frc.lib.ControllerPatroller;
+import frc.lib.ControllerSelector;
+import frc.lib.ControllerSelector.ControllerConfig;
+import frc.lib.ControllerSelector.ControllerFunction;
+import frc.lib.ControllerSelector.ControllerType;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.auto.R_MoveAndRotate;
 import frc.robot.auto.R_MoveStraight;
@@ -70,11 +55,6 @@ public class Robot extends LoggedRobot {
 
   // Subsystems
   private Drive drive;
-
-  // Controllers
-  private CommandZorroController driver;
-  private CommandXboxController operator;
-  private Notifier controllerChecker;
 
   public Robot() {
     // Record metadata
@@ -151,13 +131,7 @@ public class Robot extends LoggedRobot {
     // Start AdvantageKit logger
     Logger.start();
 
-    controllerChecker = new Notifier(this::checkControllers);
-    RobotModeTriggers.disabled()
-        .whileTrue(
-            new StartEndCommand(
-                () -> controllerChecker.startPeriodic(0.1), () -> controllerChecker.stop()));
-
-    configureButtonBindings();
+    configureControlPanelBindings();
     configureAutoOptions();
   }
 
@@ -188,6 +162,7 @@ public class Robot extends LoggedRobot {
   public void disabledPeriodic() {
     allianceSelector.disabledPeriodic();
     autoSelector.disabledPeriodic();
+    ControllerSelector.getInstance().scan();
   }
 
   /** This function is called once when autonomous mode is enabled. */
@@ -230,47 +205,47 @@ public class Robot extends LoggedRobot {
   @Override
   public void simulationPeriodic() {}
 
-  private void checkControllers() {
-    if (ControllerPatroller.getInstance().controllersChanged()) {
-      // Reset the joysticks & button mappings.
-      configureButtonBindings();
-    }
+  private void configureControlPanelBindings() {
+    ControllerSelector.configure(
+        // ZORRO is always preferred as driver in REAL and SIM mode
+        new ControllerConfig(
+            ControllerFunction.DRIVER,
+            ControllerType.ZORRO,
+            this::bindZorroDriver,
+            Constants.Mode.REAL,
+            Constants.Mode.SIM),
+        // XBOX is always preferred as operator in REAL and SIM mode
+        new ControllerConfig(
+            ControllerFunction.OPERATOR,
+            ControllerType.XBOX,
+            this::bindXboxOperator,
+            Constants.Mode.REAL,
+            Constants.Mode.SIM),
+        // XBOX is permitted as driver in REAL and SIM mode
+        new ControllerConfig(
+            ControllerFunction.DRIVER,
+            ControllerType.XBOX,
+            this::bindXboxDriver,
+            Constants.Mode.REAL,
+            Constants.Mode.SIM));
   }
 
-  /**
-   * Use this method to define your button->command mappings. Buttons can be created by
-   * instantiating a {@link GenericHID} or one of its subclasses ({@link
-   * edu.wpi.first.wpilibj.Joystick} or {@link XboxController}), and then passing it to a {@link
-   * edu.wpi.first.wpilibj2.command.button.JoystickButton}.
-   */
-  private void configureButtonBindings() {
-    // Clear any active buttons.
-    CommandScheduler.getInstance().getActiveButtonLoop().clear();
+  public void bindZorroDriver(int port) {
+    var zorroDriver = new CommandZorroController(port);
 
-    var cp = ControllerPatroller.getInstance();
-
-    // We use two different types of controllers - Zorro & Xbox.
-    // Create Command*Controller objects of the specific types.
-    driver = new CommandZorroController(cp.findDriverPort());
-    operator = new CommandXboxController(cp.findOperatorPort());
-
-    configureDriverButtonBindings();
-    configureOperatorButtonBindings();
-  }
-
-  private void configureDriverButtonBindings() {
     // Drive in field-relative mode while switch E is up
     // Drive in robot-relative mode while switch E is down
     drive.setDefaultCommand(
         DriveCommands.joystickDrive(
             drive,
-            () -> -driver.getRightYAxis(),
-            () -> -driver.getRightXAxis(),
-            () -> -driver.getLeftXAxis(),
-            () -> driver.getHID().getEUp()));
+            () -> -zorroDriver.getRightYAxis(),
+            () -> -zorroDriver.getRightXAxis(),
+            () -> -zorroDriver.getLeftXAxis(),
+            () -> zorroDriver.getHID().getEUp()));
 
     // Reset gyro to 0° when button G is pressed
-    driver.GIn()
+    zorroDriver
+        .GIn()
         .onTrue(
             Commands.runOnce(
                     () ->
@@ -280,19 +255,60 @@ public class Robot extends LoggedRobot {
                 .ignoringDisable(true));
 
     // Lock to 0° while button A is held
-    driver.AIn()
+    zorroDriver
+        .AIn()
         .whileTrue(
             DriveCommands.joystickDriveAtFixedOrientation(
                 drive,
-                () -> -driver.getRightYAxis(),
-                () -> -driver.getRightXAxis(),
+                () -> -zorroDriver.getRightYAxis(),
+                () -> -zorroDriver.getRightXAxis(),
                 () -> Rotation2d.kZero));
 
     // Switch to X pattern when button D is pressed
-    driver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
+    zorroDriver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
   }
 
-  private void configureOperatorButtonBindings() {}
+  public void bindXboxDriver(int port) {
+    var xboxDriver = new CommandXboxController(port);
+
+    // Drive in field-relative mode while left bumper is released
+    // Drive in robot-relative mode while left bumper is pressed
+    drive.setDefaultCommand(
+        DriveCommands.joystickDrive(
+            drive,
+            () -> -xboxDriver.getLeftY(),
+            () -> -xboxDriver.getLeftX(),
+            () -> -xboxDriver.getRightX(),
+            () -> !xboxDriver.getHID().getLeftBumperButton()));
+
+    // Reset gyro to 0° when B button is pressed
+    xboxDriver
+        .b()
+        .onTrue(
+            Commands.runOnce(
+                    () ->
+                        drive.setPose(
+                            new Pose2d(drive.getPose().getTranslation(), Rotation2d.kZero)),
+                    drive)
+                .ignoringDisable(true));
+
+    // Lock to 0° when A button is held
+    xboxDriver
+        .a()
+        .whileTrue(
+            DriveCommands.joystickDriveAtFixedOrientation(
+                drive,
+                () -> -xboxDriver.getLeftY(),
+                () -> -xboxDriver.getLeftX(),
+                () -> Rotation2d.kZero));
+
+    // Switch to X pattern when X button is pressed
+    xboxDriver.x().onTrue(Commands.runOnce(drive::stopWithX, drive));
+  }
+
+  public void bindXboxOperator(int port) {
+    var xboxOperator = new CommandXboxController(port);
+  }
 
   public void configureAutoOptions() {
     autoSelector.addAuto(new AutoOption(Alliance.Red, 1, new R_MoveStraight(drive)));
