@@ -4,7 +4,6 @@ import static edu.wpi.first.units.Units.Meters;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -18,6 +17,7 @@ import frc.lib.ControllerSelector.ControllerConfig;
 import frc.lib.ControllerSelector.ControllerFunction;
 import frc.lib.ControllerSelector.ControllerType;
 import frc.robot.Constants.AutoConstants;
+import frc.robot.auto.B_Path;
 import frc.robot.auto.R_MoveAndRotate;
 import frc.robot.auto.R_MoveStraight;
 import frc.robot.commands.DriveCommands;
@@ -28,6 +28,9 @@ import frc.robot.subsystems.drive.GyroIOBoron;
 import frc.robot.subsystems.drive.ModuleIO;
 import frc.robot.subsystems.drive.ModuleIOSim;
 import frc.robot.subsystems.drive.ModuleIOSpark;
+import frc.robot.vision.Camera;
+import frc.robot.vision.Vision;
+import java.util.Arrays;
 import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
@@ -51,6 +54,7 @@ public class Robot extends LoggedRobot {
 
   // Subsystems
   private Drive drive;
+  private Vision vision;
 
   public Robot() {
     // Record metadata
@@ -86,6 +90,7 @@ public class Robot extends LoggedRobot {
                 new ModuleIOSpark(1),
                 new ModuleIOSpark(2),
                 new ModuleIOSpark(3));
+        vision = new Vision(drive);
         break;
 
       case SIM: // Running a physics simulator
@@ -147,6 +152,12 @@ public class Robot extends LoggedRobot {
 
     // Return to non-RT thread priority (do not modify the first argument)
     // Threads.setCurrentThreadPriority(false, 10);
+
+    Logger.recordOutput("Vision/Estimate", vision.getPose().orElse(Pose2d.kZero));
+    Arrays.stream(Camera.values())
+        .forEach(
+            cam ->
+                Logger.recordOutput("Vision/" + cam.getName(), cam.getPose().orElse(Pose2d.kZero)));
   }
 
   /** This function is called once when the robot is disabled. */
@@ -282,7 +293,7 @@ public class Robot extends LoggedRobot {
                 .ignoringDisable(true));
 
     // Drive 1m forward while A button is held
-    // xboxDriver.a().whileTrue(PathCommands.advanceForward(drive, Meters.of(1)));
+    xboxDriver.a().whileTrue(PathCommands.advanceForward(drive, Meters.of(1)));
 
     // Align with pose, approaching in correct orientation from 1 m away
     // xboxDriver
@@ -292,10 +303,10 @@ public class Robot extends LoggedRobot {
     //             drive, new Pose2d(8.2296, 4.1148, Rotation2d.kZero), Meters.of(1)));
 
     // Drive to point, approaching in correct orientation from 2 m away
-    xboxDriver
-        .a()
-        .whileTrue(
-            PathCommands.dockToTargetPoint(drive, new Translation2d(8.2296, 4.1148), Meters.of(2)));
+    // xboxDriver
+    //  .a()
+    // .whileTrue(
+    //     PathCommands.dockToTargetPoint(drive, new Translation2d(8.2296, 4.1148), Meters.of(2)));
 
     // Switch to X pattern when X button is pressed
     xboxDriver.x().onTrue(Commands.runOnce(drive::stopWithX, drive));
@@ -308,5 +319,6 @@ public class Robot extends LoggedRobot {
   public void configureAutoOptions() {
     autoSelector.addAuto(new AutoOption(Alliance.Red, 1, new R_MoveStraight(drive)));
     autoSelector.addAuto(new AutoOption(Alliance.Red, 2, new R_MoveAndRotate(drive)));
+    autoSelector.addAuto(new AutoOption(Alliance.Blue, 3, new B_Path(drive)));
   }
 }
