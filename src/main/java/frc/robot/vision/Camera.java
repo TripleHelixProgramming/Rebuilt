@@ -23,22 +23,9 @@ import org.photonvision.PhotonPoseEstimator.PoseStrategy;
 import org.photonvision.targeting.PhotonTrackedTarget;
 
 public enum Camera implements Subsystem {
-  // FrontRight("OV2311_TH_8", new Translation3d(0.248, -0.318, 0.513), new Rotation3d(0.0, 0.0,
-  // 0.0)),
-  // FrontLeft(
-  //  "OV2311_TH_5", new Translation3d(0.222, 0.331, 0.513), new Rotation3d(0.0, 0, Math.PI / 2.0)),
-  // BackRight(
-  //  "OV2311_TH_6",
-  // new Translation3d(-0.375, -0.331, 0.513),
-  // new Rotation3d(0.0, 0.0, 3.0 * Math.PI / 2.0)),
-  // BackLeft(
-  //  "OV2311_TH_7", new Translation3d(-0.401, 0.318, 0.513), new Rotation3d(0.0, 0.0, Math.PI));
-
-  // FrontRight("OV2311_TH_4", new Translation3d(0.286, -0.332, 0.361), new Rotation3d(0, 0,
-  // 0.768)),
+  FrontRight("OV2311_TH_4", new Translation3d(0.286, -0.332, 0.361), new Rotation3d(0, 0, 0.768)),
   FrontLeft("OV2311_TH_3", new Translation3d(0.292, 0.316, 0.361), new Rotation3d(0, 0, 5.498)),
-  //  BackRight("OV2311_TH_2", new Translation3d(-0.259, -0.346, 0.628), new Rotation3d(0, 0,
-  // 4.311)),
+  BackRight("OV2311_TH_2", new Translation3d(-0.259, -0.346, 0.628), new Rotation3d(0, 0, 4.311)),
   BackLeft("OV2311_TH_1", new Translation3d(-0.252, 0.341, 0.628), new Rotation3d(0, 0, 1.972));
 
   public final String name;
