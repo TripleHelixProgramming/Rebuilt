@@ -50,17 +50,22 @@ public final class Constants {
   public static final class MotorConstants {
     public static final class NEOConstants {
       public static final AngularVelocity kFreeSpeed = RPM.of(5676);
-      public static final int kDefaultCurrentLimit = 60;
+      public static final int kDefaultSupplyCurrentLimit = 60;
     }
 
     public static final class NEO550Constants {
       public static final AngularVelocity kFreeSpeed = RPM.of(11000);
-      public static final int kDefaultCurrentLimit = 20;
+      public static final int kDefaultSupplyCurrentLimit = 20;
     }
 
     public static final class NEOVortexConstants {
       public static final AngularVelocity kFreeSpeed = RPM.of(6784);
-      public static final int kDefaultCurrentLimit = 60;
+      public static final int kDefaultSupplyCurrentLimit = 60;
+    }
+
+    public static final class KrakenX60Constants {
+      public static final AngularVelocity kFreeSpeed = RPM.of(6000);
+      public static final int kDefaultSupplyCurrentLimit = 60;
     }
   }
 

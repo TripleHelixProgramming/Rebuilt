@@ -143,7 +143,7 @@ public class ControllerSelector {
     }
 
     // Perform the initial scan and binding.
-    scan();
+    scan(true);
   }
 
   /**
@@ -200,8 +200,8 @@ public class ControllerSelector {
    *
    * <p>5. Logs the final controller assignments.
    */
-  public void scan() {
-    if (!controllersChanged()) {
+  public void scan(boolean force) {
+    if (!controllersChanged() && !force) {
       return;
     }
 

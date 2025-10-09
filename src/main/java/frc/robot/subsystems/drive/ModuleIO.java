@@ -26,12 +26,13 @@ public interface ModuleIO {
     public double driveCurrentAmps = 0.0;
 
     public boolean turnConnected = false;
+    public boolean turnEncoderConnected = false;
+    public Rotation2d turnAbsolutePosition = Rotation2d.kZero;
     public Rotation2d turnPosition = Rotation2d.kZero;
+    public Rotation2d turnZero = Rotation2d.kZero;
     public double turnVelocityRadPerSec = 0.0;
     public double turnAppliedVolts = 0.0;
     public double turnCurrentAmps = 0.0;
-
-    public double turnPositionAbsolute = 0.0;
 
     public double[] odometryTimestamps = new double[] {};
     public double[] odometryDrivePositionsRad = new double[] {};
@@ -52,4 +53,7 @@ public interface ModuleIO {
 
   /** Run the turn motor to the specified rotation. */
   public default void setTurnPosition(Rotation2d rotation) {}
+
+  /** Update the turn zero position of the turn absolute encoder */
+  public default void setTurnZero(Rotation2d rotation) {}
 }

@@ -5,8 +5,10 @@ import static edu.wpi.first.units.Units.Meters;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.lib.AllianceSelector;
 import frc.lib.AutoOption;
@@ -23,14 +25,13 @@ import frc.robot.auto.R_MoveStraight;
 import frc.robot.commands.DriveCommands;
 import frc.robot.commands.PathCommands;
 import frc.robot.subsystems.drive.Drive;
+import frc.robot.subsystems.drive.DriveConstants;
 import frc.robot.subsystems.drive.GyroIO;
 import frc.robot.subsystems.drive.GyroIOBoron;
 import frc.robot.subsystems.drive.ModuleIO;
 import frc.robot.subsystems.drive.ModuleIOSim;
-import frc.robot.subsystems.drive.ModuleIOSpark;
-import frc.robot.vision.Camera;
+import frc.robot.subsystems.drive.ModuleIOTalonFX;
 import frc.robot.vision.Vision;
-import java.util.Arrays;
 import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
@@ -86,10 +87,10 @@ public class Robot extends LoggedRobot {
         drive =
             new Drive(
                 new GyroIOBoron(),
-                new ModuleIOSpark(0),
-                new ModuleIOSpark(1),
-                new ModuleIOSpark(2),
-                new ModuleIOSpark(3));
+                new ModuleIOTalonFX(DriveConstants.FrontLeft),
+                new ModuleIOTalonFX(DriveConstants.FrontRight),
+                new ModuleIOTalonFX(DriveConstants.BackLeft),
+                new ModuleIOTalonFX(DriveConstants.BackRight));
         vision = new Vision(drive);
         break;
 
@@ -101,10 +102,10 @@ public class Robot extends LoggedRobot {
         drive =
             new Drive(
                 new GyroIO() {},
-                new ModuleIOSim(),
-                new ModuleIOSim(),
-                new ModuleIOSim(),
-                new ModuleIOSim());
+                new ModuleIOSim(DriveConstants.FrontLeft),
+                new ModuleIOSim(DriveConstants.FrontRight),
+                new ModuleIOSim(DriveConstants.BackLeft),
+                new ModuleIOSim(DriveConstants.BackRight));
         break;
 
       case REPLAY: // Replaying a log
@@ -127,6 +128,7 @@ public class Robot extends LoggedRobot {
     }
 
     // Initialize URCL
+    // TODO: Delete if no REV electronics are used
     Logger.registerURCL(URCL.startExternal());
 
     // Start AdvantageKit logger
@@ -134,6 +136,10 @@ public class Robot extends LoggedRobot {
 
     configureControlPanelBindings();
     configureAutoOptions();
+
+    SmartDashboard.putData(
+        "Align Encoders",
+        new InstantCommand(() -> drive.zeroAbsoluteEncoders()).ignoringDisable(true));
   }
 
   /** This function is called periodically during all modes. */
@@ -149,15 +155,18 @@ public class Robot extends LoggedRobot {
     // This must be called from the robot's periodic block in order for anything in
     // the Command-based framework to work.
     CommandScheduler.getInstance().run();
+    SmartDashboard.putData(CommandScheduler.getInstance());
+    SmartDashboard.putData(drive);
 
     // Return to non-RT thread priority (do not modify the first argument)
     // Threads.setCurrentThreadPriority(false, 10);
 
-    Logger.recordOutput("Vision/Estimate", vision.getPose().orElse(Pose2d.kZero));
-    Arrays.stream(Camera.values())
-        .forEach(
-            cam ->
-                Logger.recordOutput("Vision/" + cam.getName(), cam.getPose().orElse(Pose2d.kZero)));
+    // Logger.recordOutput("Vision/Estimate", vision.getPose().orElse(Pose2d.kZero));
+    // Arrays.stream(Camera.values())
+    //     .forEach(
+    //         cam ->
+    //             Logger.recordOutput("Vision/" + cam.getName(),
+    // cam.getPose().orElse(Pose2d.kZero)));
   }
 
   /** This function is called once when the robot is disabled. */
@@ -169,13 +178,13 @@ public class Robot extends LoggedRobot {
   public void disabledPeriodic() {
     allianceSelector.disabledPeriodic();
     autoSelector.disabledPeriodic();
-    ControllerSelector.getInstance().scan();
+    ControllerSelector.getInstance().scan(false);
   }
 
   /** This function is called once when autonomous mode is enabled. */
   @Override
   public void autonomousInit() {
-    drive.setDefaultCommand(Commands.runOnce(drive::stop, drive));
+    drive.setDefaultCommand(Commands.runOnce(drive::stop, drive).withName("Stop"));
     autoSelector.scheduleAuto();
   }
 
@@ -187,6 +196,7 @@ public class Robot extends LoggedRobot {
   @Override
   public void teleopInit() {
     autoSelector.cancelAuto();
+    ControllerSelector.getInstance().scan(true);
   }
 
   /** This function is called periodically during operator control. */
@@ -248,7 +258,8 @@ public class Robot extends LoggedRobot {
             () -> -zorroDriver.getRightYAxis(),
             () -> -zorroDriver.getRightXAxis(),
             () -> -zorroDriver.getLeftXAxis(),
-            () -> zorroDriver.getHID().getEUp()));
+            () -> zorroDriver.getHID().getEUp(),
+            allianceSelector::fieldRotated));
 
     // Reset gyro to 0° when button G is pressed
     zorroDriver
@@ -279,7 +290,8 @@ public class Robot extends LoggedRobot {
             () -> -xboxDriver.getLeftY(),
             () -> -xboxDriver.getLeftX(),
             () -> -xboxDriver.getRightX(),
-            () -> !xboxDriver.getHID().getLeftBumperButton()));
+            () -> !xboxDriver.getHID().getLeftBumperButton(),
+            allianceSelector::fieldRotated));
 
     // Reset gyro to 0° when B button is pressed
     xboxDriver

@@ -21,6 +21,7 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
+import edu.wpi.first.wpilibj.Preferences;
 import org.littletonrobotics.junction.Logger;
 
 public class Module {
@@ -42,6 +43,14 @@ public class Module {
     turnDisconnectedAlert =
         new Alert(
             "Disconnected turn motor on module " + Integer.toString(index) + ".", AlertType.kError);
+
+    // Set turn zero from preferences
+    Rotation2d turnZeroFromCancoder = inputs.turnZero;
+    Preferences.initDouble(zeroRotationKey + index, turnZeroFromCancoder.getRadians());
+    Rotation2d turnZeroFromPreferences =
+        new Rotation2d(
+            Preferences.getDouble(zeroRotationKey + index, turnZeroFromCancoder.getRadians()));
+    io.setTurnZero(turnZeroFromPreferences);
   }
 
   public void periodic() {
@@ -128,5 +137,12 @@ public class Module {
   /** Returns the module velocity in rad/sec. */
   public double getFFCharacterizationVelocity() {
     return inputs.driveVelocityRadPerSec;
+  }
+
+  /** Sets the zero position of the turn axis to the current rotation */
+  public void setTurnZero() {
+    Rotation2d newTurnZero = inputs.turnZero.minus(inputs.turnPosition);
+    io.setTurnZero(newTurnZero);
+    Preferences.setDouble(zeroRotationKey + index, newTurnZero.getRadians());
   }
 }

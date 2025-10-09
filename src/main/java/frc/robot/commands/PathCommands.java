@@ -1,6 +1,7 @@
 package frc.robot.commands;
 
-import static edu.wpi.first.units.Units.Meters;
+import static edu.wpi.first.units.Units.*;
+import static frc.robot.subsystems.drive.DriveConstants.*;
 
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.path.GoalEndState;
@@ -16,7 +17,6 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.DeferredCommand;
 import frc.robot.subsystems.drive.Drive;
-import frc.robot.subsystems.drive.DriveConstants;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -153,7 +153,7 @@ public class PathCommands {
     var path =
         new PathPlannerPath(
             waypoints,
-            DriveConstants.constraints,
+            pathFollowingConstraints,
             // The ideal starting state, this is only relevant for pre-planned paths,
             // so can be null for on-the-fly paths.
             null,
