@@ -13,6 +13,7 @@ import static frc.robot.subsystems.vision.VisionConstants.*;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -36,6 +37,18 @@ public class Vision extends SubsystemBase {
   private final VisionIO[] io;
   private final VisionIOInputsAutoLogged[] inputs;
   private final Alert[] disconnectedAlerts;
+
+  LinearFilter ambiguityTestPassRate = LinearFilter.movingAverage(20);
+  LinearFilter flatPoseTestPassRate = LinearFilter.movingAverage(20);
+  LinearFilter withinBoundsTestPassRate = LinearFilter.movingAverage(20);
+  LinearFilter moreThanZeroTagsTestPassRate = LinearFilter.movingAverage(20);
+
+  LinearFilter[] cameraPassRate = {
+    LinearFilter.movingAverage(20),
+    LinearFilter.movingAverage(20),
+    LinearFilter.movingAverage(20),
+    LinearFilter.movingAverage(20)
+  };
 
   public Vision(VisionConsumer consumer, Supplier<Pose2d> poseSupplier, VisionIO... io) {
     this.consumer = consumer;
@@ -104,23 +117,18 @@ public class Vision extends SubsystemBase {
       // Loop over pose observations
       for (var observation : inputs[cameraIndex].poseObservations) {
         // Check whether to reject pose
-        boolean rejectPose =
+        boolean acceptPose =
             // Must have observed at least one tag
-            observation.tagCount() == 0
+            moreThanZeroTags(observation)
 
                 // Any single-tag observation must have low ambiguity
-                || (observation.tagCount() == 1 && observation.ambiguity() > maxAmbiguity)
+                && hasLowAmbiguity(observation)
 
                 // Pose must be flat on the floor
-                || Math.abs(observation.pose().getZ()) > maxZError.in(Meters)
-                || Math.abs(observation.pose().getRotation().getX()) > maxRollError.in(Radians)
-                || Math.abs(observation.pose().getRotation().getY()) > maxPitchError.in(Radians)
+                && isPoseFlat(observation)
 
                 // Pose must be within the field boundaries
-                || observation.pose().getX() < 0.0
-                || observation.pose().getX() > getAprilTagLayout().getFieldLength()
-                || observation.pose().getY() < 0.0
-                || observation.pose().getY() > getAprilTagLayout().getFieldWidth()
+                && isWithinBoundaries(observation)
 
             // Pose must be within the max possible travel distance
             // TODO: Disable this filter during initial robot setup
@@ -134,14 +142,16 @@ public class Vision extends SubsystemBase {
 
         // Add pose to log
         robotPoses.add(observation.pose());
-        if (rejectPose) {
-          robotPosesRejected.add(observation.pose());
-        } else {
+        if (acceptPose) {
           robotPosesAccepted.add(observation.pose());
+        } else {
+          robotPosesRejected.add(observation.pose());
         }
 
+        cameraPassRate[cameraIndex].calculate(acceptPose ? 1.0 : 0.0);
+
         // Skip if rejected
-        if (rejectPose) {
+        if (!acceptPose) {
           continue;
         }
 
@@ -179,6 +189,9 @@ public class Vision extends SubsystemBase {
       Logger.recordOutput(
           "Vision/Camera" + Integer.toString(cameraIndex) + "/RobotPosesRejected",
           robotPosesRejected.toArray(new Pose3d[robotPosesRejected.size()]));
+      Logger.recordOutput(
+          "Vision/Camera" + Integer.toString(cameraIndex) + "/PassRate",
+          cameraPassRate[cameraIndex].lastValue());
       allTagPoses.addAll(tagPoses);
       allRobotPoses.addAll(robotPoses);
       allRobotPosesAccepted.addAll(robotPosesAccepted);
@@ -203,6 +216,13 @@ public class Vision extends SubsystemBase {
         "Vision/Summary/RobotPosesAccepted", allRobotPosesAccepted.toArray(Pose3d[]::new));
     Logger.recordOutput(
         "Vision/Summary/RobotPosesRejected", allRobotPosesRejected.toArray(Pose3d[]::new));
+
+    Logger.recordOutput("Vision/Summary/AmbiguityTestPassRate", ambiguityTestPassRate.lastValue());
+    Logger.recordOutput("Vision/Summary/FlatPoseTestPassRate", flatPoseTestPassRate.lastValue());
+    Logger.recordOutput(
+        "Vision/Summary/WithinBoundsTestPassRate", withinBoundsTestPassRate.lastValue());
+    Logger.recordOutput(
+        "Vision/Summary/MoreThanZeroTagsTestPassRate", moreThanZeroTagsTestPassRate.lastValue());
   }
 
   @FunctionalInterface
@@ -236,5 +256,43 @@ public class Vision extends SubsystemBase {
       }
     }
     return cachedLayout;
+  }
+
+  public Boolean hasLowAmbiguity(PoseObservation observation) {
+    boolean pass = true;
+    if (observation.tagCount() == 1) {
+      pass = observation.ambiguity() < maxAmbiguity;
+    }
+
+    ambiguityTestPassRate.calculate(pass ? 1.0 : 0.0);
+    return pass;
+  }
+
+  public Boolean isPoseFlat(PoseObservation observation) {
+    boolean pass =
+        Math.abs(observation.pose().getZ()) < maxZError.in(Meters)
+            && Math.abs(observation.pose().getRotation().getX()) < maxRollError.in(Radians)
+            && Math.abs(observation.pose().getRotation().getY()) < maxPitchError.in(Radians);
+
+    flatPoseTestPassRate.calculate(pass ? 1.0 : 0.0);
+    return pass;
+  }
+
+  public Boolean isWithinBoundaries(PoseObservation observation) {
+    boolean pass =
+        observation.pose().getX() > 0.0
+            && observation.pose().getX() < getAprilTagLayout().getFieldLength()
+            && observation.pose().getY() > 0.0
+            && observation.pose().getY() < getAprilTagLayout().getFieldWidth();
+
+    withinBoundsTestPassRate.calculate(pass ? 1.0 : 0.0);
+    return pass;
+  }
+
+  public Boolean moreThanZeroTags(PoseObservation observation) {
+    boolean pass = observation.tagCount() > 0;
+
+    moreThanZeroTagsTestPassRate.calculate(pass ? 1.0 : 0.0);
+    return pass;
   }
 }
