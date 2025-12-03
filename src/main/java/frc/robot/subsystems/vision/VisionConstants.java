@@ -20,7 +20,8 @@ import frc.robot.subsystems.drive.DriveConstants;
 
 public class VisionConstants {
 
-  public static String customAprilTagLayoutPath = Filesystem.getDeployDirectory() + "/stemgym.json";
+  public static String customAprilTagLayoutPath =
+      Filesystem.getDeployDirectory() + "/stemgym-2026.json";
   public static Boolean useCustomAprilTagLayout = true;
   public static AprilTagFields defaultAprilTagFieldLayout = AprilTagFields.k2025ReefscapeAndyMark;
 
