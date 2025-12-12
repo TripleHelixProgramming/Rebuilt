@@ -328,8 +328,15 @@ public class Robot extends LoggedRobot {
                     drive)
                 .ignoringDisable(true));
 
+    // Point at target while A button is held
+    xboxDriver
+        .a()
+        .whileTrue(
+            DriveCommands.pointAtTarget(
+                drive, () -> vision.getTargetX(0), allianceSelector::fieldRotated));
+
     // Drive 1m forward while A button is held
-    xboxDriver.a().whileTrue(PathCommands.advanceForward(drive, Meters.of(1)));
+    // xboxDriver.a().whileTrue(PathCommands.advanceForward(drive, Meters.of(1)));
 
     // Align with pose, approaching in correct orientation from 1 m away
     // xboxDriver

@@ -16,13 +16,19 @@ public interface VisionIO {
   public static class VisionIOInputs {
     public boolean connected = false;
     public TargetObservation latestTargetObservation =
-        new TargetObservation(Rotation2d.kZero, Rotation2d.kZero);
+        new TargetObservation(Rotation2d.kZero, Rotation2d.kZero, Rotation2d.kZero, 0, -1, -1);
     public PoseObservation[] poseObservations = new PoseObservation[0];
     public int[] tagIds = new int[0];
   }
 
   /** Represents the angle to a simple target, not used for pose estimation. */
-  public static record TargetObservation(Rotation2d tx, Rotation2d ty) {}
+  public static record TargetObservation(
+      Rotation2d yaw,
+      Rotation2d pitch,
+      Rotation2d skew,
+      double area,
+      float confidence,
+      int objectID) {}
 
   /** Represents a robot pose sample used for pose estimation. */
   public static record PoseObservation(

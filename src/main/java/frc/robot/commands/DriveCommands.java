@@ -232,6 +232,46 @@ public class DriveCommands {
   }
 
   /**
+   * Field relative drive command using joystick for linear control and PID for angular control.
+   * Possible use cases include snapping to an angle, aiming at a vision target, or controlling
+   * absolute rotation with a joystick.
+   */
+  public static Command pointAtTarget(
+      Drive drive, Supplier<Rotation2d> yawErrorSupplier, BooleanSupplier fieldRotatedSupplier) {
+
+    // Create PID controller
+    ProfiledPIDController angleController =
+        new ProfiledPIDController(
+            ANGLE_KP,
+            0.0,
+            ANGLE_KD,
+            new TrapezoidProfile.Constraints(ANGLE_MAX_VELOCITY, ANGLE_MAX_ACCELERATION));
+    angleController.enableContinuousInput(-Math.PI, Math.PI);
+
+    // Construct command
+    return Commands.run(
+            () -> {
+
+              // Calculate angular speed
+              double omega = angleController.calculate(yawErrorSupplier.get().getRadians(), 0);
+
+              // Convert to field relative speeds & send command
+              ChassisSpeeds speeds = new ChassisSpeeds(0, 0, omega);
+              drive.runVelocity(
+                  ChassisSpeeds.fromFieldRelativeSpeeds(
+                      speeds,
+                      fieldRotatedSupplier.getAsBoolean()
+                          ? drive.getRotation().plus(Rotation2d.kPi)
+                          : drive.getRotation()));
+            },
+            drive)
+        .withName("Point At Target")
+
+        // Reset PID controller when command starts
+        .beforeStarting(() -> angleController.reset(yawErrorSupplier.get().getRadians()));
+  }
+
+  /**
    * Measures the velocity feedforward constants for the drive motors.
    *
    * <p>This command should only be used in voltage control mode.

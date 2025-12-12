@@ -26,20 +26,20 @@ public class VisionConstants {
   public static AprilTagFields defaultAprilTagFieldLayout = AprilTagFields.k2025ReefscapeAndyMark;
 
   // Camera names, must match names configured on coprocessor
-  public static String cameraFrontRightName = "OV2311_TH_4";
-  public static String cameraFrontLeftName = "OV2311_TH_3";
-  public static String cameraBackRightName = "OV2311_TH_2";
-  public static String cameraBackLeftName = "OV2311_TH_1";
+  public static String cameraFrontRightName = "OV2311_TH_8";
+  public static String cameraFrontLeftName = "OV2311_TH_5";
+  public static String cameraBackRightName = "OV2311_TH_6";
+  public static String cameraBackLeftName = "OV2311_TH_7";
 
   // Robot to camera transforms
   public static Transform3d robotToFrontRightCamera =
-      new Transform3d(0.286, -0.332, 0.361, new Rotation3d(0, 0, 0.768));
+      new Transform3d(0.248, -0.318, 0.513, new Rotation3d(0.0, 0.0, 0.0));
   public static Transform3d robotToFrontLeftCamera =
-      new Transform3d(0.292, 0.316, 0.361, new Rotation3d(0, 0, 5.498));
+      new Transform3d(0.222, 0.331, 0.513, new Rotation3d(0.0, 0, Math.PI / 2.0));
   public static Transform3d robotToBackRightCamera =
-      new Transform3d(-0.259, -0.346, 0.628, new Rotation3d(0, 0, 4.311));
+      new Transform3d(-0.375, -0.331, 0.513, new Rotation3d(0.0, 0.0, 3.0 * Math.PI / 2.0));
   public static Transform3d robotToBackLeftCamera =
-      new Transform3d(-0.252, 0.341, 0.628, new Rotation3d(0, 0, 1.972));
+      new Transform3d(-0.401, 0.318, 0.513, new Rotation3d(0.0, 0.0, Math.PI));
 
   public static Distance minRobotWidth = Inches.of(36.875);
 

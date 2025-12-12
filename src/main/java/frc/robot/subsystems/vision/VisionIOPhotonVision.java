@@ -39,15 +39,22 @@ public class VisionIOPhotonVision implements VisionIO {
     // Read new camera observations
     Set<Short> tagIds = new HashSet<>();
     List<PoseObservation> poseObservations = new LinkedList<>();
+
     for (var result : camera.getAllUnreadResults()) {
       // Update latest target observation
       if (result.hasTargets()) {
+        var bestTarget = result.getBestTarget();
         inputs.latestTargetObservation =
             new TargetObservation(
-                Rotation2d.fromDegrees(result.getBestTarget().getYaw()),
-                Rotation2d.fromDegrees(result.getBestTarget().getPitch()));
+                Rotation2d.fromDegrees(bestTarget.getYaw()),
+                Rotation2d.fromDegrees(bestTarget.getPitch()),
+                Rotation2d.fromDegrees(bestTarget.getSkew()),
+                bestTarget.getArea(),
+                bestTarget.getDetectedObjectConfidence(),
+                bestTarget.getDetectedObjectClassID());
       } else {
-        inputs.latestTargetObservation = new TargetObservation(Rotation2d.kZero, Rotation2d.kZero);
+        inputs.latestTargetObservation =
+            new TargetObservation(Rotation2d.kZero, Rotation2d.kZero, Rotation2d.kZero, 0, -1, -1);
       }
 
       // Add pose observation
