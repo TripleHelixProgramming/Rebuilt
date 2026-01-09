@@ -70,6 +70,7 @@ public class AutoSelector implements Supplier<Optional<AutoOption>> {
 
   /** Schedules the command corresponding to the selected autonomous mode */
   public void scheduleAuto() {
+    // TODO: schedule() in Command has been deprecated and marked for removal
     currentAutoOption.ifPresent(ao -> ao.getAutoCommand().ifPresent(Command::schedule));
   }
 
