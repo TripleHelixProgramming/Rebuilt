@@ -5,8 +5,6 @@ import static frc.robot.subsystems.vision.VisionConstants.*;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Transform2d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -22,6 +20,7 @@ import frc.lib.ControllerSelector.ControllerConfig;
 import frc.lib.ControllerSelector.ControllerFunction;
 import frc.lib.ControllerSelector.ControllerType;
 import frc.robot.Constants.AutoConstants;
+import frc.robot.Constants.FieldConstants;
 import frc.robot.auto.B_Path;
 import frc.robot.auto.R_MoveAndRotate;
 import frc.robot.auto.R_MoveStraight;
@@ -333,8 +332,11 @@ public class Robot extends LoggedRobot {
                 drive,
                 () -> -xboxDriver.getLeftY(),
                 () -> -xboxDriver.getLeftX(),
-                // TODO: Calculate the direction from the robot's current pose to the center of the Hub
-                null,
+                // TODO: Point at the hub of the correct alliance color
+                () ->
+                    FieldConstants.kBlueHubCenter
+                        .minus(drive.getPose().getTranslation())
+                        .getAngle(),
                 allianceSelector::fieldRotated));
 
     // Point in the direction of the commanded translation while Y button is held

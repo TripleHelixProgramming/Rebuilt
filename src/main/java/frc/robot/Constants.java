@@ -15,6 +15,7 @@ package frc.robot;
 
 import static edu.wpi.first.units.Units.*;
 
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.RobotBase;
 
@@ -74,5 +75,12 @@ public final class Constants {
   public static final class OIConstants {
     public static final int kDefaultDriverPort = 0;
     public static final int kDefaultOperatorPort = 1;
+  }
+
+  public static final class FieldConstants {
+    public static final Translation2d kBlueHubCenter =
+        new Translation2d(Inches.of(181.56), Inches.of(158.32));
+    public static final Translation2d kRedHubCenter =
+        new Translation2d(Inches.of(650.12 - 181.56), Inches.of(158.32));
   }
 }

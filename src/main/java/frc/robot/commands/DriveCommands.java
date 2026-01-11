@@ -231,9 +231,7 @@ public class DriveCommands {
         .beforeStarting(() -> angleController.reset(drive.getRotation().getRadians()));
   }
 
-  /**
-   * Field relative drive command that orients the robot in the direction of travel
-   */
+  /** Field relative drive command that orients the robot in the direction of travel */
   public static Command joystickDrivePointedForward(
       Drive drive,
       DoubleSupplier xSupplier,
