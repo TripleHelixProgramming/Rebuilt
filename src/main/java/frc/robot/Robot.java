@@ -5,6 +5,8 @@ import static frc.robot.subsystems.vision.VisionConstants.*;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Transform2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -323,12 +325,34 @@ public class Robot extends LoggedRobot {
                     drive)
                 .ignoringDisable(true));
 
-    // Point at target while A button is held
+    // Point at Hub while A button is held
     xboxDriver
         .a()
         .whileTrue(
-            DriveCommands.pointAtTarget(
-                drive, () -> vision.getTargetX(0), allianceSelector::fieldRotated));
+            DriveCommands.joystickDriveAtFixedOrientation(
+                drive,
+                () -> -xboxDriver.getLeftY(),
+                () -> -xboxDriver.getLeftX(),
+                // TODO: Calculate the direction from the robot's current pose to the center of the Hub
+                null,
+                allianceSelector::fieldRotated));
+
+    // Point in the direction of the commanded translation while Y button is held
+    xboxDriver
+        .y()
+        .whileTrue(
+            DriveCommands.joystickDrivePointedForward(
+                drive,
+                () -> -xboxDriver.getLeftY(),
+                () -> -xboxDriver.getLeftX(),
+                allianceSelector::fieldRotated));
+
+    // Point at vision target while A button is held
+    // xboxDriver
+    //     .a()
+    //     .whileTrue(
+    //         DriveCommands.pointAtTarget(
+    //             drive, () -> vision.getTargetX(0), allianceSelector::fieldRotated));
 
     // Drive 1m forward while A button is held
     // xboxDriver.a().whileTrue(PathCommands.advanceForward(drive, Meters.of(1)));
