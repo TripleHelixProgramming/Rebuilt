@@ -3,7 +3,6 @@ package frc.robot;
 import static edu.wpi.first.units.Units.Meters;
 import static frc.robot.subsystems.vision.VisionConstants.*;
 
-import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -97,7 +96,7 @@ public class Robot extends LoggedRobot {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
-                drive::getPose,
+                drive::getVisionPose,
                 new VisionIOPhotonVision(cameraFrontRightName, robotToFrontRightCamera),
                 new VisionIOPhotonVision(cameraFrontLeftName, robotToFrontLeftCamera),
                 new VisionIOPhotonVision(cameraBackRightName, robotToBackRightCamera),
@@ -119,15 +118,15 @@ public class Robot extends LoggedRobot {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
-                drive::getPose,
+                drive::getOdometryPose,
                 new VisionIOPhotonVisionSim(
-                    cameraFrontRightName, robotToFrontRightCamera, drive::getPose),
+                    cameraFrontRightName, robotToFrontRightCamera, drive::getOdometryPose),
                 new VisionIOPhotonVisionSim(
-                    cameraFrontLeftName, robotToFrontLeftCamera, drive::getPose),
+                    cameraFrontLeftName, robotToFrontLeftCamera, drive::getOdometryPose),
                 new VisionIOPhotonVisionSim(
-                    cameraBackRightName, robotToBackRightCamera, drive::getPose),
+                    cameraBackRightName, robotToBackRightCamera, drive::getOdometryPose),
                 new VisionIOPhotonVisionSim(
-                    cameraBackLeftName, robotToBackLeftCamera, drive::getPose));
+                    cameraBackLeftName, robotToBackLeftCamera, drive::getOdometryPose));
         break;
 
       case REPLAY: // Replaying a log
@@ -149,7 +148,7 @@ public class Robot extends LoggedRobot {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
-                drive::getPose,
+                drive::getOdometryPose,
                 new VisionIO() {},
                 new VisionIO() {},
                 new VisionIO() {},
@@ -286,8 +285,10 @@ public class Robot extends LoggedRobot {
         .onTrue(
             Commands.runOnce(
                     () ->
-                        drive.setPose(
-                            new Pose2d(drive.getPose().getTranslation(), Rotation2d.kZero)),
+                        drive.setOdometryRotation(
+                            allianceSelector.fieldRotated()
+                                ? Rotation2d.k180deg
+                                : Rotation2d.kZero),
                     drive)
                 .ignoringDisable(true));
 
@@ -318,8 +319,10 @@ public class Robot extends LoggedRobot {
         .onTrue(
             Commands.runOnce(
                     () ->
-                        drive.setPose(
-                            new Pose2d(drive.getPose().getTranslation(), Rotation2d.kZero)),
+                        drive.setOdometryRotation(
+                            allianceSelector.fieldRotated()
+                                ? Rotation2d.k180deg
+                                : Rotation2d.kZero),
                     drive)
                 .ignoringDisable(true));
 
