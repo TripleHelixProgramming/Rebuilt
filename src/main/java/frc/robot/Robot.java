@@ -283,7 +283,13 @@ public class Robot extends LoggedRobot {
     zorroDriver
         .GIn()
         .onTrue(
-            Commands.runOnce(() -> drive.setOdometryRotation(Rotation2d.kZero), drive)
+            Commands.runOnce(
+                    () ->
+                        drive.setOdometryRotation(
+                            allianceSelector.fieldRotated()
+                                ? Rotation2d.k180deg
+                                : Rotation2d.kZero),
+                    drive)
                 .ignoringDisable(true));
 
     // Drive 1m forward while button A is held
@@ -311,7 +317,13 @@ public class Robot extends LoggedRobot {
     xboxDriver
         .b()
         .onTrue(
-            Commands.runOnce(() -> drive.setOdometryRotation(Rotation2d.kZero), drive)
+            Commands.runOnce(
+                    () ->
+                        drive.setOdometryRotation(
+                            allianceSelector.fieldRotated()
+                                ? Rotation2d.k180deg
+                                : Rotation2d.kZero),
+                    drive)
                 .ignoringDisable(true));
 
     // Point at target while A button is held
