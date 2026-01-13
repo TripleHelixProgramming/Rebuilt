@@ -38,7 +38,7 @@ public class PathCommands {
           @Override
           public Command get() {
             List<Waypoint> waypoints =
-                PathPlannerPath.waypointsFromPoses(drive.getOdometryPose(), targetPose);
+                PathPlannerPath.waypointsFromPoses(drive.getVisionPose(), targetPose);
 
             return AutoBuilder.followPath(createPath(waypoints, targetPose.getRotation()));
           }
@@ -62,7 +62,7 @@ public class PathCommands {
         new Supplier<Command>() {
           @Override
           public Command get() {
-            var initialPose = drive.getOdometryPose();
+            var initialPose = drive.getVisionPose();
             var heading = targetPoint.minus(initialPose.getTranslation()).getAngle();
             var finalPose = new Pose2d(targetPoint, heading);
             List<Waypoint> waypoints =
@@ -95,7 +95,7 @@ public class PathCommands {
           public Command get() {
             List<Waypoint> waypoints =
                 PathPlannerPath.waypointsFromPoses(
-                    drive.getOdometryPose(),
+                    drive.getVisionPose(),
                     targetPose.plus(
                         new Transform2d(leadDistance.unaryMinus(), Meters.of(0), Rotation2d.kZero)),
                     targetPose);
@@ -118,7 +118,7 @@ public class PathCommands {
         new Supplier<Command>() {
           @Override
           public Command get() {
-            var initialPose = drive.getOdometryPose();
+            var initialPose = drive.getVisionPose();
             var waypoints =
                 PathPlannerPath.waypointsFromPoses(
                     initialPose,

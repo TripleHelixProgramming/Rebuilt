@@ -226,7 +226,7 @@ public class Drive extends SubsystemBase {
 
   public void followTrajectory(SwerveSample sample) {
     // Get the current pose of the robot
-    Pose2d pose = getOdometryPose();
+    Pose2d pose = getVisionPose();
 
     // Generate the next speeds for the robot
     ChassisSpeeds speeds =
