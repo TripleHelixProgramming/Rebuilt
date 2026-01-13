@@ -65,10 +65,10 @@ public final class Constants {
   }
 
   public static final class AutoConstants {
-    public static final int kAllianceColorSelectorPort = 0;
+    public static final int kAllianceColorSelectorPort = 3;
 
     // max length is 8
-    public static final int[] kAutonomousModeSelectorPorts = {1, 2, 3};
+    public static final int[] kAutonomousModeSelectorPorts = {0, 1, 2};
   }
 
   public static final class OIConstants {
