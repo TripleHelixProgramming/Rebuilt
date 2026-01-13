@@ -3,7 +3,6 @@ package frc.robot;
 import static edu.wpi.first.units.Units.Meters;
 import static frc.robot.subsystems.vision.VisionConstants.*;
 
-import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -312,11 +311,7 @@ public class Robot extends LoggedRobot {
     xboxDriver
         .b()
         .onTrue(
-            Commands.runOnce(
-                    () ->
-                        drive.setOdometryPose(
-                            new Pose2d(drive.getOdometryPose().getTranslation(), Rotation2d.kZero)),
-                    drive)
+            Commands.runOnce(() -> drive.setOdometryRotation(Rotation2d.kZero), drive)
                 .ignoringDisable(true));
 
     // Point at target while A button is held
