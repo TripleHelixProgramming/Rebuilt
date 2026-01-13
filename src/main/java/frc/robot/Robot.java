@@ -97,7 +97,7 @@ public class Robot extends LoggedRobot {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
-                drive::getPose,
+                drive::getOdometryPose,
                 new VisionIOPhotonVision(cameraFrontRightName, robotToFrontRightCamera),
                 new VisionIOPhotonVision(cameraFrontLeftName, robotToFrontLeftCamera),
                 new VisionIOPhotonVision(cameraBackRightName, robotToBackRightCamera),
@@ -119,15 +119,15 @@ public class Robot extends LoggedRobot {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
-                drive::getPose,
+                drive::getOdometryPose,
                 new VisionIOPhotonVisionSim(
-                    cameraFrontRightName, robotToFrontRightCamera, drive::getPose),
+                    cameraFrontRightName, robotToFrontRightCamera, drive::getOdometryPose),
                 new VisionIOPhotonVisionSim(
-                    cameraFrontLeftName, robotToFrontLeftCamera, drive::getPose),
+                    cameraFrontLeftName, robotToFrontLeftCamera, drive::getOdometryPose),
                 new VisionIOPhotonVisionSim(
-                    cameraBackRightName, robotToBackRightCamera, drive::getPose),
+                    cameraBackRightName, robotToBackRightCamera, drive::getOdometryPose),
                 new VisionIOPhotonVisionSim(
-                    cameraBackLeftName, robotToBackLeftCamera, drive::getPose));
+                    cameraBackLeftName, robotToBackLeftCamera, drive::getOdometryPose));
         break;
 
       case REPLAY: // Replaying a log
@@ -149,7 +149,7 @@ public class Robot extends LoggedRobot {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
-                drive::getPose,
+                drive::getOdometryPose,
                 new VisionIO() {},
                 new VisionIO() {},
                 new VisionIO() {},
@@ -284,11 +284,7 @@ public class Robot extends LoggedRobot {
     zorroDriver
         .GIn()
         .onTrue(
-            Commands.runOnce(
-                    () ->
-                        drive.setPose(
-                            new Pose2d(drive.getPose().getTranslation(), Rotation2d.kZero)),
-                    drive)
+            Commands.runOnce(() -> drive.setOdometryRotation(Rotation2d.kZero), drive)
                 .ignoringDisable(true));
 
     // Drive 1m forward while button A is held
@@ -318,8 +314,8 @@ public class Robot extends LoggedRobot {
         .onTrue(
             Commands.runOnce(
                     () ->
-                        drive.setPose(
-                            new Pose2d(drive.getPose().getTranslation(), Rotation2d.kZero)),
+                        drive.setOdometryPose(
+                            new Pose2d(drive.getOdometryPose().getTranslation(), Rotation2d.kZero)),
                     drive)
                 .ignoringDisable(true));
 
