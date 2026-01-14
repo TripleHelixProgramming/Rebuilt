@@ -209,7 +209,7 @@ public class DriveCommands {
               // Calculate angular speed
               double omega =
                   angleController.calculate(
-                      drive.getOdometryRotation().getRadians(),
+                      drive.getVisionPose().getRotation().getRadians(),
                       rotationSupplier.get().getRadians());
 
               // Convert to field relative speeds & send command
@@ -258,7 +258,8 @@ public class DriveCommands {
               // Calculate angular speed
               double omega =
                   angleController.calculate(
-                      drive.getOdometryRotation().getRadians(), linearVelocity.getAngle().getRadians());
+                      drive.getOdometryRotation().getRadians(),
+                      linearVelocity.getAngle().getRadians());
 
               // Convert to field relative speeds & send command
               ChassisSpeeds speeds =
