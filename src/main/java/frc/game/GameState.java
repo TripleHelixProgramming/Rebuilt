@@ -1,54 +1,113 @@
 package frc.game;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
-
-import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 
 public class GameState {
-    enum GameZone {
-        Neutral, Red, Blue;
+
+    enum GamePhase {
+        None        ("0:00 - 0:00"),
+        Autonomous  ("0:20 - 0:00"),
+        Transition  ("2:20 - 2:10"),
+        Shift1      ("2:10 - 1:45"),
+        Shift2      ("1:45 - 1:20"),
+        Shift3      ("1:20 - 0:55"),
+        Shift4      ("0:55 - 0:30"),
+        EndGame     ("0:30 - 0:00");
+
+        public static final List<GamePhase> TELEOP = List.of(Transition, Shift1, Shift2, Shift3, Shift4, EndGame);
+
+        final double countDownFrom;
+        final double countDownUntil;
+       
+        private GamePhase(String timer) {
+            var times = timer.split("-");
+            this.countDownFrom = parseSeconds(times[0]);
+            this.countDownUntil = parseSeconds(times[1]);
+        }
+
+        private static int parseSeconds(String time) {
+            var parts = time.trim().split(":");
+            return Integer.parseInt(parts[0]) * 60 + Integer.parseInt(parts[1]);
+        }
     }
-    public GameZone getCurrentZone(Pose2d pose) {
-        if(Field.Region.BlueZone.contains(pose)) {
-            return GameZone.Blue;
+    
+    private static Alliance autoWinner = null;
+    private static Alliance myAlliance = null;
+    private static List<GamePhase> teleopSequence = new ArrayList<>(GamePhase.TELEOP);
+    
+    public static GamePhase getCurrentPhase() {
+        if (!DriverStation.isDSAttached() && !DriverStation.isFMSAttached()) {
+            return GamePhase.None;
         }
-        if(Field.Region.RedZone.contains(pose)) {
-            return GameZone.Red;
+        if (DriverStation.getMatchType() == DriverStation.MatchType.None) {
+            return GamePhase.None;
         }
-        if(Field.Region.NeutralZone.contains(pose)) {
-            return GameZone.Neutral;
+        if (DriverStation.isAutonomous()) {
+            return GamePhase.Autonomous;
         }
-        System.err.println("Impossible Field Location");
-        return GameZone.Neutral;
-    }
-    public Alliance getActiveHub() {
-        //TODO: Actually implement this
-        return null;
-    }   
-    public Optional<Alliance> getMyAlliance() {
-        return DriverStation.getAlliance();
+        // Must be in match and teleop
+        var t = getMatchTime();
+        while (!teleopSequence.isEmpty()) {
+            var phase = teleopSequence.get(0);
+            if (t <= phase.countDownUntil) {
+                teleopSequence.remove(0);
+                continue;
+            }
+            return phase;
+        }
+        return GamePhase.EndGame;
     }
 
+   public static Optional<Alliance> getMyAlliance() {
+        if (myAlliance == null) {
+            myAlliance = DriverStation.getAlliance().orElse(null);
+        }
+        return Optional.ofNullable(myAlliance);
+    }
+
+    public static Optional<Alliance> getAutoWinner() {
+        if (autoWinner == null) {
+            var gameData = DriverStation.getGameSpecificMessage();
+            if(gameData.length() > 0)
+            {
+                autoWinner = switch (gameData.charAt(0))
+                {
+                    case 'B' -> Alliance.Blue;
+                    case 'R' -> Alliance.Red;
+                    default -> null;
+                };
+            }
+        }
+        return Optional.ofNullable(autoWinner);
+    }
+
+    public static boolean isMyHubActive() {
+        switch (getCurrentPhase()) {
+            case None:
+            case Autonomous:
+            case Transition:
+            case EndGame:
+                return true;
+            case Shift1:
+            case Shift3:
+                return autoWinner != null && myAlliance != null && autoWinner != myAlliance;
+            case Shift2:
+            case Shift4:
+                return autoWinner != null && myAlliance != null && autoWinner == myAlliance;
+            default:
+                return false;
+        }
+    }
+
+    public static double getMatchTime() {
+        return DriverStation.getMatchTime();
+    }
+
+    public static Optional<Alliance> getAlliance() {
+        return DriverStation.getAlliance();
+    }
 }
-// import edu.wpi.first.wpilibj.DriverStation;
-// String gameData;
-// gameData = DriverStation.getGameSpecificMessage();
-// if(gameData.length() > 0)
-// {
-//   switch (gameData.charAt(0))
-//   {
-//     case 'B' :
-//       //Blue case code
-//       break;
-//     case 'R' :
-//       //Red case code
-//       break;
-//     default :
-//       //This is corrupt data
-//       break;
-//   }
-// } else {
-//   //Code for no data received yet
-// }
