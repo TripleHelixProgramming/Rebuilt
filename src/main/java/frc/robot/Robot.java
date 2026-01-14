@@ -119,15 +119,15 @@ public class Robot extends LoggedRobot {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
-                drive::getOdometryPose,
+                drive::getVisionPose,
                 new VisionIOPhotonVisionSim(
-                    cameraFrontRightName, robotToFrontRightCamera, drive::getOdometryPose),
+                    cameraFrontRightName, robotToFrontRightCamera, drive::getVisionPose),
                 new VisionIOPhotonVisionSim(
-                    cameraFrontLeftName, robotToFrontLeftCamera, drive::getOdometryPose),
+                    cameraFrontLeftName, robotToFrontLeftCamera, drive::getVisionPose),
                 new VisionIOPhotonVisionSim(
-                    cameraBackRightName, robotToBackRightCamera, drive::getOdometryPose),
+                    cameraBackRightName, robotToBackRightCamera, drive::getVisionPose),
                 new VisionIOPhotonVisionSim(
-                    cameraBackLeftName, robotToBackLeftCamera, drive::getOdometryPose));
+                    cameraBackLeftName, robotToBackLeftCamera, drive::getVisionPose));
         break;
 
       case REPLAY: // Replaying a log
@@ -149,7 +149,7 @@ public class Robot extends LoggedRobot {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
-                drive::getOdometryPose,
+                drive::getVisionPose,
                 new VisionIO() {},
                 new VisionIO() {},
                 new VisionIO() {},
