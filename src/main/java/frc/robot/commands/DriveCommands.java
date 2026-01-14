@@ -258,7 +258,7 @@ public class DriveCommands {
               // Calculate angular speed
               double omega =
                   angleController.calculate(
-                      drive.getRotation().getRadians(), linearVelocity.getAngle().getRadians());
+                      drive.getOdometryRotation().getRadians(), linearVelocity.getAngle().getRadians());
 
               // Convert to field relative speeds & send command
               ChassisSpeeds speeds =
@@ -270,14 +270,14 @@ public class DriveCommands {
                   ChassisSpeeds.fromFieldRelativeSpeeds(
                       speeds,
                       fieldRotatedSupplier.getAsBoolean()
-                          ? drive.getRotation().plus(Rotation2d.kPi)
-                          : drive.getRotation()));
+                          ? drive.getOdometryRotation().plus(Rotation2d.kPi)
+                          : drive.getOdometryRotation()));
             },
             drive)
         .withName("Forward Orientated Joystick Drive")
 
         // Reset PID controller when command starts
-        .beforeStarting(() -> angleController.reset(drive.getRotation().getRadians()));
+        .beforeStarting(() -> angleController.reset(drive.getOdometryRotation().getRadians()));
   }
 
   /**

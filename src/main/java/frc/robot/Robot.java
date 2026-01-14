@@ -338,7 +338,7 @@ public class Robot extends LoggedRobot {
                 // TODO: Point at the hub of the correct alliance color
                 () ->
                     FieldConstants.kBlueHubCenter
-                        .minus(drive.getPose().getTranslation())
+                        .minus(drive.getVisionPose().getTranslation())
                         .getAngle(),
                 allianceSelector::fieldRotated));
 
