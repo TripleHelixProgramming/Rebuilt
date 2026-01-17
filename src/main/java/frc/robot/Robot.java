@@ -11,6 +11,7 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import frc.game.GameState;
 import frc.lib.AllianceSelector;
 import frc.lib.AutoOption;
 import frc.lib.AutoSelector;
@@ -183,13 +184,20 @@ public class Robot extends LoggedRobot {
     CommandScheduler.getInstance().run();
     SmartDashboard.putData(CommandScheduler.getInstance());
     SmartDashboard.putData(drive);
+    var autoWinner = "undefined";
+    if (GameState.getAutoWinner().isPresent()) {
+      autoWinner = GameState.getAutoWinner().get().toString();
+    }
+    Logger.recordOutput("GameState/AutoWinner", autoWinner);
+    Logger.recordOutput("GameState/IsMyHubActive", GameState.isMyHubActive());
+    Logger.recordOutput("GameState/GamePhase", GameState.getCurrentPhase());
 
     // Return to non-RT thread priority (do not modify the first argument)
     // Threads.setCurrentThreadPriority(false, 10);
+    GameState.getMyAlliance();
   }
 
   /** This function is called once when the robot is disabled. */
-  @Override
   public void disabledInit() {}
 
   /** This function is called periodically when disabled. */
