@@ -22,8 +22,8 @@ public class VisionConstants {
 
   public static String customAprilTagLayoutPath =
       Filesystem.getDeployDirectory() + "/stemgym-2026.json";
-  public static Boolean useCustomAprilTagLayout = true;
-  public static AprilTagFields defaultAprilTagFieldLayout = AprilTagFields.k2025ReefscapeAndyMark;
+  public static Boolean useCustomAprilTagLayout = false;
+  public static AprilTagFields defaultAprilTagFieldLayout = AprilTagFields.k2026RebuiltAndymark;
 
   // Camera names, must match names configured on coprocessor
   public static String cameraFrontRightName = "OV2311_TH_8";

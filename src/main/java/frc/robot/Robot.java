@@ -19,6 +19,8 @@ import frc.lib.ControllerSelector.ControllerConfig;
 import frc.lib.ControllerSelector.ControllerFunction;
 import frc.lib.ControllerSelector.ControllerType;
 import frc.robot.Constants.AutoConstants;
+import frc.robot.Constants.FieldConstants;
+import frc.robot.auto.B_MoveForward1M;
 import frc.robot.auto.B_Path;
 import frc.robot.auto.R_MoveAndRotate;
 import frc.robot.auto.R_MoveStraight;
@@ -118,15 +120,15 @@ public class Robot extends LoggedRobot {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
-                drive::getOdometryPose,
+                drive::getVisionPose,
                 new VisionIOPhotonVisionSim(
-                    cameraFrontRightName, robotToFrontRightCamera, drive::getOdometryPose),
+                    cameraFrontRightName, robotToFrontRightCamera, drive::getVisionPose),
                 new VisionIOPhotonVisionSim(
-                    cameraFrontLeftName, robotToFrontLeftCamera, drive::getOdometryPose),
+                    cameraFrontLeftName, robotToFrontLeftCamera, drive::getVisionPose),
                 new VisionIOPhotonVisionSim(
-                    cameraBackRightName, robotToBackRightCamera, drive::getOdometryPose),
+                    cameraBackRightName, robotToBackRightCamera, drive::getVisionPose),
                 new VisionIOPhotonVisionSim(
-                    cameraBackLeftName, robotToBackLeftCamera, drive::getOdometryPose));
+                    cameraBackLeftName, robotToBackLeftCamera, drive::getVisionPose));
         break;
 
       case REPLAY: // Replaying a log
@@ -148,7 +150,7 @@ public class Robot extends LoggedRobot {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
-                drive::getOdometryPose,
+                drive::getVisionPose,
                 new VisionIO() {},
                 new VisionIO() {},
                 new VisionIO() {},
@@ -326,12 +328,37 @@ public class Robot extends LoggedRobot {
                     drive)
                 .ignoringDisable(true));
 
-    // Point at target while A button is held
+    // Point at Hub while A button is held
     xboxDriver
         .a()
         .whileTrue(
-            DriveCommands.pointAtTarget(
-                drive, () -> vision.getTargetX(0), allianceSelector::fieldRotated));
+            DriveCommands.joystickDriveAtFixedOrientation(
+                drive,
+                () -> -xboxDriver.getLeftY(),
+                () -> -xboxDriver.getLeftX(),
+                // TODO: Point at the hub of the correct alliance color
+                () ->
+                    FieldConstants.kBlueHubCenter
+                        .minus(drive.getVisionPose().getTranslation())
+                        .getAngle(),
+                allianceSelector::fieldRotated));
+
+    // Point in the direction of the commanded translation while Y button is held
+    xboxDriver
+        .y()
+        .whileTrue(
+            DriveCommands.joystickDrivePointedForward(
+                drive,
+                () -> -xboxDriver.getLeftY(),
+                () -> -xboxDriver.getLeftX(),
+                allianceSelector::fieldRotated));
+
+    // Point at vision target while A button is held
+    // xboxDriver
+    //     .a()
+    //     .whileTrue(
+    //         DriveCommands.pointAtTarget(
+    //             drive, () -> vision.getTargetX(0), allianceSelector::fieldRotated));
 
     // Drive 1m forward while A button is held
     // xboxDriver.a().whileTrue(PathCommands.advanceForward(drive, Meters.of(1)));
@@ -358,6 +385,7 @@ public class Robot extends LoggedRobot {
   }
 
   public void configureAutoOptions() {
+    autoSelector.addAuto(new AutoOption(Alliance.Blue, 1, new B_MoveForward1M(drive)));
     autoSelector.addAuto(new AutoOption(Alliance.Red, 1, new R_MoveStraight(drive)));
     autoSelector.addAuto(new AutoOption(Alliance.Red, 2, new R_MoveAndRotate(drive)));
     autoSelector.addAuto(new AutoOption(Alliance.Blue, 3, new B_Path(drive)));

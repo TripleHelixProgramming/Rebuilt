@@ -209,7 +209,7 @@ public class DriveCommands {
               // Calculate angular speed
               double omega =
                   angleController.calculate(
-                      drive.getOdometryRotation().getRadians(),
+                      drive.getVisionPose().getRotation().getRadians(),
                       rotationSupplier.get().getRadians());
 
               // Convert to field relative speeds & send command
@@ -227,6 +227,55 @@ public class DriveCommands {
             },
             drive)
         .withName("Fixed Orientation Joystick Drive")
+
+        // Reset PID controller when command starts
+        .beforeStarting(() -> angleController.reset(drive.getOdometryRotation().getRadians()));
+  }
+
+  /** Field relative drive command that orients the robot in the direction of travel */
+  public static Command joystickDrivePointedForward(
+      Drive drive,
+      DoubleSupplier xSupplier,
+      DoubleSupplier ySupplier,
+      BooleanSupplier fieldRotatedSupplier) {
+
+    // Create PID controller
+    ProfiledPIDController angleController =
+        new ProfiledPIDController(
+            ANGLE_KP,
+            0.0,
+            ANGLE_KD,
+            new TrapezoidProfile.Constraints(ANGLE_MAX_VELOCITY, ANGLE_MAX_ACCELERATION));
+    angleController.enableContinuousInput(-Math.PI, Math.PI);
+
+    // Construct command
+    return Commands.run(
+            () -> {
+              // Get linear velocity
+              Translation2d linearVelocity =
+                  getLinearVelocityFromJoysticks(xSupplier.getAsDouble(), ySupplier.getAsDouble());
+
+              // Calculate angular speed
+              double omega =
+                  angleController.calculate(
+                      drive.getOdometryRotation().getRadians(),
+                      linearVelocity.getAngle().getRadians());
+
+              // Convert to field relative speeds & send command
+              ChassisSpeeds speeds =
+                  new ChassisSpeeds(
+                      linearVelocity.getX() * drive.getMaxLinearSpeedMetersPerSec(),
+                      linearVelocity.getY() * drive.getMaxLinearSpeedMetersPerSec(),
+                      omega);
+              drive.runVelocity(
+                  ChassisSpeeds.fromFieldRelativeSpeeds(
+                      speeds,
+                      fieldRotatedSupplier.getAsBoolean()
+                          ? drive.getOdometryRotation().plus(Rotation2d.kPi)
+                          : drive.getOdometryRotation()));
+            },
+            drive)
+        .withName("Forward Orientated Joystick Drive")
 
         // Reset PID controller when command starts
         .beforeStarting(() -> angleController.reset(drive.getOdometryRotation().getRadians()));

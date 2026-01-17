@@ -322,7 +322,7 @@ public class Drive extends SubsystemBase {
 
   /** Returns the current odometry pose. */
   @AutoLogOutput(key = "Localizer/Odometry")
-  public Pose2d getOdometryPose() {
+  private Pose2d getOdometryPose() {
     return odometryPose.getEstimatedPosition();
   }
 
@@ -337,7 +337,7 @@ public class Drive extends SubsystemBase {
     return getOdometryPose().getRotation();
   }
 
-  /** Sets the current odometry orientation. */
+  /** Reset the current odometry orientation. */
   public void setOdometryRotation(Rotation2d rotation) {
     setOdometryPose(new Pose2d(getOdometryPose().getTranslation(), rotation));
   }
