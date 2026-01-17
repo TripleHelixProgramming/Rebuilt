@@ -20,6 +20,7 @@ import frc.lib.ControllerSelector.ControllerFunction;
 import frc.lib.ControllerSelector.ControllerType;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.FieldConstants;
+import frc.robot.auto.B_MoveForward1M;
 import frc.robot.auto.B_Path;
 import frc.robot.auto.R_MoveAndRotate;
 import frc.robot.auto.R_MoveStraight;
@@ -384,6 +385,7 @@ public class Robot extends LoggedRobot {
   }
 
   public void configureAutoOptions() {
+    autoSelector.addAuto(new AutoOption(Alliance.Blue, 1, new B_MoveForward1M(drive)));
     autoSelector.addAuto(new AutoOption(Alliance.Red, 1, new R_MoveStraight(drive)));
     autoSelector.addAuto(new AutoOption(Alliance.Red, 2, new R_MoveAndRotate(drive)));
     autoSelector.addAuto(new AutoOption(Alliance.Blue, 3, new B_Path(drive)));
