@@ -294,8 +294,18 @@ public class Robot extends LoggedRobot {
                     drive)
                 .ignoringDisable(true));
 
-    // Drive 1m forward while button A is held
-    zorroDriver.AIn().whileTrue(PathCommands.advanceForward(drive, Meters.of(1)));
+    // Aim at hub
+    zorroDriver.AIn().whileTrue(
+            DriveCommands.joystickDriveAtFixedOrientation(
+                drive,
+                () -> -zorroDriver.getRightYAxis(),
+                () -> -zorroDriver.getRightXAxis(),
+                // TODO: Point at the hub of the correct alliance color
+                () ->
+                    FieldConstants.kBlueHubCenter
+                        .minus(drive.getVisionPose().getTranslation())
+                        .getAngle(),
+                allianceSelector::fieldRotated));
 
     // Switch to X pattern when button D is pressed
     zorroDriver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
