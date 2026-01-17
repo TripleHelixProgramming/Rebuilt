@@ -20,7 +20,7 @@ public class AutoSelectorIO {
   }
 
   public void updateInputs(AutoSelectorIOInputs inputs) {
-    inputs.autoSwitchPosition = getRotarySwitchPosition();
+    inputs.autoSwitchPosition = getBinarySwitchPosition();
   }
 
   /**
