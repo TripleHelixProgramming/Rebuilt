@@ -8,35 +8,156 @@ public class Field {
   public static final double NEUTRAL_ZONE_LENGTH = 283;
 
   enum Region {
-    BlueZone(0, 0, ALLIANCE_ZONE_LENGTH, FIELD_WIDTH),
-    NeutralZone(ALLIANCE_ZONE_LENGTH, 0, NEUTRAL_ZONE_LENGTH, FIELD_WIDTH),
-    RedZone(ALLIANCE_ZONE_LENGTH + NEUTRAL_ZONE_LENGTH, 0, ALLIANCE_ZONE_LENGTH, FIELD_WIDTH),
-    RedLeftTrench(ALLIANCE_ZONE_LENGTH + NEUTRAL_ZONE_LENGTH, FIELD_WIDTH, 65.65, 47),
-    RedRightTrench(ALLIANCE_ZONE_LENGTH + NEUTRAL_ZONE_LENGTH, 0, 65.65, 47),
-    BlueLeftTrench(ALLIANCE_ZONE_LENGTH, FIELD_WIDTH, 65.65, 47),
-    BlueRightTrench(ALLIANCE_ZONE_LENGTH, 0, 65.65, 47),
-    BlueDepot(ALLIANCE_ZONE_LENGTH, 65.65, 42, 27),
-    RedDepot(FIELD_WIDTH, 91.4 + 73, 42, 27),
-    BlueTower(ALLIANCE_ZONE_LENGTH, 91.4, 49.25, 45),
-    RedTower(FIELD_WIDTH, 91.4, 49.25, 45),
-    BlueHub(ALLIANCE_ZONE_LENGTH, 91.4, 47, 47),
-    RedHub(ALLIANCE_ZONE_LENGTH + NEUTRAL_ZONE_LENGTH, 91.4, 47, 47),
-    RedLeftBump(ALLIANCE_ZONE_LENGTH + NEUTRAL_ZONE_LENGTH, 135.8, 73, 44.4),
-    RedRightBump(ALLIANCE_ZONE_LENGTH + NEUTRAL_ZONE_LENGTH, 47, 73, 44.4),
-    BlueLeftBump(ALLIANCE_ZONE_LENGTH, 135.8, 73, 44.4),
-    BlueRightBump(ALLIANCE_ZONE_LENGTH, 47, 73, 44.4),
-    FuelArrangement(NEUTRAL_ZONE_LENGTH / 2 + 72 / 2, 317.7 - 47 * 2, 72, 206);
+    BlueZone(
+        build()
+            .xpos(0)
+            .ypos(0)
+            .xlen(ALLIANCE_ZONE_LENGTH)
+            .ylen(FIELD_WIDTH)),
+    NeutralZone(
+        build()
+            .xpos(ALLIANCE_ZONE_LENGTH)
+            .ypos(0)
+            .xlen(NEUTRAL_ZONE_LENGTH)
+            .ylen(FIELD_WIDTH)),
+    RedZone(
+        build()
+            .xpos(ALLIANCE_ZONE_LENGTH + NEUTRAL_ZONE_LENGTH)
+            .ypos(0)
+            .xlen(ALLIANCE_ZONE_LENGTH)
+            .ylen(FIELD_WIDTH)),
+    RedLeftTrench(
+        build()
+            .xpos(ALLIANCE_ZONE_LENGTH + NEUTRAL_ZONE_LENGTH)
+            .ypos(FIELD_WIDTH)
+            .xlen(65.65)
+            .ylen(47)),
+    RedRightTrench(
+        build()
+            .xpos(ALLIANCE_ZONE_LENGTH + NEUTRAL_ZONE_LENGTH)
+            .ypos(0)
+            .xlen(65.65)
+            .ylen(47)),
+    BlueLeftTrench(
+        build()
+            .xpos(ALLIANCE_ZONE_LENGTH)
+            .ypos(FIELD_WIDTH)
+            .xlen(65.65)
+            .ylen(47)),
+    BlueRightTrench(
+        build()
+            .xpos(ALLIANCE_ZONE_LENGTH)
+            .ypos(0)
+            .xlen(65.65)
+            .ylen(47)),
+    BlueDepot(
+        build()
+            .xpos(ALLIANCE_ZONE_LENGTH)
+            .ypos(65.65)
+            .xlen(42)
+            .ylen(27)),
+    RedDepot(
+        build()
+            .xpos(FIELD_WIDTH)
+            .ypos(91.4 + 73)
+            .xlen(42)
+            .ylen(27)),
+    BlueTower(
+        build()
+            .xpos(ALLIANCE_ZONE_LENGTH)
+            .ypos(91.4)
+            .xlen(49.25)
+            .ylen(45)),
+    RedTower(
+        build()
+            .xpos(FIELD_WIDTH)
+            .ypos(91.4)
+            .xlen(49.25)
+            .ylen(45)),
+    BlueHub(
+        build()
+            .xpos(ALLIANCE_ZONE_LENGTH)
+            .ypos(91.4)
+            .xlen(47)
+            .ylen(47)),
+    RedHub(
+        build()
+            .xpos(ALLIANCE_ZONE_LENGTH + NEUTRAL_ZONE_LENGTH)
+            .ypos(91.4)
+            .xlen(47)
+            .ylen(47)),
+    RedLeftBump(
+        build()
+            .xpos(ALLIANCE_ZONE_LENGTH + NEUTRAL_ZONE_LENGTH)
+            .ypos(135.8)
+            .xlen(73)
+            .ylen(44.4)),
+    RedRightBump(
+        build()
+            .xpos(ALLIANCE_ZONE_LENGTH + NEUTRAL_ZONE_LENGTH)
+            .ypos(47)
+            .xlen(73)
+            .ylen(44.4)),
+    BlueLeftBump(
+        build()
+            .xpos(ALLIANCE_ZONE_LENGTH)
+            .ypos(135.8)
+            .xlen(73)
+            .ylen(44.4)),
+    BlueRightBump(
+        build()
+            .xpos(ALLIANCE_ZONE_LENGTH)
+            .ypos(47)
+            .xlen(73)
+            .ylen(44.4)),
+    FuelArrangement(
+        build()
+            .xpos(NEUTRAL_ZONE_LENGTH / 2 + 72 / 2)
+            .ypos(317.7 - 47 * 2)
+            .xlen(72)
+            .ylen(206));
 
     public final double xpos;
     public final double ypos;
     public final double xlen;
     public final double ylen;
 
-    private Region(double xpos, double ypos, double xlen, double ylen) {
-      this.xpos = xpos;
-      this.ypos = ypos;
-      this.xlen = xlen;
-      this.ylen = ylen;
+    private Region(Builder builder) {
+      this.xpos = builder.xpos;
+      this.ypos = builder.ypos;
+      this.xlen = builder.xlen;
+      this.ylen = builder.ylen;
+    }
+
+    public static Builder build() {
+      return new Builder();
+    }
+
+    public static class Builder {
+      double xpos;
+      double ypos;
+      double xlen;
+      double ylen;
+
+      public Builder xpos(double xpos) {
+        this.xpos = xpos;
+        return this;
+      }
+
+      public Builder ypos(double ypos) {
+        this.ypos = ypos;
+        return this;
+      }
+
+      public Builder xlen(double xlen) {
+        this.xlen = xlen;
+        return this;
+      }
+
+      public Builder ylen(double ylen) {
+        this.ylen = ylen;
+        return this;
+      }
     }
 
     public boolean contains(Pose2d pose) {
