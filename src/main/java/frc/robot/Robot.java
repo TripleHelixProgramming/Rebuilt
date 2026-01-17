@@ -184,17 +184,11 @@ public class Robot extends LoggedRobot {
     CommandScheduler.getInstance().run();
     SmartDashboard.putData(CommandScheduler.getInstance());
     SmartDashboard.putData(drive);
-    var autoWinner = "undefined";
-    if (GameState.getAutoWinner().isPresent()) {
-      autoWinner = GameState.getAutoWinner().get().toString();
-    }
-    Logger.recordOutput("GameState/AutoWinner", autoWinner);
-    Logger.recordOutput("GameState/IsMyHubActive", GameState.isMyHubActive());
-    Logger.recordOutput("GameState/GamePhase", GameState.getCurrentPhase());
+
+    GameState.logValues();
 
     // Return to non-RT thread priority (do not modify the first argument)
     // Threads.setCurrentThreadPriority(false, 10);
-    GameState.getMyAlliance();
   }
 
   /** This function is called once when the robot is disabled. */

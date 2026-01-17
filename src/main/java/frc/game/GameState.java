@@ -2,7 +2,6 @@ package frc.game;
 
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.littletonrobotics.junction.Logger;
@@ -37,39 +36,24 @@ public class GameState {
     }
   }
 
-  private static Alliance autoWinner = null;
-  private static Alliance myAlliance = null;
-  private static List<GamePhase> teleopSequence = new ArrayList<>(GamePhase.TELEOP);
+  private static Alliance autoWinner;
+  private static Alliance myAlliance;
 
   public static GamePhase getCurrentPhase() {
-    Logger.recordOutput("GameState/IsDSAttached", DriverStation.isDSAttached());
-    Logger.recordOutput("GameState/IsFMSAttached", DriverStation.isFMSAttached());
-    Logger.recordOutput("GameState/MatchType", DriverStation.getMatchType());
-    Logger.recordOutput("GameState/IsAutonomus", DriverStation.isAutonomous());
-    Logger.recordOutput("GameState/MatchTime", DriverStation.getMatchTime());
     if (!DriverStation.isDSAttached() && !DriverStation.isFMSAttached()) {
       return GamePhase.None;
     }
-    // if (DriverStation.getMatchType() == DriverStation.MatchType.None) {
-    //   return GamePhase.None;
-    // }
     if (DriverStation.isAutonomous()) {
       return GamePhase.Autonomous;
     }
     // Must be in match and teleop
     var t = getMatchTime();
-    if (t < 0) {
-      return GamePhase.Transition;
-    }
-    while (!teleopSequence.isEmpty()) {
-      var phase = teleopSequence.get(0);
-      if (t <= phase.countDownUntil) {
-        teleopSequence.remove(0);
-        continue;
+    for (var gamePhase : GamePhase.TELEOP) {
+      if (t <= gamePhase.countDownFrom && t > gamePhase.countDownUntil) {
+        return gamePhase;
       }
-      return phase;
     }
-    return GamePhase.EndGame;
+    return GamePhase.None;
   }
 
   public static Optional<Alliance> getMyAlliance() {
@@ -95,7 +79,6 @@ public class GameState {
   }
 
   public static boolean isMyHubActive() {
-    Logger.recordOutput("GameState/MyAlliance", myAlliance);
     switch (getCurrentPhase()) {
       case None:
       case Autonomous:
@@ -119,5 +102,20 @@ public class GameState {
 
   public static Optional<Alliance> getAlliance() {
     return DriverStation.getAlliance();
+  }
+
+  public static void logValues() {
+    getMyAlliance();
+    getAutoWinner();
+    Logger.recordOutput("GameState/IsDSAttached", DriverStation.isDSAttached());
+    Logger.recordOutput("GameState/IsFMSAttached", DriverStation.isFMSAttached());
+    Logger.recordOutput("GameState/MatchType", DriverStation.getMatchType());
+    Logger.recordOutput("GameState/IsAutonomus", DriverStation.isAutonomous());
+    Logger.recordOutput("GameState/MatchTime", DriverStation.getMatchTime());
+    Logger.recordOutput("GameState/AutoWinner", autoWinner);
+    Logger.recordOutput("GameState/Alliance", myAlliance);
+    Logger.recordOutput("GameState/GameData", DriverStation.getGameSpecificMessage());
+    Logger.recordOutput("GameState/CurrentPhase", getCurrentPhase());
+    Logger.recordOutput("GameState/IsMyHubActive", isMyHubActive());
   }
 }
