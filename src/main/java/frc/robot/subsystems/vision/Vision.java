@@ -54,6 +54,9 @@ public class Vision extends SubsystemBase {
   private ArrayList<Pose3d> robotPosesAccepted = new ArrayList<Pose3d>();
   private ArrayList<Pose3d> robotPosesRejected = new ArrayList<Pose3d>();
 
+  // Initialize scoring results
+  private EnumMap<VisionTest, Double> testResults = new EnumMap<>(VisionTest.class);
+
   LinearFilter[] cameraPassRate = {
     LinearFilter.movingAverage(20),
     LinearFilter.movingAverage(20),
@@ -127,7 +130,7 @@ public class Vision extends SubsystemBase {
 
       // Loop over pose observations
       for (var observation : inputs[cameraIndex].poseObservations) {
-        EnumMap<VisionTest, Double> testResults = new EnumMap<>(VisionTest.class);
+        testResults.clear();
 
         testResults.put(VisionTest.moreThanZeroTags, VisionTest.moreThanZeroTags.test(observation));
         testResults.put(VisionTest.unambiguous, VisionTest.unambiguous.test(observation));
