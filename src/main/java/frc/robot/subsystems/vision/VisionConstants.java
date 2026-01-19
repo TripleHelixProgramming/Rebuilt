@@ -59,4 +59,8 @@ public class VisionConstants {
 
   public static double maxStdDev = 1.0; // Meters
   public static double minScore = linearStdDevBaseline / maxStdDev;
+
+  // Feature flags
+  public static boolean kLogIndividualCameraPoses = false;
+  public static boolean kLogSummaryPoses = true;
 }
