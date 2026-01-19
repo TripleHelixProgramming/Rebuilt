@@ -39,6 +39,24 @@ public class Vision extends SubsystemBase {
   private final VisionIOInputsAutoLogged[] inputs;
   private final Alert[] disconnectedAlerts;
 
+  // Initialize logging values
+  private ArrayList<Pose3d> allTagPoses = new ArrayList<Pose3d>();
+  private ArrayList<Pose3d> allRobotPoses = new ArrayList<Pose3d>();
+  private ArrayList<Pose3d> allRobotPosesAccepted = new ArrayList<Pose3d>();
+  private ArrayList<Pose3d> allRobotPosesRejected = new ArrayList<Pose3d>();
+
+  // List to store acceptable observations
+  private ArrayList<TestedObservation> observations = new ArrayList<TestedObservation>();
+
+  // Initialize logging values
+  private ArrayList<Pose3d> tagPoses = new ArrayList<Pose3d>();
+  private ArrayList<Pose3d> robotPoses = new ArrayList<Pose3d>();
+  private ArrayList<Pose3d> robotPosesAccepted = new ArrayList<Pose3d>();
+  private ArrayList<Pose3d> robotPosesRejected = new ArrayList<Pose3d>();
+
+  // Initialize scoring results
+  private EnumMap<VisionTest, Double> testResults = new EnumMap<>(VisionTest.class);
+
   LinearFilter[] cameraPassRate = {
     LinearFilter.movingAverage(20),
     LinearFilter.movingAverage(20),
@@ -83,13 +101,13 @@ public class Vision extends SubsystemBase {
     }
 
     // Initialize logging values
-    var allTagPoses = new ArrayList<Pose3d>();
-    var allRobotPoses = new ArrayList<Pose3d>();
-    var allRobotPosesAccepted = new ArrayList<Pose3d>();
-    var allRobotPosesRejected = new ArrayList<Pose3d>();
+    allTagPoses.clear();
+    allRobotPoses.clear();
+    allRobotPosesAccepted.clear();
+    allRobotPosesRejected.clear();
 
     // List to store acceptable observations
-    var observations = new ArrayList<TestedObservation>();
+    observations.clear();
 
     // Loop over cameras
     for (int cameraIndex = 0; cameraIndex < io.length; cameraIndex++) {
@@ -97,10 +115,10 @@ public class Vision extends SubsystemBase {
       disconnectedAlerts[cameraIndex].set(!inputs[cameraIndex].connected);
 
       // Initialize logging values
-      var tagPoses = new ArrayList<Pose3d>();
-      var robotPoses = new ArrayList<Pose3d>();
-      var robotPosesAccepted = new ArrayList<Pose3d>();
-      var robotPosesRejected = new ArrayList<Pose3d>();
+      tagPoses.clear();
+      robotPoses.clear();
+      robotPosesAccepted.clear();
+      robotPosesRejected.clear();
 
       // Add tag poses
       for (int tagId : inputs[cameraIndex].tagIds) {
@@ -112,7 +130,7 @@ public class Vision extends SubsystemBase {
 
       // Loop over pose observations
       for (var observation : inputs[cameraIndex].poseObservations) {
-        EnumMap<VisionTest, Double> testResults = new EnumMap<>(VisionTest.class);
+        testResults.clear();
 
         testResults.put(VisionTest.moreThanZeroTags, VisionTest.moreThanZeroTags.test(observation));
         testResults.put(VisionTest.unambiguous, VisionTest.unambiguous.test(observation));
@@ -187,8 +205,12 @@ public class Vision extends SubsystemBase {
     if (kLogSummaryPoses) {
       Logger.recordOutput("Vision/Summary/TagPoses", allTagPoses.toArray(Pose3d[]::new));
       Logger.recordOutput("Vision/Summary/RobotPoses", allRobotPoses.toArray(Pose3d[]::new));
+    }
+    if (kLogAcceptedPoses) {
       Logger.recordOutput(
           "Vision/Summary/RobotPosesAccepted", allRobotPosesAccepted.toArray(Pose3d[]::new));
+    }
+    if (kLogRejectedPoses) {
       Logger.recordOutput(
           "Vision/Summary/RobotPosesRejected", allRobotPosesRejected.toArray(Pose3d[]::new));
     }
