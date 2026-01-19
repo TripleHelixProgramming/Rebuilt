@@ -81,6 +81,10 @@ public class Drive extends SubsystemBase {
       new SwerveDrivePoseEstimator(kinematics, rawGyroRotation, lastModulePositions, new Pose2d());
   private Boolean firstVisionEstimate = true;
 
+  private final SwerveModuleState[] emptyModuleStates = new SwerveModuleState[] {};
+  private SwerveModulePosition[] modulePositions = new SwerveModulePosition[4];
+  private SwerveModulePosition[] moduleDeltas = new SwerveModulePosition[4];
+
   // PID controllers for following Choreo trajectories
   private final PIDController xController = new PIDController(5.0, 0.0, 0.0);
   private final PIDController yController = new PIDController(5.0, 0.0, 0.0);
@@ -159,8 +163,8 @@ public class Drive extends SubsystemBase {
 
     // Log empty setpoint states when disabled
     if (DriverStation.isDisabled()) {
-      Logger.recordOutput("SwerveStates/Setpoints", new SwerveModuleState[] {});
-      Logger.recordOutput("SwerveStates/SetpointsOptimized", new SwerveModuleState[] {});
+      Logger.recordOutput("SwerveStates/Setpoints", emptyModuleStates);
+      Logger.recordOutput("SwerveStates/SetpointsOptimized", emptyModuleStates);
     }
 
     // Update odometry
@@ -169,8 +173,6 @@ public class Drive extends SubsystemBase {
     int sampleCount = sampleTimestamps.length;
     for (int i = 0; i < sampleCount; i++) {
       // Read wheel positions and deltas from each module
-      SwerveModulePosition[] modulePositions = new SwerveModulePosition[4];
-      SwerveModulePosition[] moduleDeltas = new SwerveModulePosition[4];
       for (int moduleIndex = 0; moduleIndex < 4; moduleIndex++) {
         modulePositions[moduleIndex] = modules[moduleIndex].getOdometryPositions()[i];
         moduleDeltas[moduleIndex] =
