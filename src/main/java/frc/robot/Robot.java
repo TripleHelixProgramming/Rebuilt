@@ -1,9 +1,7 @@
 package frc.robot;
 
-import static edu.wpi.first.units.Units.Meters;
 import static frc.robot.subsystems.vision.VisionConstants.*;
 
-import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -20,11 +18,13 @@ import frc.lib.ControllerSelector.ControllerConfig;
 import frc.lib.ControllerSelector.ControllerFunction;
 import frc.lib.ControllerSelector.ControllerType;
 import frc.robot.Constants.AutoConstants;
+import frc.robot.Constants.FieldConstants;
+import frc.robot.auto.B_MoveForward1M;
 import frc.robot.auto.B_Path;
 import frc.robot.auto.R_MoveAndRotate;
 import frc.robot.auto.R_MoveStraight;
+import frc.robot.auto.TraversingTheBump;
 import frc.robot.commands.DriveCommands;
-import frc.robot.commands.PathCommands;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.DriveConstants;
 import frc.robot.subsystems.drive.GyroIO;
@@ -97,7 +97,7 @@ public class Robot extends LoggedRobot {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
-                drive::getPose,
+                drive::getVisionPose,
                 new VisionIOPhotonVision(cameraFrontRightName, robotToFrontRightCamera),
                 new VisionIOPhotonVision(cameraFrontLeftName, robotToFrontLeftCamera),
                 new VisionIOPhotonVision(cameraBackRightName, robotToBackRightCamera),
@@ -119,15 +119,15 @@ public class Robot extends LoggedRobot {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
-                drive::getPose,
+                drive::getVisionPose,
                 new VisionIOPhotonVisionSim(
-                    cameraFrontRightName, robotToFrontRightCamera, drive::getPose),
+                    cameraFrontRightName, robotToFrontRightCamera, drive::getVisionPose),
                 new VisionIOPhotonVisionSim(
-                    cameraFrontLeftName, robotToFrontLeftCamera, drive::getPose),
+                    cameraFrontLeftName, robotToFrontLeftCamera, drive::getVisionPose),
                 new VisionIOPhotonVisionSim(
-                    cameraBackRightName, robotToBackRightCamera, drive::getPose),
+                    cameraBackRightName, robotToBackRightCamera, drive::getVisionPose),
                 new VisionIOPhotonVisionSim(
-                    cameraBackLeftName, robotToBackLeftCamera, drive::getPose));
+                    cameraBackLeftName, robotToBackLeftCamera, drive::getVisionPose));
         break;
 
       case REPLAY: // Replaying a log
@@ -149,7 +149,7 @@ public class Robot extends LoggedRobot {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
-                drive::getPose,
+                drive::getVisionPose,
                 new VisionIO() {},
                 new VisionIO() {},
                 new VisionIO() {},
@@ -286,13 +286,27 @@ public class Robot extends LoggedRobot {
         .onTrue(
             Commands.runOnce(
                     () ->
-                        drive.setPose(
-                            new Pose2d(drive.getPose().getTranslation(), Rotation2d.kZero)),
+                        drive.setOdometryRotation(
+                            allianceSelector.fieldRotated()
+                                ? Rotation2d.k180deg
+                                : Rotation2d.kZero),
                     drive)
                 .ignoringDisable(true));
 
-    // Drive 1m forward while button A is held
-    zorroDriver.AIn().whileTrue(PathCommands.advanceForward(drive, Meters.of(1)));
+    // Aim at hub
+    zorroDriver
+        .AIn()
+        .whileTrue(
+            DriveCommands.joystickDriveAtFixedOrientation(
+                drive,
+                () -> -zorroDriver.getRightYAxis(),
+                () -> -zorroDriver.getRightXAxis(),
+                // TODO: Point at the hub of the correct alliance color
+                () ->
+                    FieldConstants.kBlueHubCenter
+                        .minus(drive.getVisionPose().getTranslation())
+                        .getAngle(),
+                allianceSelector::fieldRotated));
 
     // Switch to X pattern when button D is pressed
     zorroDriver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
@@ -318,17 +332,44 @@ public class Robot extends LoggedRobot {
         .onTrue(
             Commands.runOnce(
                     () ->
-                        drive.setPose(
-                            new Pose2d(drive.getPose().getTranslation(), Rotation2d.kZero)),
+                        drive.setOdometryRotation(
+                            allianceSelector.fieldRotated()
+                                ? Rotation2d.k180deg
+                                : Rotation2d.kZero),
                     drive)
                 .ignoringDisable(true));
 
-    // Point at target while A button is held
+    // Point at Hub while A button is held
     xboxDriver
         .a()
         .whileTrue(
-            DriveCommands.pointAtTarget(
-                drive, () -> vision.getTargetX(0), allianceSelector::fieldRotated));
+            DriveCommands.joystickDriveAtFixedOrientation(
+                drive,
+                () -> -xboxDriver.getLeftY(),
+                () -> -xboxDriver.getLeftX(),
+                // TODO: Point at the hub of the correct alliance color
+                () ->
+                    FieldConstants.kBlueHubCenter
+                        .minus(drive.getVisionPose().getTranslation())
+                        .getAngle(),
+                allianceSelector::fieldRotated));
+
+    // Point in the direction of the commanded translation while Y button is held
+    xboxDriver
+        .y()
+        .whileTrue(
+            DriveCommands.joystickDrivePointedForward(
+                drive,
+                () -> -xboxDriver.getLeftY(),
+                () -> -xboxDriver.getLeftX(),
+                allianceSelector::fieldRotated));
+
+    // Point at vision target while A button is held
+    // xboxDriver
+    //     .a()
+    //     .whileTrue(
+    //         DriveCommands.pointAtTarget(
+    //             drive, () -> vision.getTargetX(0), allianceSelector::fieldRotated));
 
     // Drive 1m forward while A button is held
     // xboxDriver.a().whileTrue(PathCommands.advanceForward(drive, Meters.of(1)));
@@ -355,7 +396,9 @@ public class Robot extends LoggedRobot {
   }
 
   public void configureAutoOptions() {
+    autoSelector.addAuto(new AutoOption(Alliance.Blue, 1, new B_MoveForward1M(drive)));
     autoSelector.addAuto(new AutoOption(Alliance.Red, 1, new R_MoveStraight(drive)));
+    autoSelector.addAuto(new AutoOption(Alliance.Blue, 2, new TraversingTheBump(drive)));
     autoSelector.addAuto(new AutoOption(Alliance.Red, 2, new R_MoveAndRotate(drive)));
     autoSelector.addAuto(new AutoOption(Alliance.Blue, 3, new B_Path(drive)));
   }

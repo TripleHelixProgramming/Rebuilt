@@ -22,11 +22,11 @@ public class VisionConstants {
 
   public static String customAprilTagLayoutPath =
       Filesystem.getDeployDirectory() + "/stemgym-2026.json";
-  public static Boolean useCustomAprilTagLayout = true;
-  public static AprilTagFields defaultAprilTagFieldLayout = AprilTagFields.k2025ReefscapeAndyMark;
+  public static Boolean useCustomAprilTagLayout = false;
+  public static AprilTagFields defaultAprilTagFieldLayout = AprilTagFields.k2026RebuiltAndymark;
 
   // Camera names, must match names configured on coprocessor
-  public static String cameraFrontRightName = "OV2311_TH_8";
+  public static String cameraFrontRightName = "OV2311_TH_1";
   public static String cameraFrontLeftName = "OV2311_TH_5";
   public static String cameraBackRightName = "OV2311_TH_6";
   public static String cameraBackLeftName = "OV2311_TH_7";
@@ -59,4 +59,8 @@ public class VisionConstants {
 
   public static double maxStdDev = 1.0; // Meters
   public static double minScore = linearStdDevBaseline / maxStdDev;
+
+  // Feature flags
+  public static boolean kLogIndividualCameraPoses = false;
+  public static boolean kLogSummaryPoses = true;
 }

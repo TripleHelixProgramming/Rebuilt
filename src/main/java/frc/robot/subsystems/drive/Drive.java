@@ -75,7 +75,9 @@ public class Drive extends SubsystemBase {
         new SwerveModulePosition(),
         new SwerveModulePosition()
       };
-  private SwerveDrivePoseEstimator poseEstimator =
+  private SwerveDrivePoseEstimator odometryPose =
+      new SwerveDrivePoseEstimator(kinematics, rawGyroRotation, lastModulePositions, new Pose2d());
+  private SwerveDrivePoseEstimator visionPose =
       new SwerveDrivePoseEstimator(kinematics, rawGyroRotation, lastModulePositions, new Pose2d());
   private Boolean firstVisionEstimate = true;
 
@@ -104,8 +106,8 @@ public class Drive extends SubsystemBase {
 
     // Configure AutoBuilder for PathPlanner
     AutoBuilder.configure(
-        this::getPose,
-        this::setPose,
+        this::getVisionPose,
+        this::setOdometryPose,
         this::getChassisSpeeds,
         this::runVelocity,
         new PPHolonomicDriveController(
@@ -190,7 +192,8 @@ public class Drive extends SubsystemBase {
       }
 
       // Apply update
-      poseEstimator.updateWithTime(sampleTimestamps[i], rawGyroRotation, modulePositions);
+      odometryPose.updateWithTime(sampleTimestamps[i], rawGyroRotation, modulePositions);
+      visionPose.updateWithTime(sampleTimestamps[i], rawGyroRotation, modulePositions);
     }
 
     // Update gyro alert
@@ -223,7 +226,7 @@ public class Drive extends SubsystemBase {
 
   public void followTrajectory(SwerveSample sample) {
     // Get the current pose of the robot
-    Pose2d pose = getPose();
+    Pose2d pose = getVisionPose();
 
     // Generate the next speeds for the robot
     ChassisSpeeds speeds =
@@ -234,7 +237,7 @@ public class Drive extends SubsystemBase {
                 + headingController.calculate(pose.getRotation().getRadians(), sample.heading));
 
     // Apply the generated speeds
-    runVelocity(ChassisSpeeds.fromFieldRelativeSpeeds(speeds, getRotation()));
+    runVelocity(ChassisSpeeds.fromFieldRelativeSpeeds(speeds, getOdometryRotation()));
   }
 
   /** Runs the drive in a straight line with the specified drive output. */
@@ -318,19 +321,30 @@ public class Drive extends SubsystemBase {
   }
 
   /** Returns the current odometry pose. */
-  @AutoLogOutput(key = "Odometry/Robot")
-  public Pose2d getPose() {
-    return poseEstimator.getEstimatedPosition();
+  @AutoLogOutput(key = "Localizer/Odometry")
+  private Pose2d getOdometryPose() {
+    return odometryPose.getEstimatedPosition();
+  }
+
+  /** Returns the current vision pose. */
+  @AutoLogOutput(key = "Localizer/Vision")
+  public Pose2d getVisionPose() {
+    return visionPose.getEstimatedPosition();
   }
 
   /** Returns the current odometry rotation. */
-  public Rotation2d getRotation() {
-    return getPose().getRotation();
+  public Rotation2d getOdometryRotation() {
+    return getOdometryPose().getRotation();
+  }
+
+  /** Reset the current odometry orientation. */
+  public void setOdometryRotation(Rotation2d rotation) {
+    setOdometryPose(new Pose2d(getOdometryPose().getTranslation(), rotation));
   }
 
   /** Resets the current odometry pose. */
-  public void setPose(Pose2d pose) {
-    poseEstimator.resetPosition(rawGyroRotation, getModulePositions(), pose);
+  public void setOdometryPose(Pose2d pose) {
+    odometryPose.resetPosition(rawGyroRotation, getModulePositions(), pose);
   }
 
   /** Adds a new timestamped vision measurement. */
@@ -340,11 +354,11 @@ public class Drive extends SubsystemBase {
       Matrix<N3, N1> visionMeasurementStdDevs) {
     // Teleport the odometry to the first vision estimate
     if (firstVisionEstimate && RobotState.isDisabled()) {
-      setPose(visionRobotPoseMeters);
+      setOdometryPose(visionRobotPoseMeters);
       firstVisionEstimate = false;
     }
 
-    poseEstimator.addVisionMeasurement(
+    visionPose.addVisionMeasurement(
         visionRobotPoseMeters, timestampSeconds, visionMeasurementStdDevs);
   }
 
