@@ -4,16 +4,13 @@ import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 
 public class Turret {
-    private final TurretIO io;
-    private final TurretIOInputsAutoLogged inputs = new TurretIOInputsAutoLogged();
+  private final TurretIO io;
+  private final TurretIOInputsAutoLogged inputs = new TurretIOInputsAutoLogged();
 
-    private final Alert turnDisconnedAlert;
+  private final Alert turnDisconnectedAlert;
 
-    public Turret(TurretIO io) {
+  public Turret(TurretIO io) {
     this.io = io;
-    turnDisconnedAlert = 
-    new Alert(
-        "Disconnected turret turn motor", AlertType.kError
-    );
-    }
+    turnDisconnectedAlert = new Alert("Disconnected turret turn motor", AlertType.kError);
+  }
 }
