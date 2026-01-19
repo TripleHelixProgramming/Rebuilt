@@ -4,6 +4,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import java.util.function.Supplier;
 import org.littletonrobotics.junction.Logger;
 
 public class Turret extends SubsystemBase {
@@ -28,7 +29,7 @@ public class Turret extends SubsystemBase {
     io.setTurnOpenLoop(0.0);
   }
 
-  public void setOrientation(Rotation2d orientation) {
-    io.setTurnPosition(orientation);
+  public void setOrientation(Supplier<Rotation2d> orientationSupplier) {
+    io.setTurnPosition(orientationSupplier.get());
   }
 }
