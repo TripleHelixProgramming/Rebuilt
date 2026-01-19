@@ -9,6 +9,7 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import frc.game.GameState;
 import frc.lib.AllianceSelector;
 import frc.lib.AutoOption;
 import frc.lib.AutoSelector;
@@ -184,12 +185,13 @@ public class Robot extends LoggedRobot {
     SmartDashboard.putData(CommandScheduler.getInstance());
     SmartDashboard.putData(drive);
 
+    GameState.logValues();
+
     // Return to non-RT thread priority (do not modify the first argument)
     // Threads.setCurrentThreadPriority(false, 10);
   }
 
   /** This function is called once when the robot is disabled. */
-  @Override
   public void disabledInit() {}
 
   /** This function is called periodically when disabled. */
