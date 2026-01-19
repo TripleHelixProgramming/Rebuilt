@@ -62,5 +62,7 @@ public class VisionConstants {
 
   // Feature flags
   public static boolean kLogIndividualCameraPoses = false;
-  public static boolean kLogSummaryPoses = true;
+  public static boolean kLogSummaryPoses = false;
+  public static boolean kLogAcceptedPoses = true;
+  public static boolean kLogRejectedPoses = false;
 }

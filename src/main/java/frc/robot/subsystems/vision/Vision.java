@@ -205,8 +205,12 @@ public class Vision extends SubsystemBase {
     if (kLogSummaryPoses) {
       Logger.recordOutput("Vision/Summary/TagPoses", allTagPoses.toArray(Pose3d[]::new));
       Logger.recordOutput("Vision/Summary/RobotPoses", allRobotPoses.toArray(Pose3d[]::new));
+    }
+    if (kLogAcceptedPoses) {
       Logger.recordOutput(
           "Vision/Summary/RobotPosesAccepted", allRobotPosesAccepted.toArray(Pose3d[]::new));
+    }
+    if (kLogRejectedPoses) {
       Logger.recordOutput(
           "Vision/Summary/RobotPosesRejected", allRobotPosesRejected.toArray(Pose3d[]::new));
     }
