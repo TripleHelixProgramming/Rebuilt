@@ -1,3 +1,19 @@
 package frc.robot.subsystems.turret;
 
-public class Turret {}
+import edu.wpi.first.wpilibj.Alert;
+import edu.wpi.first.wpilibj.Alert.AlertType;
+
+public class Turret {
+    private final TurretIO io;
+    private final TurretIOInputsAutoLogged inputs = new TurretIOInputsAutoLogged();
+
+    private final Alert turnDisconnedAlert;
+
+    public Turret(TurretIO io) {
+    this.io = io;
+    turnDisconnedAlert = 
+    new Alert(
+        "Disconnected turret turn motor", AlertType.kError
+    );
+    }
+}
