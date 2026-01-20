@@ -146,6 +146,12 @@ public class Drive extends SubsystemBase {
 
   @Override
   public void periodic() {
+    long startNanos = System.nanoTime();
+
+    for (var module : modules) {
+      module.refreshSignals();
+    }
+
     odometryLock.lock(); // Prevents odometry updates while reading data
     gyroIO.updateInputs(gyroInputs);
     Logger.processInputs("Drive/Gyro", gyroInputs);
@@ -171,6 +177,7 @@ public class Drive extends SubsystemBase {
     double[] sampleTimestamps =
         modules[0].getOdometryTimestamps(); // All signals are sampled together
     int sampleCount = sampleTimestamps.length;
+    Logger.recordOutput("Drive/sampleCount", sampleCount);
     for (int i = 0; i < sampleCount; i++) {
       // Read wheel positions and deltas from each module
       for (int moduleIndex = 0; moduleIndex < 4; moduleIndex++) {
@@ -200,6 +207,7 @@ public class Drive extends SubsystemBase {
 
     // Update gyro alert
     gyroDisconnectedAlert.set(!gyroInputs.connected && Constants.currentMode != Mode.SIM);
+    Logger.recordOutput("Drive/millis", (System.nanoTime() - startNanos) / 1_000_000L);
   }
 
   /**
