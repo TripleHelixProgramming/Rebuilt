@@ -62,8 +62,10 @@ public class Turret extends SubsystemBase {
     var fuelTravelTime = radialDistance.div(fuelVelocityRadial);
 
     // Get turret velocity (m/s) relative to hub
-    var chassisSpeeds = chassisSpeedsSupplier.get();
-    Translation2d turretBaseSpeeds = getTurretBaseSpeeds(chassisSpeeds);
+    var robotRelative = chassisSpeedsSupplier.get();
+    var fieldRelative =
+        ChassisSpeeds.fromFieldRelativeSpeeds(robotRelative, turretBase.getRotation());
+    Translation2d turretBaseSpeeds = getTurretBaseSpeeds(fieldRelative);
 
     // Create unit vectors
     var radialUnit = staticTargetToTurretBase.div(staticTargetToTurretBase.getNorm());
@@ -95,7 +97,7 @@ public class Turret extends SubsystemBase {
 
     double feedforwardVolts =
         RobotConstants.kNominalVoltage
-            * -(2 * chassisSpeeds.omegaRadiansPerSecond // TODO: Why is this factor 2 needed?
+            * -(2 * robotRelative.omegaRadiansPerSecond // TODO: Why is this factor 2 needed?
                 + apparentAngularVelocityRadPerSec)
             / turnMaxAngularVelocity.in(RadiansPerSecond);
 
