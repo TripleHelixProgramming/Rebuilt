@@ -57,13 +57,12 @@ public class Turret extends SubsystemBase {
     turretOrientationSetpoint =
         hubToTurretBase.unaryMinus().getAngle().minus(turretBase.getRotation());
 
-    // Does not account for w_chassis x r_chassisToTurretBase
-    // Use the speed of the turret base rather than the speed of the chassis
     var chassisSpeeds = chassisSpeedsSupplier.get();
-    Translation2d speeds =
-        new Translation2d(chassisSpeeds.vxMetersPerSecond, chassisSpeeds.vyMetersPerSecond);
+    Translation2d turretBaseSpeeds = getTurretBaseSpeeds(chassisSpeeds);
     var tangentialSpeed =
-        speeds.cross(hubToTurretBase) / hubToTurretBase.getNorm() / hubToTurretBase.getNorm();
+        turretBaseSpeeds.cross(hubToTurretBase)
+            / hubToTurretBase.getNorm()
+            / hubToTurretBase.getNorm();
 
     double feedforwardVolts =
         RobotConstants.kNominalVoltage
@@ -87,5 +86,17 @@ public class Turret extends SubsystemBase {
     return inputs.turnPosition.minus(turretOrientationSetpoint).getMeasure().abs(Radians)
             * hubToTurretBase.getNorm()
         < (hubWidth.in(Meters) / 2.0);
+  }
+
+  private Translation2d getTurretBaseSpeeds(ChassisSpeeds chassisSpeeds) {
+    // Extract translation from the transform
+    Translation2d r = chassisToTurretBase.getTranslation();
+
+    double vx = chassisSpeeds.vxMetersPerSecond;
+    double vy = chassisSpeeds.vyMetersPerSecond;
+    double omega = chassisSpeeds.omegaRadiansPerSecond;
+
+    // Rigid-body velocity equation
+    return new Translation2d(vx - omega * r.getY(), vy + omega * r.getX());
   }
 }
