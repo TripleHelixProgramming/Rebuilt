@@ -56,7 +56,7 @@ public class Turret extends SubsystemBase {
   }
 
   @AutoLogOutput(key = "Turret/IsOnTarget")
-  public Boolean isOnTarget() {
+  public boolean isOnTarget() {
     return true; // TODO: Return whether the turret position is close to the setpoint
   }
 }

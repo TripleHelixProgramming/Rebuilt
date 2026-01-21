@@ -176,7 +176,7 @@ public class Robot extends LoggedRobot {
         "Align Encoders",
         new InstantCommand(() -> drive.zeroAbsoluteEncoders()).ignoringDisable(true));
 
-    turret.setDefaultCommand(Commands.run(turret::aimAtHub));
+    turret.setDefaultCommand(Commands.run(turret::aimAtHub, turret));
   }
 
   /** This function is called periodically during all modes. */
