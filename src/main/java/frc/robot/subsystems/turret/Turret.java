@@ -1,9 +1,11 @@
 package frc.robot.subsystems.turret;
 
+import static edu.wpi.first.units.Units.Radians;
 import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static frc.robot.subsystems.turret.TurretConstants.*;
 
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -23,6 +25,8 @@ public class Turret extends SubsystemBase {
   private final Supplier<ChassisSpeeds> chassisSpeedsSupplier;
 
   private final Alert turnDisconnectedAlert;
+
+  private Rotation2d turretOrientationSetpoint = Rotation2d.kZero;
 
   public Turret(
       Supplier<Pose2d> chassisPoseSupplier,
@@ -50,7 +54,8 @@ public class Turret extends SubsystemBase {
     var turretBase = chassisPoseSupplier.get().plus(chassisToTurretBase);
     var hubToTurretBase = turretBase.getTranslation().minus(hub);
 
-    var turretOrientation = hubToTurretBase.unaryMinus().getAngle().minus(turretBase.getRotation());
+    turretOrientationSetpoint =
+        hubToTurretBase.unaryMinus().getAngle().minus(turretBase.getRotation());
 
     var chassisSpeeds = chassisSpeedsSupplier.get();
     Translation2d speeds =
@@ -60,10 +65,11 @@ public class Turret extends SubsystemBase {
 
     double feedforwardVolts =
         RobotConstants.kNominalVoltage
-            * (-2 * chassisSpeeds.omegaRadiansPerSecond - tangentialSpeed) // TODO: Why is this factor 2 needed?
+            * -(2 * chassisSpeeds.omegaRadiansPerSecond
+                + tangentialSpeed) // TODO: Why is this factor 2 needed?
             / turnMaxAngularVelocity.in(RadiansPerSecond);
 
-    io.setTurnPosition(turretOrientation, feedforwardVolts);
+    io.setTurnPosition(turretOrientationSetpoint, feedforwardVolts);
   }
 
   @AutoLogOutput(key = "Turret/Pose")
@@ -76,6 +82,7 @@ public class Turret extends SubsystemBase {
 
   @AutoLogOutput(key = "Turret/IsOnTarget")
   public boolean isOnTarget() {
-    return true; // TODO: Return whether the turret position is close to the setpoint
+    return inputs.turnPosition.minus(turretOrientationSetpoint).getMeasure().abs(Radians)
+        < tolerance.in(Radians);
   }
 }

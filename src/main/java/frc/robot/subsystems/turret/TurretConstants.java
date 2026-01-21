@@ -1,10 +1,11 @@
 package frc.robot.subsystems.turret;
 
-import static edu.wpi.first.units.Units.Inches;
+import static edu.wpi.first.units.Units.*;
 
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
 
@@ -22,6 +23,7 @@ public class TurretConstants {
   public static final double turnPIDMinInput = 0.0;
   public static final double turnPIDMaxInput = 2 * Math.PI;
   public static final double turnKp = 0.35;
+  public static final Angle tolerance = Degrees.of(5);
 
   // Motor controller
   public static final int port = 12;
