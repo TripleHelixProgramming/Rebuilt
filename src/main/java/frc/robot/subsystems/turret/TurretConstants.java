@@ -7,6 +7,7 @@ import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
+import edu.wpi.first.units.measure.LinearVelocity;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
 
 public class TurretConstants {
@@ -14,6 +15,7 @@ public class TurretConstants {
   public static final Transform2d chassisToTurretBase =
       new Transform2d(Inches.of(0), Inches.of(10), Rotation2d.kZero);
   public static final Rotation2d rotationOffset = new Rotation2d(0.44);
+  public static final LinearVelocity fuelVelocityRadial = MetersPerSecond.of(5);
 
   // Absolute encoder
   public static final double turnEncoderPositionFactor = 2 * Math.PI; // Radians
