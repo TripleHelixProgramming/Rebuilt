@@ -8,16 +8,19 @@ import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.FieldConstants;
 import java.util.function.Supplier;
+import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
 public class Turret extends SubsystemBase {
   private final TurretIO io;
   private final TurretIOInputsAutoLogged inputs = new TurretIOInputsAutoLogged();
+  private final Supplier<Pose2d> chassisPoseSupplier;
 
   private final Alert turnDisconnectedAlert;
 
-  public Turret(TurretIO io) {
+  public Turret(Supplier<Pose2d> chassisPoseSupplier, TurretIO io) {
     this.io = io;
+    this.chassisPoseSupplier = chassisPoseSupplier;
     turnDisconnectedAlert = new Alert("Disconnected turret turn motor", AlertType.kError);
   }
 
@@ -32,7 +35,7 @@ public class Turret extends SubsystemBase {
     io.setTurnOpenLoop(0.0);
   }
 
-  public void setOrientation(Supplier<Pose2d> chassisPoseSupplier) {
+  public void aimAtHub() {
     var turretPose = chassisPoseSupplier.get().plus(chassisToTurret);
     var turretOrientation =
         FieldConstants.kBlueHubCenter // TODO: Point at the hub of the correct alliance color
@@ -41,5 +44,10 @@ public class Turret extends SubsystemBase {
             .minus(turretPose.getRotation());
 
     io.setTurnPosition(turretOrientation);
+  }
+
+  @AutoLogOutput(key = "Turret/IsOnTarget")
+  public Boolean isOnTarget() {
+    return true; // TODO: Return whether the turret position is close to the setpoint
   }
 }

@@ -107,7 +107,7 @@ public class Robot extends LoggedRobot {
                 new VisionIOPhotonVision(cameraFrontLeftName, robotToFrontLeftCamera),
                 new VisionIOPhotonVision(cameraBackRightName, robotToBackRightCamera),
                 new VisionIOPhotonVision(cameraBackLeftName, robotToBackLeftCamera));
-        turret = new Turret(new TurretIOSpark());
+        turret = new Turret(drive::getVisionPose, new TurretIOSpark());
         break;
 
       case SIM: // Running a physics simulator
@@ -160,7 +160,7 @@ public class Robot extends LoggedRobot {
                 new VisionIO() {},
                 new VisionIO() {},
                 new VisionIO() {});
-        turret = new Turret(new TurretIO() {});
+        turret = new Turret(drive::getVisionPose, new TurretIO() {});
         break;
     }
 
@@ -174,8 +174,7 @@ public class Robot extends LoggedRobot {
         "Align Encoders",
         new InstantCommand(() -> drive.zeroAbsoluteEncoders()).ignoringDisable(true));
 
-    turret.setDefaultCommand(
-        Commands.run(() -> turret.setOrientation(drive::getVisionPose), turret));
+    turret.setDefaultCommand(Commands.run(turret::aimAtHub));
   }
 
   /** This function is called periodically during all modes. */
