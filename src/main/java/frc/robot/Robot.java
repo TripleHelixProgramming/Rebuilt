@@ -175,15 +175,7 @@ public class Robot extends LoggedRobot {
         new InstantCommand(() -> drive.zeroAbsoluteEncoders()).ignoringDisable(true));
 
     turret.setDefaultCommand(
-        Commands.run(
-            () ->
-                turret.setOrientation(
-                    () ->
-                        FieldConstants.kBlueHubCenter
-                            .minus(drive.getVisionPose().getTranslation())
-                            .getAngle()
-                            .minus(drive.getVisionPose().getRotation())),
-            turret));
+        Commands.run(() -> turret.setOrientation(drive::getVisionPose), turret));
   }
 
   /** This function is called periodically during all modes. */
