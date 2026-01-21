@@ -98,7 +98,7 @@ public class Robot extends LoggedRobot {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
-                drive::getVisionPose,
+                drive::getPose,
                 new VisionIOPhotonVision(cameraFrontRightName, robotToFrontRightCamera),
                 new VisionIOPhotonVision(cameraFrontLeftName, robotToFrontLeftCamera),
                 new VisionIOPhotonVision(cameraBackRightName, robotToBackRightCamera),
@@ -120,15 +120,15 @@ public class Robot extends LoggedRobot {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
-                drive::getVisionPose,
+                drive::getPose,
                 new VisionIOPhotonVisionSim(
-                    cameraFrontRightName, robotToFrontRightCamera, drive::getVisionPose),
+                    cameraFrontRightName, robotToFrontRightCamera, drive::getPose),
                 new VisionIOPhotonVisionSim(
-                    cameraFrontLeftName, robotToFrontLeftCamera, drive::getVisionPose),
+                    cameraFrontLeftName, robotToFrontLeftCamera, drive::getPose),
                 new VisionIOPhotonVisionSim(
-                    cameraBackRightName, robotToBackRightCamera, drive::getVisionPose),
+                    cameraBackRightName, robotToBackRightCamera, drive::getPose),
                 new VisionIOPhotonVisionSim(
-                    cameraBackLeftName, robotToBackLeftCamera, drive::getVisionPose));
+                    cameraBackLeftName, robotToBackLeftCamera, drive::getPose));
         break;
 
       case REPLAY: // Replaying a log
@@ -150,7 +150,7 @@ public class Robot extends LoggedRobot {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
-                drive::getVisionPose,
+                drive::getPose,
                 new VisionIO() {},
                 new VisionIO() {},
                 new VisionIO() {},
@@ -288,7 +288,7 @@ public class Robot extends LoggedRobot {
         .onTrue(
             Commands.runOnce(
                     () ->
-                        drive.setOdometryRotation(
+                        drive.resetHeading(
                             allianceSelector.fieldRotated()
                                 ? Rotation2d.k180deg
                                 : Rotation2d.kZero),
@@ -306,7 +306,7 @@ public class Robot extends LoggedRobot {
                 // TODO: Point at the hub of the correct alliance color
                 () ->
                     FieldConstants.kBlueHubCenter
-                        .minus(drive.getVisionPose().getTranslation())
+                        .minus(drive.getPose().getTranslation())
                         .getAngle(),
                 allianceSelector::fieldRotated));
 
@@ -334,7 +334,7 @@ public class Robot extends LoggedRobot {
         .onTrue(
             Commands.runOnce(
                     () ->
-                        drive.setOdometryRotation(
+                        drive.resetHeading(
                             allianceSelector.fieldRotated()
                                 ? Rotation2d.k180deg
                                 : Rotation2d.kZero),
@@ -352,7 +352,7 @@ public class Robot extends LoggedRobot {
                 // TODO: Point at the hub of the correct alliance color
                 () ->
                     FieldConstants.kBlueHubCenter
-                        .minus(drive.getVisionPose().getTranslation())
+                        .minus(drive.getPose().getTranslation())
                         .getAngle(),
                 allianceSelector::fieldRotated));
 
