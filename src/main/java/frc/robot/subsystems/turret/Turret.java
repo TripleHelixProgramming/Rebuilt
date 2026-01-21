@@ -1,7 +1,6 @@
 package frc.robot.subsystems.turret;
 
-import static edu.wpi.first.units.Units.Radians;
-import static edu.wpi.first.units.Units.RadiansPerSecond;
+import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.turret.TurretConstants.*;
 
 import edu.wpi.first.math.geometry.Pose2d;
@@ -27,6 +26,7 @@ public class Turret extends SubsystemBase {
   private final Alert turnDisconnectedAlert;
 
   private Rotation2d turretOrientationSetpoint = Rotation2d.kZero;
+  private Translation2d hubToTurretBase = new Translation2d();
 
   public Turret(
       Supplier<Pose2d> chassisPoseSupplier,
@@ -52,11 +52,13 @@ public class Turret extends SubsystemBase {
   public void aimAtHub() {
     var hub = FieldConstants.kBlueHubCenter; // TODO: Point at the hub of the correct alliance color
     var turretBase = chassisPoseSupplier.get().plus(chassisToTurretBase);
-    var hubToTurretBase = turretBase.getTranslation().minus(hub);
+    hubToTurretBase = turretBase.getTranslation().minus(hub);
 
     turretOrientationSetpoint =
         hubToTurretBase.unaryMinus().getAngle().minus(turretBase.getRotation());
 
+    // Does not account for w_chassis x r_chassisToTurretBase
+    // Use the speed of the turret base rather than the speed of the chassis
     var chassisSpeeds = chassisSpeedsSupplier.get();
     Translation2d speeds =
         new Translation2d(chassisSpeeds.vxMetersPerSecond, chassisSpeeds.vyMetersPerSecond);
@@ -83,6 +85,7 @@ public class Turret extends SubsystemBase {
   @AutoLogOutput(key = "Turret/IsOnTarget")
   public boolean isOnTarget() {
     return inputs.turnPosition.minus(turretOrientationSetpoint).getMeasure().abs(Radians)
-        < tolerance.in(Radians);
+            * hubToTurretBase.getNorm()
+        < (hubWidth.in(Meters) / 2.0);
   }
 }
