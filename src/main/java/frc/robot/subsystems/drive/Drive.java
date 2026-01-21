@@ -68,6 +68,7 @@ public class Drive extends SubsystemBase {
 
   private SwerveDriveKinematics kinematics = new SwerveDriveKinematics(moduleTranslations);
   private Rotation2d rawGyroRotation = Rotation2d.kZero;
+  private Rotation2d headingOffset = Rotation2d.kZero;
   private SwerveModulePosition[] lastModulePositions = // For delta tracking
       new SwerveModulePosition[] {
         new SwerveModulePosition(),
@@ -75,8 +76,6 @@ public class Drive extends SubsystemBase {
         new SwerveModulePosition(),
         new SwerveModulePosition()
       };
-  private SwerveDrivePoseEstimator odometryPose =
-      new SwerveDrivePoseEstimator(kinematics, rawGyroRotation, lastModulePositions, new Pose2d());
   private SwerveDrivePoseEstimator visionPose =
       new SwerveDrivePoseEstimator(kinematics, rawGyroRotation, lastModulePositions, new Pose2d());
   private Boolean firstVisionEstimate = true;
@@ -110,9 +109,9 @@ public class Drive extends SubsystemBase {
 
     // Configure AutoBuilder for PathPlanner
     AutoBuilder.configure(
-        this::getVisionPose,
-        this::setOdometryPose,
-        this::getChassisSpeeds,
+        this::getPose,
+        this::setPose,
+        this::getRobotRelativeChassisSpeeds,
         this::runVelocity,
         new PPHolonomicDriveController(
             new PIDConstants(5.0, 0.0, 0.0), new PIDConstants(5.0, 0.0, 0.0)),
@@ -194,7 +193,6 @@ public class Drive extends SubsystemBase {
       }
 
       // Apply update
-      odometryPose.updateWithTime(sampleTimestamps[i], rawGyroRotation, modulePositions);
       visionPose.updateWithTime(sampleTimestamps[i], rawGyroRotation, modulePositions);
     }
 
@@ -228,7 +226,7 @@ public class Drive extends SubsystemBase {
 
   public void followTrajectory(SwerveSample sample) {
     // Get the current pose of the robot
-    Pose2d pose = getVisionPose();
+    Pose2d pose = getPose();
 
     // Generate the next speeds for the robot
     ChassisSpeeds speeds =
@@ -239,7 +237,7 @@ public class Drive extends SubsystemBase {
                 + headingController.calculate(pose.getRotation().getRadians(), sample.heading));
 
     // Apply the generated speeds
-    runVelocity(ChassisSpeeds.fromFieldRelativeSpeeds(speeds, getOdometryRotation()));
+    runVelocity(ChassisSpeeds.fromFieldRelativeSpeeds(speeds, getHeading()));
   }
 
   /** Runs the drive in a straight line with the specified drive output. */
@@ -300,7 +298,7 @@ public class Drive extends SubsystemBase {
 
   /** Returns the measured chassis speeds of the robot. */
   @AutoLogOutput(key = "SwerveChassisSpeeds/Measured")
-  public ChassisSpeeds getChassisSpeeds() {
+  public ChassisSpeeds getRobotRelativeChassisSpeeds() {
     return kinematics.toChassisSpeeds(getModuleStates());
   }
 
@@ -322,31 +320,26 @@ public class Drive extends SubsystemBase {
     return output;
   }
 
-  /** Returns the current odometry pose. */
-  @AutoLogOutput(key = "Localizer/Odometry")
-  private Pose2d getOdometryPose() {
-    return odometryPose.getEstimatedPosition();
-  }
-
   /** Returns the current vision pose. */
-  @AutoLogOutput(key = "Localizer/Vision")
-  public Pose2d getVisionPose() {
+  @AutoLogOutput(key = "Drive/Pose")
+  public Pose2d getPose() {
     return visionPose.getEstimatedPosition();
   }
 
-  /** Returns the current odometry rotation. */
-  public Rotation2d getOdometryRotation() {
-    return getOdometryPose().getRotation();
+  @AutoLogOutput(key = "Drive/Heading")
+  /** Returns the current teleoperation orientation. */
+  public Rotation2d getHeading() {
+    return rawGyroRotation.plus(headingOffset);
   }
 
-  /** Reset the current odometry orientation. */
-  public void setOdometryRotation(Rotation2d rotation) {
-    setOdometryPose(new Pose2d(getOdometryPose().getTranslation(), rotation));
+  /** Resets the current teleoperation orientation. */
+  public void resetHeading(Rotation2d heading) {
+    this.headingOffset = heading.minus(rawGyroRotation);
   }
 
-  /** Resets the current odometry pose. */
-  public void setOdometryPose(Pose2d pose) {
-    odometryPose.resetPosition(rawGyroRotation, getModulePositions(), pose);
+  /** Resets the current teleoperation pose. */
+  public void setPose(Pose2d pose) {
+    resetHeading(pose.getRotation());
   }
 
   /** Adds a new timestamped vision measurement. */
@@ -354,9 +347,9 @@ public class Drive extends SubsystemBase {
       Pose2d visionRobotPoseMeters,
       double timestampSeconds,
       Matrix<N3, N1> visionMeasurementStdDevs) {
-    // Teleport the odometry to the first vision estimate
+    // Teleport the teleoperation orientation to the first vision estimate
     if (firstVisionEstimate && RobotState.isDisabled()) {
-      setOdometryPose(visionRobotPoseMeters);
+      resetHeading(visionRobotPoseMeters.getRotation());
       firstVisionEstimate = false;
     }
 

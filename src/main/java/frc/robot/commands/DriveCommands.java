@@ -99,8 +99,8 @@ public class DriveCommands {
                     ChassisSpeeds.fromFieldRelativeSpeeds(
                         speeds,
                         fieldRotatedSupplier.getAsBoolean()
-                            ? drive.getOdometryRotation().plus(Rotation2d.kPi)
-                            : drive.getOdometryRotation());
+                            ? drive.getHeading().plus(Rotation2d.kPi)
+                            : drive.getHeading());
               }
 
               drive.runVelocity(speeds);
@@ -140,8 +140,8 @@ public class DriveCommands {
                   ChassisSpeeds.fromFieldRelativeSpeeds(
                       speeds,
                       fieldRotatedSupplier.getAsBoolean()
-                          ? drive.getOdometryRotation().plus(Rotation2d.kPi)
-                          : drive.getOdometryRotation()));
+                          ? drive.getHeading().plus(Rotation2d.kPi)
+                          : drive.getHeading()));
             },
             drive)
         .withName("Field Relative Joystick Drive");
@@ -209,7 +209,7 @@ public class DriveCommands {
               // Calculate angular speed
               double omega =
                   angleController.calculate(
-                      drive.getVisionPose().getRotation().getRadians(),
+                      drive.getPose().getRotation().getRadians(),
                       rotationSupplier.get().getRadians());
 
               // Convert to field relative speeds & send command
@@ -222,14 +222,14 @@ public class DriveCommands {
                   ChassisSpeeds.fromFieldRelativeSpeeds(
                       speeds,
                       fieldRotatedSupplier.getAsBoolean()
-                          ? drive.getOdometryRotation().plus(Rotation2d.kPi)
-                          : drive.getOdometryRotation()));
+                          ? drive.getHeading().plus(Rotation2d.kPi)
+                          : drive.getHeading()));
             },
             drive)
         .withName("Fixed Orientation Joystick Drive")
 
         // Reset PID controller when command starts
-        .beforeStarting(() -> angleController.reset(drive.getOdometryRotation().getRadians()));
+        .beforeStarting(() -> angleController.reset(drive.getHeading().getRadians()));
   }
 
   /** Field relative drive command that orients the robot in the direction of travel */
@@ -258,8 +258,7 @@ public class DriveCommands {
               // Calculate angular speed
               double omega =
                   angleController.calculate(
-                      drive.getOdometryRotation().getRadians(),
-                      linearVelocity.getAngle().getRadians());
+                      drive.getHeading().getRadians(), linearVelocity.getAngle().getRadians());
 
               // Convert to field relative speeds & send command
               ChassisSpeeds speeds =
@@ -271,14 +270,14 @@ public class DriveCommands {
                   ChassisSpeeds.fromFieldRelativeSpeeds(
                       speeds,
                       fieldRotatedSupplier.getAsBoolean()
-                          ? drive.getOdometryRotation().plus(Rotation2d.kPi)
-                          : drive.getOdometryRotation()));
+                          ? drive.getHeading().plus(Rotation2d.kPi)
+                          : drive.getHeading()));
             },
             drive)
         .withName("Forward Orientated Joystick Drive")
 
         // Reset PID controller when command starts
-        .beforeStarting(() -> angleController.reset(drive.getOdometryRotation().getRadians()));
+        .beforeStarting(() -> angleController.reset(drive.getHeading().getRadians()));
   }
 
   /**
@@ -311,8 +310,8 @@ public class DriveCommands {
                   ChassisSpeeds.fromFieldRelativeSpeeds(
                       speeds,
                       fieldRotatedSupplier.getAsBoolean()
-                          ? drive.getOdometryRotation().plus(Rotation2d.kPi)
-                          : drive.getOdometryRotation()));
+                          ? drive.getHeading().plus(Rotation2d.kPi)
+                          : drive.getHeading()));
             },
             drive)
         .withName("Point At Target")
@@ -415,14 +414,14 @@ public class DriveCommands {
             Commands.runOnce(
                 () -> {
                   state.positions = drive.getWheelRadiusCharacterizationPositions();
-                  state.lastAngle = drive.getOdometryRotation();
+                  state.lastAngle = drive.getHeading();
                   state.gyroDelta = 0.0;
                 }),
 
             // Update gyro delta
             Commands.run(
                     () -> {
-                      var rotation = drive.getOdometryRotation();
+                      var rotation = drive.getHeading();
                       state.gyroDelta += Math.abs(rotation.minus(state.lastAngle).getRadians());
                       state.lastAngle = rotation;
                     })
