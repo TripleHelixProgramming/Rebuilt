@@ -12,8 +12,9 @@ public class TurretIOSim implements TurretIO {
   private final DCMotorSim turnSim;
 
   private boolean turnClosedLoop = false;
-  private PIDController turnController = new PIDController(turnKpSim, 0.0, 0.0);
+  private PIDController turnController = new PIDController(turnKpSim, 0.0, turnKdSim);
   private double turnAppliedVolts = 0.0;
+  private double feedforwardVolts = 0.0;
 
   public TurretIOSim() {
     turnSim =
@@ -29,7 +30,8 @@ public class TurretIOSim implements TurretIO {
   public void updateInputs(TurretIOInputs inputs) {
     // Run closed-loop control
     if (turnClosedLoop) {
-      turnAppliedVolts = turnController.calculate(turnSim.getAngularPositionRad());
+      turnAppliedVolts =
+          turnController.calculate(turnSim.getAngularPositionRad()) + feedforwardVolts;
     } else {
       turnController.reset();
     }
@@ -53,8 +55,9 @@ public class TurretIOSim implements TurretIO {
   }
 
   @Override
-  public void setTurnPosition(Rotation2d rotation) {
+  public void setTurnPosition(Rotation2d rotation, double feedforwardVolts) {
     turnClosedLoop = true;
+    this.feedforwardVolts = feedforwardVolts;
     turnController.setSetpoint(rotation.getRadians());
   }
 }

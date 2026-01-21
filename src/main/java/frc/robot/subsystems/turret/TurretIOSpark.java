@@ -6,6 +6,7 @@ import static frc.robot.util.SparkUtil.*;
 import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.PersistMode;
 import com.revrobotics.ResetMode;
+import com.revrobotics.spark.ClosedLoopSlot;
 import com.revrobotics.spark.FeedbackSensor;
 import com.revrobotics.spark.SparkBase;
 import com.revrobotics.spark.SparkBase.ControlType;
@@ -96,10 +97,11 @@ public class TurretIOSpark implements TurretIO {
   }
 
   @Override
-  public void setTurnPosition(Rotation2d rotation) {
+  public void setTurnPosition(Rotation2d rotation, double feedforwardVolts) {
     double setpoint =
         MathUtil.inputModulus(
             rotation.plus(rotationOffset).getRadians(), turnPIDMinInput, turnPIDMaxInput);
-    turnController.setSetpoint(setpoint, ControlType.kPosition);
+    turnController.setSetpoint(
+        setpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
   }
 }

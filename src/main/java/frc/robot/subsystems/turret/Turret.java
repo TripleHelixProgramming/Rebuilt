@@ -1,13 +1,16 @@
 package frc.robot.subsystems.turret;
 
+import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static frc.robot.subsystems.turret.TurretConstants.*;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Transform2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.FieldConstants;
+import frc.robot.Constants.RobotConstants;
 import java.util.function.Supplier;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
@@ -16,12 +19,17 @@ public class Turret extends SubsystemBase {
   private final TurretIO io;
   private final TurretIOInputsAutoLogged inputs = new TurretIOInputsAutoLogged();
   private final Supplier<Pose2d> chassisPoseSupplier;
+  private final Supplier<ChassisSpeeds> chassisSpeedsSupplier;
 
   private final Alert turnDisconnectedAlert;
 
-  public Turret(Supplier<Pose2d> chassisPoseSupplier, TurretIO io) {
+  public Turret(
+      Supplier<Pose2d> chassisPoseSupplier,
+      Supplier<ChassisSpeeds> chassisSpeedsSupplier,
+      TurretIO io) {
     this.io = io;
     this.chassisPoseSupplier = chassisPoseSupplier;
+    this.chassisSpeedsSupplier = chassisSpeedsSupplier;
     turnDisconnectedAlert = new Alert("Disconnected turret turn motor", AlertType.kError);
   }
 
@@ -44,7 +52,13 @@ public class Turret extends SubsystemBase {
             .getAngle()
             .minus(turretBase.getRotation());
 
-    io.setTurnPosition(turretOrientation);
+    double feedforwardVolts =
+        // TODO: Account for translation of the chassis in the direction tangent to the hub
+        RobotConstants.kNominalVoltage
+            * -chassisSpeedsSupplier.get().omegaRadiansPerSecond
+            / turnMaxAngularVelocity.in(RadiansPerSecond);
+
+    io.setTurnPosition(turretOrientation, feedforwardVolts);
   }
 
   @AutoLogOutput(key = "Turret/Pose")

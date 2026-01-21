@@ -108,7 +108,7 @@ public class Robot extends LoggedRobot {
                 new VisionIOPhotonVision(cameraFrontLeftName, robotToFrontLeftCamera),
                 new VisionIOPhotonVision(cameraBackRightName, robotToBackRightCamera),
                 new VisionIOPhotonVision(cameraBackLeftName, robotToBackLeftCamera));
-        turret = new Turret(drive::getVisionPose, new TurretIOSpark());
+        turret = new Turret(drive::getVisionPose, drive::getChassisSpeeds, new TurretIOSpark());
         break;
 
       case SIM: // Running a physics simulator
@@ -135,7 +135,7 @@ public class Robot extends LoggedRobot {
                     cameraBackRightName, robotToBackRightCamera, drive::getVisionPose),
                 new VisionIOPhotonVisionSim(
                     cameraBackLeftName, robotToBackLeftCamera, drive::getVisionPose));
-        turret = new Turret(drive::getVisionPose, new TurretIOSim());
+        turret = new Turret(drive::getVisionPose, drive::getChassisSpeeds, new TurretIOSim());
         break;
 
       case REPLAY: // Replaying a log
@@ -162,7 +162,7 @@ public class Robot extends LoggedRobot {
                 new VisionIO() {},
                 new VisionIO() {},
                 new VisionIO() {});
-        turret = new Turret(drive::getVisionPose, new TurretIO() {});
+        turret = new Turret(drive::getVisionPose, drive::getChassisSpeeds, new TurretIO() {});
         break;
     }
 
