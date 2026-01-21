@@ -5,6 +5,7 @@ import static frc.robot.subsystems.turret.TurretConstants.*;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Transform2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
@@ -45,17 +46,21 @@ public class Turret extends SubsystemBase {
   }
 
   public void aimAtHub() {
+    var hub = FieldConstants.kBlueHubCenter; // TODO: Point at the hub of the correct alliance color
     var turretBase = chassisPoseSupplier.get().plus(chassisToTurretBase);
-    var turretOrientation =
-        FieldConstants.kBlueHubCenter // TODO: Point at the hub of the correct alliance color
-            .minus(turretBase.getTranslation())
-            .getAngle()
-            .minus(turretBase.getRotation());
+    var hubToTurretBase = turretBase.getTranslation().minus(hub);
+
+    var turretOrientation = hubToTurretBase.unaryMinus().getAngle().minus(turretBase.getRotation());
+
+    var chassisSpeeds = chassisSpeedsSupplier.get();
+    Translation2d speeds =
+        new Translation2d(chassisSpeeds.vxMetersPerSecond, chassisSpeeds.vyMetersPerSecond);
+    var tangentialSpeed =
+        speeds.cross(hubToTurretBase) / hubToTurretBase.getNorm() / hubToTurretBase.getNorm();
 
     double feedforwardVolts =
-        // TODO: Account for translation of the chassis in the direction tangent to the hub
         RobotConstants.kNominalVoltage
-            * -chassisSpeedsSupplier.get().omegaRadiansPerSecond
+            * (-2 * chassisSpeeds.omegaRadiansPerSecond - tangentialSpeed) // TODO: Why is this factor 2 needed?
             / turnMaxAngularVelocity.in(RadiansPerSecond);
 
     io.setTurnPosition(turretOrientation, feedforwardVolts);
