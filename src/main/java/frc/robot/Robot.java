@@ -181,7 +181,8 @@ public class Robot extends LoggedRobot {
                     () ->
                         FieldConstants.kBlueHubCenter
                             .minus(drive.getVisionPose().getTranslation())
-                            .getAngle()),
+                            .getAngle()
+                            .minus(drive.getVisionPose().getRotation())),
             turret));
   }
 
