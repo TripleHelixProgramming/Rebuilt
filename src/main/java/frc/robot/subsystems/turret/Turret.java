@@ -3,6 +3,7 @@ package frc.robot.subsystems.turret;
 import static frc.robot.subsystems.turret.TurretConstants.*;
 
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -36,14 +37,22 @@ public class Turret extends SubsystemBase {
   }
 
   public void aimAtHub() {
-    var turretPose = chassisPoseSupplier.get().plus(chassisToTurret);
+    var turretBase = chassisPoseSupplier.get().plus(chassisToTurretBase);
     var turretOrientation =
         FieldConstants.kBlueHubCenter // TODO: Point at the hub of the correct alliance color
-            .minus(turretPose.getTranslation())
+            .minus(turretBase.getTranslation())
             .getAngle()
-            .minus(turretPose.getRotation());
+            .minus(turretBase.getRotation());
 
     io.setTurnPosition(turretOrientation);
+  }
+
+  @AutoLogOutput(key = "Turret/Pose")
+  public Pose2d getTurretPose() {
+    return chassisPoseSupplier
+        .get()
+        .plus(chassisToTurretBase)
+        .plus(new Transform2d(0, 0, inputs.turnPosition));
   }
 
   @AutoLogOutput(key = "Turret/IsOnTarget")
