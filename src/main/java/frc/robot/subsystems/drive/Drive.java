@@ -207,7 +207,7 @@ public class Drive extends SubsystemBase {
 
     // Update gyro alert
     gyroDisconnectedAlert.set(!gyroInputs.connected && Constants.currentMode != Mode.SIM);
-    Logger.recordOutput("Drive/millis", (System.nanoTime() - startNanos) / 1_000_000L);
+    Logger.recordOutput("Drive/Millis", (System.nanoTime() - startNanos) / 1_000_000L);
   }
 
   /**
@@ -308,7 +308,7 @@ public class Drive extends SubsystemBase {
 
   /** Returns the measured chassis speeds of the robot. */
   @AutoLogOutput(key = "SwerveChassisSpeeds/Measured")
-  private ChassisSpeeds getChassisSpeeds() {
+  public ChassisSpeeds getChassisSpeeds() {
     return kinematics.toChassisSpeeds(getModuleStates());
   }
 

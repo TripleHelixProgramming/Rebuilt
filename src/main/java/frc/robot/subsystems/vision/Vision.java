@@ -34,7 +34,7 @@ import org.littletonrobotics.junction.Logger;
 
 public class Vision extends SubsystemBase {
   private final VisionConsumer consumer;
-  private final Supplier<Pose2d> poseSupplier;
+  private final Supplier<Pose2d> chassisPoseSupplier;
   private final VisionIO[] io;
   private final VisionIOInputsAutoLogged[] inputs;
   private final Alert[] disconnectedAlerts;
@@ -64,9 +64,9 @@ public class Vision extends SubsystemBase {
     LinearFilter.movingAverage(20)
   };
 
-  public Vision(VisionConsumer consumer, Supplier<Pose2d> poseSupplier, VisionIO... io) {
+  public Vision(VisionConsumer consumer, Supplier<Pose2d> chassisPoseSupplier, VisionIO... io) {
     this.consumer = consumer;
-    this.poseSupplier = poseSupplier;
+    this.chassisPoseSupplier = chassisPoseSupplier;
     this.io = io;
 
     // Initialize inputs

@@ -33,6 +33,10 @@ import frc.robot.subsystems.drive.GyroIOBoron;
 import frc.robot.subsystems.drive.ModuleIO;
 import frc.robot.subsystems.drive.ModuleIOSim;
 import frc.robot.subsystems.drive.ModuleIOTalonFX;
+import frc.robot.subsystems.turret.Turret;
+import frc.robot.subsystems.turret.TurretIO;
+import frc.robot.subsystems.turret.TurretIOSim;
+import frc.robot.subsystems.turret.TurretIOSpark;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionIO;
 import frc.robot.subsystems.vision.VisionIOPhotonVision;
@@ -60,6 +64,7 @@ public class Robot extends LoggedRobot {
   // Subsystems
   private Drive drive;
   private Vision vision;
+  private Turret turret;
 
   public Robot() {
     // Record metadata
@@ -103,6 +108,7 @@ public class Robot extends LoggedRobot {
                 new VisionIOPhotonVision(cameraFrontLeftName, robotToFrontLeftCamera),
                 new VisionIOPhotonVision(cameraBackRightName, robotToBackRightCamera),
                 new VisionIOPhotonVision(cameraBackLeftName, robotToBackLeftCamera));
+        turret = new Turret(drive::getVisionPose, drive::getChassisSpeeds, new TurretIOSpark());
         break;
 
       case SIM: // Running a physics simulator
@@ -129,6 +135,7 @@ public class Robot extends LoggedRobot {
                     cameraBackRightName, robotToBackRightCamera, drive::getVisionPose),
                 new VisionIOPhotonVisionSim(
                     cameraBackLeftName, robotToBackLeftCamera, drive::getVisionPose));
+        turret = new Turret(drive::getVisionPose, drive::getChassisSpeeds, new TurretIOSim());
         break;
 
       case REPLAY: // Replaying a log
@@ -155,6 +162,7 @@ public class Robot extends LoggedRobot {
                 new VisionIO() {},
                 new VisionIO() {},
                 new VisionIO() {});
+        turret = new Turret(drive::getVisionPose, drive::getChassisSpeeds, new TurretIO() {});
         break;
     }
 
@@ -167,6 +175,8 @@ public class Robot extends LoggedRobot {
     SmartDashboard.putData(
         "Align Encoders",
         new InstantCommand(() -> drive.zeroAbsoluteEncoders()).ignoringDisable(true));
+
+    turret.setDefaultCommand(Commands.run(turret::aimAtHub, turret));
   }
 
   /** This function is called periodically during all modes. */
