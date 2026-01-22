@@ -57,8 +57,10 @@ public class Turret extends SubsystemBase {
     turretOrientationSetpoint =
         hubToTurretBase.unaryMinus().getAngle().minus(turretBase.getRotation());
 
-    var chassisSpeeds = chassisSpeedsSupplier.get();
-    Translation2d turretBaseSpeeds = getTurretBaseSpeeds(chassisSpeeds);
+    var robotRelative = chassisSpeedsSupplier.get();
+    var fieldRelative =
+        ChassisSpeeds.fromFieldRelativeSpeeds(robotRelative, turretBase.getRotation());
+    Translation2d turretBaseSpeeds = getTurretBaseSpeeds(fieldRelative);
     var tangentialSpeed =
         turretBaseSpeeds.cross(hubToTurretBase)
             / hubToTurretBase.getNorm()
@@ -66,7 +68,7 @@ public class Turret extends SubsystemBase {
 
     double feedforwardVolts =
         RobotConstants.kNominalVoltage
-            * -(2 * chassisSpeeds.omegaRadiansPerSecond
+            * -(2 * fieldRelative.omegaRadiansPerSecond
                 + tangentialSpeed) // TODO: Why is this factor 2 needed?
             / turnMaxAngularVelocity.in(RadiansPerSecond);
 
