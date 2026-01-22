@@ -17,5 +17,5 @@ public interface TurretIO {
 
   public default void setTurnOpenLoop(double output) {}
 
-  public default void setTurnPosition(Rotation2d rotation) {}
+  public default void setTurnPosition(Rotation2d rotation, double feedforwardVolts) {}
 }
