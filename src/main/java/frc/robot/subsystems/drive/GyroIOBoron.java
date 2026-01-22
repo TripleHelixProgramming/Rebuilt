@@ -40,13 +40,13 @@ public class GyroIOBoron implements GyroIO {
     inputs.yawPosition = Rotation2d.fromRotations(canandgyro.getYaw());
     inputs.yawVelocityRadPerSec = Units.rotationsToRadians(canandgyro.getAngularVelocityYaw());
 
-    inputs.odometryYawTimestamps =
-        yawTimestampQueue.stream().mapToDouble((Double value) -> value).toArray();
-    inputs.odometryYawPositions =
-        yawPositionQueue.stream()
-            .map((Double value) -> Rotation2d.fromRotations(value))
-            .toArray(Rotation2d[]::new);
-    yawTimestampQueue.clear();
-    yawPositionQueue.clear();
+    inputs.odometryYawTimestamps = new double[yawTimestampQueue.size()];
+    for (int i = 0; i < inputs.odometryYawTimestamps.length; i++) {
+      inputs.odometryYawTimestamps[i] = yawTimestampQueue.poll();
+    }
+    inputs.odometryYawPositions = new Rotation2d[yawPositionQueue.size()];
+    for (int i = 0; i < inputs.odometryYawPositions.length; i++) {
+      inputs.odometryYawPositions[i] = Rotation2d.fromRotations(yawPositionQueue.poll());
+    }
   }
 }

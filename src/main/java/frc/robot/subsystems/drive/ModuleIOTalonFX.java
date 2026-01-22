@@ -186,24 +186,43 @@ public class ModuleIOTalonFX implements ModuleIO {
   }
 
   @Override
+  public void refreshSignals() {
+    BaseStatusSignal.refreshAll(
+        drivePosition,
+        driveVelocity,
+        driveAppliedVolts,
+        driveCurrent,
+        turnPosition,
+        turnVelocity,
+        turnAppliedVolts,
+        turnCurrent,
+        turnAbsolutePosition);
+  }
+
+  @Override
   public void updateInputs(ModuleIOInputs inputs) {
-    // Refresh all signals
-    var driveStatus =
-        BaseStatusSignal.refreshAll(drivePosition, driveVelocity, driveAppliedVolts, driveCurrent);
-    var turnStatus =
-        BaseStatusSignal.refreshAll(turnPosition, turnVelocity, turnAppliedVolts, turnCurrent);
-    var turnEncoderStatus = BaseStatusSignal.refreshAll(turnAbsolutePosition);
 
     // Update drive inputs
-    inputs.driveConnected = driveConnectedDebounce.calculate(driveStatus.isOK());
+    inputs.driveConnected =
+        driveConnectedDebounce.calculate(
+            drivePosition.getStatus().isOK()
+                && driveVelocity.getStatus().isOK()
+                && driveAppliedVolts.getStatus().isOK()
+                && driveCurrent.getStatus().isOK());
     inputs.drivePositionRad = Units.rotationsToRadians(drivePosition.getValueAsDouble());
     inputs.driveVelocityRadPerSec = Units.rotationsToRadians(driveVelocity.getValueAsDouble());
     inputs.driveAppliedVolts = driveAppliedVolts.getValueAsDouble();
     inputs.driveCurrentAmps = driveCurrent.getValueAsDouble();
 
     // Update turn inputs
-    inputs.turnConnected = turnConnectedDebounce.calculate(turnStatus.isOK());
-    inputs.turnEncoderConnected = turnEncoderConnectedDebounce.calculate(turnEncoderStatus.isOK());
+    inputs.turnConnected =
+        turnConnectedDebounce.calculate(
+            turnPosition.getStatus().isOK()
+                && turnVelocity.getStatus().isOK()
+                && turnAppliedVolts.getStatus().isOK()
+                && turnCurrent.getStatus().isOK());
+    inputs.turnEncoderConnected =
+        turnEncoderConnectedDebounce.calculate(turnAbsolutePosition.getStatus().isOK());
     inputs.turnAbsolutePosition = Rotation2d.fromRotations(turnAbsolutePosition.getValueAsDouble());
     inputs.turnPosition = Rotation2d.fromRotations(turnPosition.getValueAsDouble());
     inputs.turnZero = Rotation2d.fromRotations(cancoderConfig.MagnetSensor.MagnetOffset);
@@ -212,19 +231,18 @@ public class ModuleIOTalonFX implements ModuleIO {
     inputs.turnCurrentAmps = turnCurrent.getValueAsDouble();
 
     // Update odometry inputs
-    inputs.odometryTimestamps =
-        timestampQueue.stream().mapToDouble((Double value) -> value).toArray();
-    inputs.odometryDrivePositionsRad =
-        drivePositionQueue.stream()
-            .mapToDouble((Double value) -> Units.rotationsToRadians(value))
-            .toArray();
-    inputs.odometryTurnPositions =
-        turnPositionQueue.stream()
-            .map((Double value) -> Rotation2d.fromRotations(value))
-            .toArray(Rotation2d[]::new);
-    timestampQueue.clear();
-    drivePositionQueue.clear();
-    turnPositionQueue.clear();
+    inputs.odometryTimestamps = new double[timestampQueue.size()];
+    for (int i = 0; i < inputs.odometryTimestamps.length; i++) {
+      inputs.odometryTimestamps[i] = timestampQueue.poll();
+    }
+    inputs.odometryDrivePositionsRad = new double[drivePositionQueue.size()];
+    for (int i = 0; i < inputs.odometryDrivePositionsRad.length; i++) {
+      inputs.odometryDrivePositionsRad[i] = Units.rotationsToRadians(drivePositionQueue.poll());
+    }
+    inputs.odometryTurnPositions = new Rotation2d[turnPositionQueue.size()];
+    for (int i = 0; i < inputs.odometryTurnPositions.length; i++) {
+      inputs.odometryTurnPositions[i] = Rotation2d.fromRotations(turnPositionQueue.poll());
+    }
   }
 
   @Override

@@ -56,4 +56,7 @@ public interface ModuleIO {
 
   /** Update the turn zero position of the turn absolute encoder */
   public default void setTurnZero(Rotation2d rotation) {}
+
+  /** Refreshes the status signals (if applicable) before updating inputs. */
+  public default void refreshSignals() {}
 }
