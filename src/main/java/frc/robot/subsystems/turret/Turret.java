@@ -59,7 +59,7 @@ public class Turret extends SubsystemBase {
 
     var robotRelative = chassisSpeedsSupplier.get();
     var fieldRelative =
-        ChassisSpeeds.fromFieldRelativeSpeeds(robotRelative, turretBase.getRotation());
+        ChassisSpeeds.fromRobotRelativeSpeeds(robotRelative, turretBase.getRotation());
     Translation2d turretBaseSpeeds = getTurretBaseSpeeds(fieldRelative);
     var tangentialSpeed =
         turretBaseSpeeds.cross(hubToTurretBase)
