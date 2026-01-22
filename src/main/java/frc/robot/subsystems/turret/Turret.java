@@ -64,7 +64,7 @@ public class Turret extends SubsystemBase {
     // Get turret velocity (m/s) relative to hub
     var robotRelative = chassisSpeedsSupplier.get();
     var fieldRelative =
-        ChassisSpeeds.fromFieldRelativeSpeeds(robotRelative, turretBase.getRotation());
+        ChassisSpeeds.fromRobotRelativeSpeeds(robotRelative, turretBase.getRotation());
     Translation2d turretBaseSpeeds = getTurretBaseSpeeds(fieldRelative);
 
     // Create unit vectors
