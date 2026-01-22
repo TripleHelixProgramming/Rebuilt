@@ -145,4 +145,9 @@ public class Module {
     io.setTurnZero(newTurnZero);
     Preferences.setDouble(zeroRotationKey + index, newTurnZero.getRadians());
   }
+
+  /** Refreshes the status signals (if applicable) before updating inputs. */
+  public void refreshSignals() {
+    io.refreshSignals();
+  }
 }
