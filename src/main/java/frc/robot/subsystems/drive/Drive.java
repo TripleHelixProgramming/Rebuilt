@@ -146,6 +146,7 @@ public class Drive extends SubsystemBase {
 
   @Override
   public void periodic() {
+    long startNanos = System.nanoTime();
     odometryLock.lock(); // Prevents odometry updates while reading data
     gyroIO.updateInputs(gyroInputs);
     Logger.processInputs("Drive/Gyro", gyroInputs);
@@ -200,6 +201,7 @@ public class Drive extends SubsystemBase {
 
     // Update gyro alert
     gyroDisconnectedAlert.set(!gyroInputs.connected && Constants.currentMode != Mode.SIM);
+    Logger.recordOutput("Drive/Millis", (System.nanoTime() - startNanos) / 1_000_000L);
   }
 
   /**
