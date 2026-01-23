@@ -14,8 +14,8 @@ public abstract class AutoMode {
   public AutoMode(Drive drivetrain) {
     autoFactory =
         new AutoFactory(
-            drivetrain::getVisionPose,
-            drivetrain::setOdometryPose,
+            drivetrain::getPose,
+            drivetrain::setPose,
             drivetrain::followTrajectory,
             false,
             drivetrain);
