@@ -26,7 +26,8 @@ public class Turret extends SubsystemBase {
   private final Alert turnDisconnectedAlert;
 
   private Rotation2d turretOrientationSetpoint = Rotation2d.kZero;
-  private Translation2d hubToTurretBase = new Translation2d();
+  private Translation2d dynamicTargetToTurretBase = new Translation2d();
+  private Pose2d target = new Pose2d();
 
   public Turret(
       Supplier<Pose2d> chassisPoseSupplier,
@@ -50,26 +51,54 @@ public class Turret extends SubsystemBase {
   }
 
   public void aimAtHub() {
-    var hub = FieldConstants.kBlueHubCenter; // TODO: Point at the hub of the correct alliance color
+    // Get vector from static target to turret
+    var staticTarget =
+        FieldConstants.kBlueHubCenter; // TODO: Point at the hub of the correct alliance color
     var turretBase = chassisPoseSupplier.get().plus(chassisToTurretBase);
-    hubToTurretBase = turretBase.getTranslation().minus(hub);
+    var staticTargetToTurretBase = turretBase.getTranslation().minus(staticTarget);
 
-    turretOrientationSetpoint =
-        hubToTurretBase.unaryMinus().getAngle().minus(turretBase.getRotation());
+    // Calculate travel time of free projectile at constant horizontal velocity
+    var radialDistance = Meters.of(staticTargetToTurretBase.getNorm());
+    var fuelTravelTime = radialDistance.div(fuelVelocityRadial);
 
+    // Get turret velocity (m/s) relative to hub
     var robotRelative = chassisSpeedsSupplier.get();
     var fieldRelative =
         ChassisSpeeds.fromRobotRelativeSpeeds(robotRelative, turretBase.getRotation());
     Translation2d turretBaseSpeeds = getTurretBaseSpeeds(fieldRelative);
-    var tangentialSpeed =
-        turretBaseSpeeds.cross(hubToTurretBase)
-            / hubToTurretBase.getNorm()
-            / hubToTurretBase.getNorm();
+
+    // Create unit vectors
+    var radialUnit = staticTargetToTurretBase.div(staticTargetToTurretBase.getNorm());
+    var tangentialUnit = radialUnit.rotateBy(Rotation2d.kCCW_90deg);
+
+    // Compute dot products
+    var radialMagnitude = turretBaseSpeeds.dot(radialUnit);
+    var tangentialMagnitude = turretBaseSpeeds.dot(tangentialUnit);
+
+    // Create radial and tangential components of turret velocity (m/s) relative to hub
+    var radialVelocity = radialUnit.times(radialMagnitude);
+    var tangentialVelocity = tangentialUnit.times(tangentialMagnitude);
+
+    // Calculate distance to lag the target
+    var lag = tangentialVelocity.times(fuelTravelTime.in(Seconds));
+    var dynamicTarget = staticTarget.minus(lag);
+    target = new Pose2d(dynamicTarget, Rotation2d.kZero);
+
+    // Get vector from dynamic target to turret
+    dynamicTargetToTurretBase = turretBase.getTranslation().minus(dynamicTarget);
+
+    // Get angular velocity omega, where V = omega x R
+    var apparentAngularVelocityRadPerSec =
+        turretBaseSpeeds.cross(dynamicTargetToTurretBase)
+            / dynamicTargetToTurretBase.getSquaredNorm();
+
+    turretOrientationSetpoint =
+        dynamicTargetToTurretBase.unaryMinus().getAngle().minus(turretBase.getRotation());
 
     double feedforwardVolts =
         RobotConstants.kNominalVoltage
-            * -(2 * fieldRelative.omegaRadiansPerSecond
-                + tangentialSpeed) // TODO: Why is this factor 2 needed?
+            * -(2 * robotRelative.omegaRadiansPerSecond // TODO: Why is this factor 2 needed?
+                + apparentAngularVelocityRadPerSec)
             / turnMaxAngularVelocity.in(RadiansPerSecond);
 
     io.setTurnPosition(turretOrientationSetpoint, feedforwardVolts);
@@ -83,10 +112,15 @@ public class Turret extends SubsystemBase {
         .plus(new Transform2d(0, 0, inputs.turnPosition));
   }
 
+  @AutoLogOutput(key = "Turret/Target")
+  public Pose2d getTargetPose() {
+    return target;
+  }
+
   @AutoLogOutput(key = "Turret/IsOnTarget")
   public boolean isOnTarget() {
     return inputs.turnPosition.minus(turretOrientationSetpoint).getMeasure().abs(Radians)
-            * hubToTurretBase.getNorm()
+            * dynamicTargetToTurretBase.getNorm()
         < (hubWidth.in(Meters) / 2.0);
   }
 
