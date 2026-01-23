@@ -55,7 +55,7 @@ import org.littletonrobotics.junction.wpilog.WPILOGWriter;
  * project.
  */
 public class Robot extends LoggedRobot {
-  private final AllianceSelector allianceSelector =
+  public static final AllianceSelector allianceSelector =
       new AllianceSelector(AutoConstants.kAllianceColorSelectorPort);
   private final AutoSelector autoSelector =
       new AutoSelector(
@@ -416,5 +416,9 @@ public class Robot extends LoggedRobot {
     autoSelector.addAuto(new AutoOption(Alliance.Blue, 2, new TraversingTheBump(drive)));
     autoSelector.addAuto(new AutoOption(Alliance.Red, 2, new R_MoveAndRotate(drive)));
     autoSelector.addAuto(new AutoOption(Alliance.Blue, 3, new B_Path(drive)));
+  }
+
+  public static Alliance getAlliance() {
+    return allianceSelector.getAllianceColor();
   }
 }

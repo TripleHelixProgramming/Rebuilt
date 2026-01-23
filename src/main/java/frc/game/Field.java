@@ -1,6 +1,7 @@
 package frc.game;
 
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Translation2d;
 
 public class Field {
   public static final double FIELD_WIDTH = 317.7;
@@ -46,12 +47,14 @@ public class Field {
     public final double ypos;
     public final double xlen;
     public final double ylen;
+    public final Translation2d center;
 
     private Region(Builder builder) {
       this.xpos = builder.xpos;
       this.ypos = builder.ypos;
       this.xlen = builder.xlen;
       this.ylen = builder.ylen;
+      this.center = new Translation2d(xpos + xlen / 2, ypos + ylen / 2);
     }
 
     public static Builder build() {
