@@ -58,6 +58,13 @@ public class TurretIOSpark implements TurretIO {
         .pid(turnKp, 0.0, 0.0);
 
     turnConfig
+        .softLimit
+        .forwardSoftLimit(turnPIDMaxInput)
+        .reverseSoftLimit(turnPIDMinInput)
+        .forwardSoftLimitEnabled(true)
+        .reverseSoftLimitEnabled(true);
+
+    turnConfig
         .signals
         .absoluteEncoderPositionAlwaysOn(true)
         .absoluteEncoderPositionPeriodMs(20)
