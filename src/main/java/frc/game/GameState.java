@@ -4,9 +4,7 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import frc.game.Field.Region;
-import frc.lib.AllianceSelector;
 import frc.robot.Robot;
-
 import java.util.List;
 import java.util.Optional;
 import org.littletonrobotics.junction.Logger;
@@ -126,8 +124,8 @@ public class GameState {
 
   public static Translation2d getMyHubLocation() {
     if (Robot.getAlliance() == Alliance.Red) {
-       return Region.RedHub.center;
-     }
+      return Region.RedHub.center;
+    }
     return Region.BlueHub.center;
   }
 }
