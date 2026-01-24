@@ -19,7 +19,6 @@ import frc.lib.ControllerSelector.ControllerConfig;
 import frc.lib.ControllerSelector.ControllerFunction;
 import frc.lib.ControllerSelector.ControllerType;
 import frc.robot.Constants.AutoConstants;
-import frc.robot.Constants.FieldConstants;
 import frc.robot.auto.B_MoveForward1M;
 import frc.robot.auto.B_Path;
 import frc.robot.auto.R_MoveAndRotate;
@@ -316,11 +315,8 @@ public class Robot extends LoggedRobot {
                 drive,
                 () -> -zorroDriver.getRightYAxis(),
                 () -> -zorroDriver.getRightXAxis(),
-                // TODO: Point at the hub of the correct alliance color
                 () ->
-                    FieldConstants.kBlueHubCenter
-                        .minus(drive.getPose().getTranslation())
-                        .getAngle(),
+                    GameState.getMyHubLocation().minus(drive.getPose().getTranslation()).getAngle(),
                 allianceSelector::fieldRotated));
 
     // Switch to X pattern when button D is pressed
@@ -362,11 +358,8 @@ public class Robot extends LoggedRobot {
                 drive,
                 () -> -xboxDriver.getLeftY(),
                 () -> -xboxDriver.getLeftX(),
-                // TODO: Point at the hub of the correct alliance color
                 () ->
-                    FieldConstants.kBlueHubCenter
-                        .minus(drive.getPose().getTranslation())
-                        .getAngle(),
+                    GameState.getMyHubLocation().minus(drive.getPose().getTranslation()).getAngle(),
                 allianceSelector::fieldRotated));
 
     // Point in the direction of the commanded translation while Y button is held

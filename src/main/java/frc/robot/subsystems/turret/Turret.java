@@ -52,8 +52,7 @@ public class Turret extends SubsystemBase {
 
   public void aimAtHub() {
     // Get vector from static target to turret
-    var staticTarget =
-        GameState.getMyHubLocation(); // TODO: Point at the hub of the correct alliance color
+    var staticTarget = GameState.getMyHubLocation();
     var turretBase = chassisPoseSupplier.get().plus(chassisToTurretBase);
     var staticTargetToTurretBase = turretBase.getTranslation().minus(staticTarget);
 
