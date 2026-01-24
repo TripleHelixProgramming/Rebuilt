@@ -11,7 +11,7 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.Constants.FieldConstants;
+import frc.game.GameState;
 import frc.robot.Constants.RobotConstants;
 import java.util.function.Supplier;
 import org.littletonrobotics.junction.AutoLogOutput;
@@ -52,8 +52,7 @@ public class Turret extends SubsystemBase {
 
   public void aimAtHub() {
     // Get vector from static target to turret
-    var staticTarget =
-        FieldConstants.kBlueHubCenter; // TODO: Point at the hub of the correct alliance color
+    var staticTarget = GameState.getMyHubLocation();
     var turretBase = chassisPoseSupplier.get().plus(chassisToTurretBase);
     var staticTargetToTurretBase = turretBase.getTranslation().minus(staticTarget);
 

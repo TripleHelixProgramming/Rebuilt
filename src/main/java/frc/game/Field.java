@@ -1,6 +1,9 @@
 package frc.game;
 
+import static edu.wpi.first.units.Units.Inches;
+
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Translation2d;
 
 public class Field {
   public static final double FIELD_WIDTH = 317.7;
@@ -31,8 +34,8 @@ public class Field {
     RedDepot(build().xpos(FIELD_WIDTH).ypos(91.4 + 73).xlen(42).ylen(27)),
     BlueTower(build().xpos(ALLIANCE_ZONE_LENGTH).ypos(91.4).xlen(49.25).ylen(45)),
     RedTower(build().xpos(FIELD_WIDTH).ypos(91.4).xlen(49.25).ylen(45)),
-    BlueHub(build().xpos(ALLIANCE_ZONE_LENGTH).ypos(91.4).xlen(47).ylen(47)),
-    RedHub(build().xpos(ALLIANCE_ZONE_LENGTH + NEUTRAL_ZONE_LENGTH).ypos(91.4).xlen(47).ylen(47)),
+    BlueHub(build().xpos(ALLIANCE_ZONE_LENGTH).ypos(138.65).xlen(47).ylen(47)),
+    RedHub(build().xpos(ALLIANCE_ZONE_LENGTH + NEUTRAL_ZONE_LENGTH).ypos(138.65).xlen(47).ylen(47)),
     RedLeftBump(
         build().xpos(ALLIANCE_ZONE_LENGTH + NEUTRAL_ZONE_LENGTH).ypos(135.8).xlen(73).ylen(44.4)),
     RedRightBump(
@@ -46,12 +49,14 @@ public class Field {
     public final double ypos;
     public final double xlen;
     public final double ylen;
+    public final Translation2d center;
 
     private Region(Builder builder) {
       this.xpos = builder.xpos;
       this.ypos = builder.ypos;
       this.xlen = builder.xlen;
       this.ylen = builder.ylen;
+      this.center = new Translation2d(Inches.of(xpos + xlen / 2), Inches.of(ypos + ylen / 2));
     }
 
     public static Builder build() {
