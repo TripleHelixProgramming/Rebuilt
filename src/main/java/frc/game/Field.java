@@ -29,8 +29,8 @@ public class Field {
   private static final Distance fuel_y_len = Inches.of(90.95 * 2);
 
   // Constructed
-  private static final Distance field_x_len = centerField_x_pos.times(2);
-  private static final Distance field_y_len = centerField_y_pos.times(2);
+  public static final Distance field_x_len = centerField_x_pos.times(2);
+  public static final Distance field_y_len = centerField_y_pos.times(2);
   private static final Distance allianceZone_x_len = hub_x_centerPos.minus(hub_x_len.div(2));
   private static final Distance neutralZone_x_len =
       (centerField_x_pos.minus(hub_x_centerPos.plus(hub_x_len.div(2)))).times(2);
