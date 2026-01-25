@@ -178,5 +178,6 @@ public class Launcher extends SubsystemBase {
     Logger.recordOutput(
         "Launcher/HorizontalLaunchAngleDegrees",
         initialVelocities.toTranslation2d().getAngle().getDegrees());
+    Logger.recordOutput("Launcher/NominalTravelTime", dr / v_0r);
   }
 }
