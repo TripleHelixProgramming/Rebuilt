@@ -4,11 +4,13 @@ import static frc.robot.subsystems.vision.VisionConstants.*;
 
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import frc.game.Field;
 import frc.game.GameState;
 import frc.lib.AllianceSelector;
 import frc.lib.AutoOption;
@@ -59,6 +61,7 @@ public class Robot extends LoggedRobot {
   private final AutoSelector autoSelector =
       new AutoSelector(
           AutoConstants.kAutonomousModeSelectorPorts, allianceSelector::getAllianceColor);
+  public static final Field2d field = new Field2d();
 
   // Subsystems
   private Drive drive;
@@ -177,6 +180,8 @@ public class Robot extends LoggedRobot {
     SmartDashboard.putData(
         "Align Encoders",
         new InstantCommand(() -> drive.zeroAbsoluteEncoders()).ignoringDisable(true));
+    SmartDashboard.putData("Field", field);
+    Field.plotRegions();
 
     turret.setDefaultCommand(Commands.run(turret::aimAtHub, turret));
   }
