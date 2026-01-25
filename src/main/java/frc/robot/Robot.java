@@ -34,6 +34,8 @@ import frc.robot.subsystems.drive.GyroIOBoron;
 import frc.robot.subsystems.drive.ModuleIO;
 import frc.robot.subsystems.drive.ModuleIOSim;
 import frc.robot.subsystems.drive.ModuleIOTalonFX;
+import frc.robot.subsystems.launcher.FlywheelIO;
+import frc.robot.subsystems.launcher.HoodIO;
 import frc.robot.subsystems.launcher.Launcher;
 import frc.robot.subsystems.launcher.TurretIO;
 import frc.robot.subsystems.launcher.TurretIOSim;
@@ -111,7 +113,7 @@ public class Robot extends LoggedRobot {
                 new VisionIOPhotonVision(cameraBackRightName, robotToBackRightCamera),
                 new VisionIOPhotonVision(cameraBackLeftName, robotToBackLeftCamera));
         launcher =
-            new Launcher(drive::getPose, drive::getRobotRelativeChassisSpeeds, new TurretIOSpark());
+            new Launcher(drive::getPose, drive::getRobotRelativeChassisSpeeds, new TurretIOSpark(), new FlywheelIO() {}, new HoodIO() {});
         break;
 
       case SIM: // Running a physics simulator
@@ -139,7 +141,7 @@ public class Robot extends LoggedRobot {
                 new VisionIOPhotonVisionSim(
                     cameraBackLeftName, robotToBackLeftCamera, drive::getPose));
         launcher =
-            new Launcher(drive::getPose, drive::getRobotRelativeChassisSpeeds, new TurretIOSim());
+            new Launcher(drive::getPose, drive::getRobotRelativeChassisSpeeds, new TurretIOSim(), new FlywheelIO() {}, new HoodIO() {});
         break;
 
       case REPLAY: // Replaying a log
@@ -167,7 +169,7 @@ public class Robot extends LoggedRobot {
                 new VisionIO() {},
                 new VisionIO() {});
         launcher =
-            new Launcher(drive::getPose, drive::getRobotRelativeChassisSpeeds, new TurretIO() {});
+            new Launcher(drive::getPose, drive::getRobotRelativeChassisSpeeds, new TurretIO() {}, new FlywheelIO() {}, new HoodIO() {});
         break;
     }
 

@@ -18,12 +18,20 @@ import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
 public class Launcher extends SubsystemBase {
-  private final TurretIO io;
-  private final TurretIOInputsAutoLogged inputs = new TurretIOInputsAutoLogged();
+  private final TurretIO turretIO;
+  private final FlywheelIO flywheelIO;
+  private final HoodIO hoodIO;
+
+  private final TurretIOInputsAutoLogged turretInputs = new TurretIOInputsAutoLogged();
+  private final FlywheelIOInputsAutoLogged flywheelInputs = new FlywheelIOInputsAutoLogged();
+  private final HoodIOInputsAutoLogged hoodInputs = new HoodIOInputsAutoLogged();
+  
   private final Supplier<Pose2d> chassisPoseSupplier;
   private final Supplier<ChassisSpeeds> chassisSpeedsSupplier;
 
-  private final Alert turnDisconnectedAlert;
+  private final Alert turretDisconnectedAlert;
+  private final Alert flywheelDisconnectedAlert;
+  private final Alert hoodDisconnectedAlert;
 
   private Rotation2d turretOrientationSetpoint = Rotation2d.kZero;
   private Translation2d dynamicTargetToTurretBase = new Translation2d();
@@ -32,22 +40,38 @@ public class Launcher extends SubsystemBase {
   public Launcher(
       Supplier<Pose2d> chassisPoseSupplier,
       Supplier<ChassisSpeeds> chassisSpeedsSupplier,
-      TurretIO io) {
-    this.io = io;
+      TurretIO turretIO, FlywheelIO flywheelIO, HoodIO hoodIO) {
+    this.turretIO = turretIO;
+    this.flywheelIO = flywheelIO;
+    this.hoodIO = hoodIO;
+
     this.chassisPoseSupplier = chassisPoseSupplier;
     this.chassisSpeedsSupplier = chassisSpeedsSupplier;
-    turnDisconnectedAlert = new Alert("Disconnected turret turn motor", AlertType.kError);
+
+    turretDisconnectedAlert = new Alert("Disconnected turret motor", AlertType.kError);
+    flywheelDisconnectedAlert = new Alert("Disconnected flywheel motor", AlertType.kError);
+    hoodDisconnectedAlert = new Alert("Disconnected hood motor", AlertType.kError);
   }
 
   @Override
   public void periodic() {
-    io.updateInputs(inputs);
-    Logger.processInputs("Turret", inputs);
-    turnDisconnectedAlert.set(!inputs.connected);
+    turretIO.updateInputs(turretInputs);
+    flywheelIO.updateInputs(flywheelInputs);
+    hoodIO.updateInputs(hoodInputs);
+
+    Logger.processInputs("Turret", turretInputs);
+    Logger.processInputs("Flyweel", flywheelInputs);
+    Logger.processInputs("Hood", hoodInputs);
+
+    turretDisconnectedAlert.set(!turretInputs.connected);
+    flywheelDisconnectedAlert.set(!flywheelInputs.connected);
+    hoodDisconnectedAlert.set(!hoodInputs.connected);
   }
 
   public void stop() {
-    io.setOpenLoop(0.0);
+    turretIO.setOpenLoop(0.0);
+    flywheelIO.setOpenLoop(0.0);
+    hoodIO.setOpenLoop(0.0);
   }
 
   public void aimAtHub() {
@@ -100,7 +124,7 @@ public class Launcher extends SubsystemBase {
                 + apparentAngularVelocityRadPerSec)
             / turnMaxAngularVelocity.in(RadiansPerSecond);
 
-    io.setPosition(turretOrientationSetpoint, feedforwardVolts);
+    turretIO.setPosition(turretOrientationSetpoint, feedforwardVolts);
   }
 
   @AutoLogOutput(key = "Turret/Pose")
@@ -108,7 +132,7 @@ public class Launcher extends SubsystemBase {
     return chassisPoseSupplier
         .get()
         .plus(chassisToTurretBase)
-        .plus(new Transform2d(0, 0, inputs.position));
+        .plus(new Transform2d(0, 0, turretInputs.position));
   }
 
   @AutoLogOutput(key = "Turret/Target")
@@ -118,7 +142,7 @@ public class Launcher extends SubsystemBase {
 
   @AutoLogOutput(key = "Turret/IsOnTarget")
   public boolean isOnTarget() {
-    return inputs.position.minus(turretOrientationSetpoint).getMeasure().abs(Radians)
+    return turretInputs.position.minus(turretOrientationSetpoint).getMeasure().abs(Radians)
             * dynamicTargetToTurretBase.getNorm()
         < (hubWidth.in(Meters) / 2.0);
   }
