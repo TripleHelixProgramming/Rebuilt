@@ -23,6 +23,8 @@ public class Field {
   private static final Distance tower_y_centerPos = centerField_y_pos.minus(Inches.of(11.46));
   private static final Distance tower_x_len = Inches.of(43.8);
   private static final Distance tower_y_len = Inches.of(47);
+  private static final Distance fuel_x_len = Inches.of(35.95*2);
+  private static final Distance fuel_y_len = Inches.of(90.95*2);
 
   // Constructed
   private static final Distance field_x_len = centerField_x_pos.times(2);
@@ -51,7 +53,7 @@ public class Field {
     RedDepot(new Rectangle2d(new Translation2d(field_x_len.minus(depot_x_len), field_y_len.minus(depot_y_centerPos).minus(depot_y_len.div(2))), new Translation2d(field_x_len, field_y_len.minus(depot_y_centerPos).plus(depot_y_len.div(2))))),
     BlueTower(new Rectangle2d(new Translation2d(Inches.of(0), tower_y_centerPos.minus(tower_y_len.div(2))), new Translation2d(tower_x_len, tower_y_centerPos.plus(tower_y_len.div(2))))),
     RedTower(new Rectangle2d(new Translation2d(field_x_len.minus(tower_x_len), field_y_len.minus(tower_y_centerPos).minus(tower_y_len.div(2))), new Translation2d(field_x_len, field_y_len.minus(tower_y_centerPos).plus(tower_y_len.div(2))))),
-    FuelArrangement(new Rectangle2d(fieldCenter, Inches.of(35.95*2), Inches.of(90.95*2)));
+    FuelArrangement(new Rectangle2d(fieldCenter, fuel_x_len, fuel_y_len));
 
     public final Rectangle2d rect;
 
