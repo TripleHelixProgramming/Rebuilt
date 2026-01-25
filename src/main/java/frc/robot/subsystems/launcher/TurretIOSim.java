@@ -1,6 +1,6 @@
-package frc.robot.subsystems.turret;
+package frc.robot.subsystems.launcher;
 
-import static frc.robot.subsystems.turret.TurretConstants.*;
+import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.*;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
@@ -41,21 +41,21 @@ public class TurretIOSim implements TurretIO {
     turnSim.update(0.02);
 
     // Update turn inputs
-    inputs.turnConnected = true;
-    inputs.turnPosition = new Rotation2d(turnSim.getAngularPositionRad());
-    inputs.turnVelocityRadPerSec = turnSim.getAngularVelocityRadPerSec();
-    inputs.turnAppliedVolts = turnAppliedVolts;
-    inputs.turnCurrentAmps = Math.abs(turnSim.getCurrentDrawAmps());
+    inputs.connected = true;
+    inputs.position = new Rotation2d(turnSim.getAngularPositionRad());
+    inputs.velocityRadPerSec = turnSim.getAngularVelocityRadPerSec();
+    inputs.appliedVolts = turnAppliedVolts;
+    inputs.currentAmps = Math.abs(turnSim.getCurrentDrawAmps());
   }
 
   @Override
-  public void setTurnOpenLoop(double output) {
+  public void setOpenLoop(double output) {
     turnClosedLoop = false;
     turnAppliedVolts = output;
   }
 
   @Override
-  public void setTurnPosition(Rotation2d rotation, double feedforwardVolts) {
+  public void setPosition(Rotation2d rotation, double feedforwardVolts) {
     turnClosedLoop = true;
     this.feedforwardVolts = feedforwardVolts;
     turnController.setSetpoint(rotation.getRadians());

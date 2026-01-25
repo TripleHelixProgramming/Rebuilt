@@ -1,6 +1,6 @@
-package frc.robot.subsystems.turret;
+package frc.robot.subsystems.launcher;
 
-import static frc.robot.subsystems.turret.TurretConstants.*;
+import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.*;
 import static frc.robot.util.SparkUtil.*;
 
 import com.revrobotics.AbsoluteEncoder;
@@ -81,23 +81,23 @@ public class TurretIOSpark implements TurretIO {
     ifOk(
         turnSpark,
         turnEncoder::getPosition,
-        (value) -> inputs.turnPosition = new Rotation2d(value).minus(rotationOffset));
-    ifOk(turnSpark, turnEncoder::getVelocity, (value) -> inputs.turnVelocityRadPerSec = value);
+        (value) -> inputs.position = new Rotation2d(value).minus(rotationOffset));
+    ifOk(turnSpark, turnEncoder::getVelocity, (value) -> inputs.velocityRadPerSec = value);
     ifOk(
         turnSpark,
         new DoubleSupplier[] {turnSpark::getAppliedOutput, turnSpark::getBusVoltage},
-        (values) -> inputs.turnAppliedVolts = values[0] * values[1]);
-    ifOk(turnSpark, turnSpark::getOutputCurrent, (value) -> inputs.turnCurrentAmps = value);
-    inputs.turnConnected = turnConnectedDebounce.calculate(!sparkStickyFault);
+        (values) -> inputs.appliedVolts = values[0] * values[1]);
+    ifOk(turnSpark, turnSpark::getOutputCurrent, (value) -> inputs.currentAmps = value);
+    inputs.connected = turnConnectedDebounce.calculate(!sparkStickyFault);
   }
 
   @Override
-  public void setTurnOpenLoop(double output) {
+  public void setOpenLoop(double output) {
     turnSpark.setVoltage(output);
   }
 
   @Override
-  public void setTurnPosition(Rotation2d rotation, double feedforwardVolts) {
+  public void setPosition(Rotation2d rotation, double feedforwardVolts) {
     double setpoint =
         MathUtil.inputModulus(
             rotation.plus(rotationOffset).getRadians(), turnPIDMinInput, turnPIDMaxInput);

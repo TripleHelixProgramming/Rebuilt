@@ -1,7 +1,7 @@
-package frc.robot.subsystems.turret;
+package frc.robot.subsystems.launcher;
 
 import static edu.wpi.first.units.Units.*;
-import static frc.robot.subsystems.turret.TurretConstants.*;
+import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.*;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -17,7 +17,7 @@ import java.util.function.Supplier;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
-public class Turret extends SubsystemBase {
+public class Launcher extends SubsystemBase {
   private final TurretIO io;
   private final TurretIOInputsAutoLogged inputs = new TurretIOInputsAutoLogged();
   private final Supplier<Pose2d> chassisPoseSupplier;
@@ -29,7 +29,7 @@ public class Turret extends SubsystemBase {
   private Translation2d dynamicTargetToTurretBase = new Translation2d();
   private Pose2d target = new Pose2d();
 
-  public Turret(
+  public Launcher(
       Supplier<Pose2d> chassisPoseSupplier,
       Supplier<ChassisSpeeds> chassisSpeedsSupplier,
       TurretIO io) {
@@ -43,11 +43,11 @@ public class Turret extends SubsystemBase {
   public void periodic() {
     io.updateInputs(inputs);
     Logger.processInputs("Turret", inputs);
-    turnDisconnectedAlert.set(!inputs.turnConnected);
+    turnDisconnectedAlert.set(!inputs.connected);
   }
 
   public void stop() {
-    io.setTurnOpenLoop(0.0);
+    io.setOpenLoop(0.0);
   }
 
   public void aimAtHub() {
@@ -100,7 +100,7 @@ public class Turret extends SubsystemBase {
                 + apparentAngularVelocityRadPerSec)
             / turnMaxAngularVelocity.in(RadiansPerSecond);
 
-    io.setTurnPosition(turretOrientationSetpoint, feedforwardVolts);
+    io.setPosition(turretOrientationSetpoint, feedforwardVolts);
   }
 
   @AutoLogOutput(key = "Turret/Pose")
@@ -108,7 +108,7 @@ public class Turret extends SubsystemBase {
     return chassisPoseSupplier
         .get()
         .plus(chassisToTurretBase)
-        .plus(new Transform2d(0, 0, inputs.turnPosition));
+        .plus(new Transform2d(0, 0, inputs.position));
   }
 
   @AutoLogOutput(key = "Turret/Target")
@@ -118,7 +118,7 @@ public class Turret extends SubsystemBase {
 
   @AutoLogOutput(key = "Turret/IsOnTarget")
   public boolean isOnTarget() {
-    return inputs.turnPosition.minus(turretOrientationSetpoint).getMeasure().abs(Radians)
+    return inputs.position.minus(turretOrientationSetpoint).getMeasure().abs(Radians)
             * dynamicTargetToTurretBase.getNorm()
         < (hubWidth.in(Meters) / 2.0);
   }
