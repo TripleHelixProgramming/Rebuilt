@@ -124,8 +124,8 @@ public class GameState {
 
   public static Translation2d getMyHubLocation() {
     if (Robot.getAlliance() == Alliance.Red) {
-      return Region.RedHub.center;
+      return Region.RedHub.getCenter().getTranslation();
     }
-    return Region.BlueHub.center;
+    return Region.BlueHub.getCenter().getTranslation();
   }
 }
