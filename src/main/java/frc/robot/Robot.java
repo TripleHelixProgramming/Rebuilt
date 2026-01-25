@@ -113,7 +113,12 @@ public class Robot extends LoggedRobot {
                 new VisionIOPhotonVision(cameraBackRightName, robotToBackRightCamera),
                 new VisionIOPhotonVision(cameraBackLeftName, robotToBackLeftCamera));
         launcher =
-            new Launcher(drive::getPose, drive::getRobotRelativeChassisSpeeds, new TurretIOSpark(), new FlywheelIO() {}, new HoodIO() {});
+            new Launcher(
+                drive::getPose,
+                drive::getRobotRelativeChassisSpeeds,
+                new TurretIOSpark(),
+                new FlywheelIO() {},
+                new HoodIO() {});
         break;
 
       case SIM: // Running a physics simulator
@@ -141,7 +146,12 @@ public class Robot extends LoggedRobot {
                 new VisionIOPhotonVisionSim(
                     cameraBackLeftName, robotToBackLeftCamera, drive::getPose));
         launcher =
-            new Launcher(drive::getPose, drive::getRobotRelativeChassisSpeeds, new TurretIOSim(), new FlywheelIO() {}, new HoodIO() {});
+            new Launcher(
+                drive::getPose,
+                drive::getRobotRelativeChassisSpeeds,
+                new TurretIOSim(),
+                new FlywheelIO() {},
+                new HoodIO() {});
         break;
 
       case REPLAY: // Replaying a log
@@ -169,7 +179,12 @@ public class Robot extends LoggedRobot {
                 new VisionIO() {},
                 new VisionIO() {});
         launcher =
-            new Launcher(drive::getPose, drive::getRobotRelativeChassisSpeeds, new TurretIO() {}, new FlywheelIO() {}, new HoodIO() {});
+            new Launcher(
+                drive::getPose,
+                drive::getRobotRelativeChassisSpeeds,
+                new TurretIO() {},
+                new FlywheelIO() {},
+                new HoodIO() {});
         break;
     }
 
@@ -185,7 +200,7 @@ public class Robot extends LoggedRobot {
     SmartDashboard.putData("Field", field);
     Field.plotRegions();
 
-    launcher.setDefaultCommand(Commands.run(launcher::aimAtHub, launcher));
+    launcher.setDefaultCommand(Commands.run(launcher::aimAtHub, launcher).withName("Aim at hub"));
   }
 
   /** This function is called periodically during all modes. */
@@ -203,6 +218,8 @@ public class Robot extends LoggedRobot {
     CommandScheduler.getInstance().run();
     SmartDashboard.putData(CommandScheduler.getInstance());
     SmartDashboard.putData(drive);
+    SmartDashboard.putData(vision);
+    SmartDashboard.putData(launcher);
 
     GameState.logValues();
 
@@ -323,7 +340,11 @@ public class Robot extends LoggedRobot {
                 () -> -zorroDriver.getRightYAxis(),
                 () -> -zorroDriver.getRightXAxis(),
                 () ->
-                    GameState.getMyHubPose().toPose2d().getTranslation().minus(drive.getPose().getTranslation()).getAngle(),
+                    GameState.getMyHubPose()
+                        .toPose2d()
+                        .getTranslation()
+                        .minus(drive.getPose().getTranslation())
+                        .getAngle(),
                 allianceSelector::fieldRotated));
 
     // Switch to X pattern when button D is pressed
@@ -366,7 +387,11 @@ public class Robot extends LoggedRobot {
                 () -> -xboxDriver.getLeftY(),
                 () -> -xboxDriver.getLeftX(),
                 () ->
-                    GameState.getMyHubPose().toPose2d().getTranslation().minus(drive.getPose().getTranslation()).getAngle(),
+                    GameState.getMyHubPose()
+                        .toPose2d()
+                        .getTranslation()
+                        .minus(drive.getPose().getTranslation())
+                        .getAngle(),
                 allianceSelector::fieldRotated));
 
     // Point in the direction of the commanded translation while Y button is held

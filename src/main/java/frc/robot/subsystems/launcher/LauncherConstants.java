@@ -13,6 +13,9 @@ import frc.robot.Constants.MotorConstants.NEO550Constants;
 
 public final class LauncherConstants {
 
+  public static final Rotation2d impactAngle = Rotation2d.fromDegrees(60);
+  public static final double gravity = 9.81;
+
   public static final class TurretConstants {
     // Geometry
     public static final Transform3d chassisToTurretBase =

@@ -39,10 +39,13 @@ public class Field {
       (centerField_x_pos.minus(hub_x_centerPos.plus(hub_x_len.div(2)))).times(2);
   private static final Pose2d fieldCenter =
       new Pose2d(new Translation2d(centerField_x_pos, centerField_y_pos), Rotation2d.kZero);
-  public static final Pose3d blueHubCenter = new Pose3d(
-      hub_x_centerPos, centerField_y_pos, hub_z_len, Rotation3d.kZero);
+  public static final Pose3d blueHubCenter =
+      new Pose3d(hub_x_centerPos, centerField_y_pos, hub_z_len, Rotation3d.kZero);
   public static final Pose3d redHubCenter =
-      new Pose3d(centerField_x_pos.times(2).minus(hub_x_centerPos), centerField_y_pos, hub_z_len,
+      new Pose3d(
+          centerField_x_pos.times(2).minus(hub_x_centerPos),
+          centerField_y_pos,
+          hub_z_len,
           Rotation3d.kZero);
 
   enum Region {
