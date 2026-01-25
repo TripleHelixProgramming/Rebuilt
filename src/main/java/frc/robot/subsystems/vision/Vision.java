@@ -25,6 +25,7 @@ import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.game.Field;
 import frc.robot.subsystems.vision.VisionIO.PoseObservation;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -328,10 +329,7 @@ public class Vision extends SubsystemBase {
       @Override
       public double test(PoseObservation observation) {
         var cornerA = new Translation2d(minRobotWidth.div(2.0), minRobotWidth.div(2.0));
-        var cornerB =
-            new Translation2d(
-                    getAprilTagLayout().getFieldLength(), getAprilTagLayout().getFieldWidth())
-                .minus(cornerA);
+        var cornerB = new Translation2d(Field.field_x_len, Field.field_y_len).minus(cornerA);
         var arena = new Rectangle2d(cornerA, cornerB);
         boolean pass = arena.contains(observation.pose().toPose2d().getTranslation());
 
