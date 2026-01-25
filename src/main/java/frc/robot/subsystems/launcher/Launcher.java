@@ -6,6 +6,7 @@ import static frc.robot.subsystems.launcher.LauncherConstants.impactAngle;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
@@ -87,15 +88,16 @@ public class Launcher extends SubsystemBase {
     updateIntialVelocities(vectorTurretBaseToHub);
     flywheelIO.setVelocity(initialVelocities.getNorm(), 0);
 
-    // // Calculate travel time of free projectile at constant horizontal velocity
-    // var radialDistance = Meters.of(vectorHubToTurretBase.getNorm());
-    // var fuelTravelTime = radialDistance.div(fuelVelocityRadial);
+    // Get turret linear velocities (m/s)
+    var robotRelative = chassisSpeedsSupplier.get();
+    var fieldRelative =
+        ChassisSpeeds.fromRobotRelativeSpeeds(
+            robotRelative, turretBasePose.toPose2d().getRotation());
+    Translation3d turretBaseSpeeds = getTurretBaseSpeeds(fieldRelative);
 
-    // // Get turret velocity (m/s) relative to hub
-    // var robotRelative = chassisSpeedsSupplier.get();
-    // var fieldRelative =
-    //     ChassisSpeeds.fromRobotRelativeSpeeds(robotRelative, turretBasePose.getRotation());
-    // Translation2d turretBaseSpeeds = getTurretBaseSpeeds(fieldRelative);
+    var residualVelocities = initialVelocities.minus(turretBaseSpeeds);
+    Rotation2d turretSetpoint =
+        new Rotation2d(residualVelocities.getX(), residualVelocities.getY());
 
     // // Create unit vectors
     // var radialUnit = vectorHubToTurretBase.div(vectorHubToTurretBase.getNorm());
@@ -132,7 +134,7 @@ public class Launcher extends SubsystemBase {
     //         / turnMaxAngularVelocity.in(RadiansPerSecond);
 
     // turretIO.setPosition(turretOrientationSetpoint, feedforwardVolts);
-    turretIO.setPosition(turretBasePose.toPose2d().getRotation().unaryMinus(), 0);
+    turretIO.setPosition(turretSetpoint.minus(turretBasePose.toPose2d().getRotation()), 0);
   }
 
   @AutoLogOutput(key = "Launcher/TurretPose")
@@ -147,17 +149,16 @@ public class Launcher extends SubsystemBase {
   //       < (hubWidth.in(Meters) / 2.0);
   // }
 
-  // private Translation2d getTurretBaseSpeeds(ChassisSpeeds chassisSpeeds) {
-  //   // Extract translation from the transform
-  //   Translation2d r = chassisToTurretBase.getTranslation();
-
-  //   double vx = chassisSpeeds.vxMetersPerSecond;
-  //   double vy = chassisSpeeds.vyMetersPerSecond;
-  //   double omega = chassisSpeeds.omegaRadiansPerSecond;
-
-  //   // Rigid-body velocity equation
-  //   return new Translation2d(vx - omega * r.getY(), vy + omega * r.getX());
-  // }
+  private Translation3d getTurretBaseSpeeds(ChassisSpeeds chassisSpeeds) {
+    double vx = chassisSpeeds.vxMetersPerSecond;
+    double vy = chassisSpeeds.vyMetersPerSecond;
+    double omega = chassisSpeeds.omegaRadiansPerSecond;
+    var baseSpeeds =
+        new Translation3d(
+            vx - omega * chassisToTurretBase.getY(), vy + omega * chassisToTurretBase.getX(), 0);
+    Logger.recordOutput("Launcher/BaseSpeeds", baseSpeeds);
+    return baseSpeeds;
+  }
 
   private void updateIntialVelocities(Translation3d distances) {
     double dr = Math.hypot(distances.getX(), distances.getY());
