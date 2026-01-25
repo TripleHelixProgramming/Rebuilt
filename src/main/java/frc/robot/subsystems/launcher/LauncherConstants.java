@@ -3,7 +3,8 @@ package frc.robot.subsystems.launcher;
 import static edu.wpi.first.units.Units.*;
 
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Transform2d;
+import edu.wpi.first.math.geometry.Rotation3d;
+import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
@@ -14,8 +15,8 @@ public final class LauncherConstants {
 
   public static final class TurretConstants {
     // Geometry
-    public static final Transform2d chassisToTurretBase =
-        new Transform2d(Inches.of(0), Inches.of(10), Rotation2d.kZero);
+    public static final Transform3d chassisToTurretBase =
+        new Transform3d(Inches.of(0), Inches.of(10), Inches.of(22), Rotation3d.kZero);
     public static final Rotation2d rotationOffset = new Rotation2d(0.44);
     public static final LinearVelocity fuelVelocityRadial = MetersPerSecond.of(5);
 

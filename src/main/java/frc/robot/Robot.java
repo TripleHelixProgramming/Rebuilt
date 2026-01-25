@@ -323,7 +323,7 @@ public class Robot extends LoggedRobot {
                 () -> -zorroDriver.getRightYAxis(),
                 () -> -zorroDriver.getRightXAxis(),
                 () ->
-                    GameState.getMyHubLocation().minus(drive.getPose().getTranslation()).getAngle(),
+                    GameState.getMyHubPose().toPose2d().getTranslation().minus(drive.getPose().getTranslation()).getAngle(),
                 allianceSelector::fieldRotated));
 
     // Switch to X pattern when button D is pressed
@@ -366,7 +366,7 @@ public class Robot extends LoggedRobot {
                 () -> -xboxDriver.getLeftY(),
                 () -> -xboxDriver.getLeftX(),
                 () ->
-                    GameState.getMyHubLocation().minus(drive.getPose().getTranslation()).getAngle(),
+                    GameState.getMyHubPose().toPose2d().getTranslation().minus(drive.getPose().getTranslation()).getAngle(),
                 allianceSelector::fieldRotated));
 
     // Point in the direction of the commanded translation while Y button is held

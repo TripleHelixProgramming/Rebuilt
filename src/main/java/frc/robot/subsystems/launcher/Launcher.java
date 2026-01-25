@@ -76,7 +76,7 @@ public class Launcher extends SubsystemBase {
 
   public void aimAtHub() {
     // Get vector from static target to turret
-    var staticTarget = GameState.getMyHubLocation();
+    var staticTarget = GameState.getMyHubPose();
     var turretBase = chassisPoseSupplier.get().plus(chassisToTurretBase);
     var staticTargetToTurretBase = turretBase.getTranslation().minus(staticTarget);
 
