@@ -18,6 +18,8 @@ import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.game.GameState;
+import frc.robot.Robot;
+import java.util.ArrayList;
 import java.util.function.Supplier;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
@@ -38,10 +40,14 @@ public class Launcher extends SubsystemBase {
   private final Alert flywheelDisconnectedAlert;
   private final Alert hoodDisconnectedAlert;
 
-  // private Rotation2d turretOrientationSetpoint = Rotation2d.kZero;
   private Translation3d vectorTurretBaseToHub = new Translation3d();
   private Pose3d turretBasePose = new Pose3d();
   private Translation3d initialVelocities = new Translation3d();
+
+  // Ball simulation
+  private final ArrayList<BallInFlight> balls = new ArrayList<>();
+  private static final double kBallSpawnPeriod = 0.1; // seconds
+  private double ballSpawnTimer = 0.0;
 
   public Launcher(
       Supplier<Pose2d> chassisPoseSupplier,
@@ -79,6 +85,8 @@ public class Launcher extends SubsystemBase {
     var hubPose = GameState.getMyHubPose();
     turretBasePose = new Pose3d(chassisPoseSupplier.get()).plus(chassisToTurretBase);
     vectorTurretBaseToHub = hubPose.getTranslation().minus(turretBasePose.getTranslation());
+
+    updateBalls();
   }
 
   public void stop() {
@@ -89,6 +97,19 @@ public class Launcher extends SubsystemBase {
 
   public void aimAtHub() {
     updateIntialVelocities(vectorTurretBaseToHub);
+
+    ballSpawnTimer += Robot.defaultPeriodSecs;
+    if (ballSpawnTimer >= kBallSpawnPeriod) {
+      ballSpawnTimer = 0.0;
+
+      balls.add(
+          new BallInFlight(
+              new Translation3d(
+                  turretBasePose.getX(), turretBasePose.getY(), turretBasePose.getZ()),
+              new Translation3d(
+                  initialVelocities.getX(), initialVelocities.getY(), initialVelocities.getZ())));
+    }
+
     flywheelIO.setVelocity(initialVelocities.getNorm(), 0);
 
     // Get turret linear velocities (m/s)
@@ -189,5 +210,41 @@ public class Launcher extends SubsystemBase {
 
     boolean clearsCeiling = Meters.of(max_height).plus(ballRadius).lt(ceilingHeight);
     Logger.recordOutput("Launcher/ClearsCeiling", clearsCeiling);
+  }
+
+  private static class BallInFlight {
+    Translation3d position;
+    Translation3d velocity;
+
+    BallInFlight(Translation3d position, Translation3d velocity) {
+      this.position = position;
+      this.velocity = velocity;
+    }
+  }
+
+  private void updateBalls() {
+    double dt = Robot.defaultPeriodSecs;
+    double hubZ = GameState.getMyHubPose().getZ();
+
+    balls.removeIf(
+        ball -> {
+          // Integrate velocity
+          ball.velocity = ball.velocity.plus(new Translation3d(0, 0, -gravity * dt));
+
+          // Integrate position
+          ball.position = ball.position.plus(ball.velocity.times(dt));
+
+          // Remove when below target height and falling
+          return ball.position.getZ() < hubZ && ball.velocity.getZ() < 0;
+        });
+  }
+
+  @AutoLogOutput(key = "Launcher/BallTrajectory")
+  public Translation3d[] getBallTrajectory() {
+    Translation3d[] t = new Translation3d[balls.size()];
+    for (int i = 0; i < balls.size(); i++) {
+      t[i] = balls.get(i).position;
+    }
+    return t;
   }
 }
