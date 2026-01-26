@@ -1,5 +1,6 @@
 package frc.robot.subsystems.launcher;
 
+import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.*;
 import static frc.robot.util.SparkUtil.*;
 
@@ -18,6 +19,7 @@ import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.units.measure.AngularVelocity;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
 import frc.robot.Constants.RobotConstants;
 import java.util.function.DoubleSupplier;
@@ -97,10 +99,14 @@ public class TurretIOSpark implements TurretIO {
   }
 
   @Override
-  public void setPosition(Rotation2d rotation, double feedforwardVolts) {
+  public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
     double setpoint =
         MathUtil.inputModulus(
             rotation.plus(rotationOffset).getRadians(), turnPIDMinInput, turnPIDMaxInput);
+    double feedforwardVolts =
+        RobotConstants.kNominalVoltage
+            * angularVelocity.in(RadiansPerSecond)
+            / turnMaxAngularVelocity.in(RadiansPerSecond);
     turnController.setSetpoint(
         setpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
   }

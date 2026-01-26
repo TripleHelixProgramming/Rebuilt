@@ -1,12 +1,15 @@
 package frc.robot.subsystems.launcher;
 
+import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.*;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.LinearSystemId;
+import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
+import frc.robot.Constants.RobotConstants;
 
 public class TurretIOSim implements TurretIO {
   private final DCMotorSim turnSim;
@@ -55,9 +58,12 @@ public class TurretIOSim implements TurretIO {
   }
 
   @Override
-  public void setPosition(Rotation2d rotation, double feedforwardVolts) {
+  public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
     turnClosedLoop = true;
-    this.feedforwardVolts = feedforwardVolts;
+    this.feedforwardVolts =
+        RobotConstants.kNominalVoltage
+            * angularVelocity.in(RadiansPerSecond)
+            / turnMaxAngularVelocity.in(RadiansPerSecond);
     turnController.setSetpoint(rotation.getRadians());
   }
 }

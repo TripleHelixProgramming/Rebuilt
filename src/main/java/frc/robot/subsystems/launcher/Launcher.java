@@ -42,7 +42,7 @@ public class Launcher extends SubsystemBase {
 
   private Translation3d vectorTurretBaseToHub = new Translation3d();
   private Pose3d turretBasePose = new Pose3d();
-  private Translation3d initialVelocities = new Translation3d();
+  private Translation3d v0_nominal = new Translation3d();
 
   // Ball simulation
   private final ArrayList<BallInFlight> balls = new ArrayList<>();
@@ -106,11 +106,10 @@ public class Launcher extends SubsystemBase {
           new BallInFlight(
               new Translation3d(
                   turretBasePose.getX(), turretBasePose.getY(), turretBasePose.getZ()),
-              new Translation3d(
-                  initialVelocities.getX(), initialVelocities.getY(), initialVelocities.getZ())));
+              new Translation3d(v0_nominal.getX(), v0_nominal.getY(), v0_nominal.getZ())));
     }
 
-    flywheelIO.setVelocity(initialVelocities.getNorm(), 0);
+    flywheelIO.setVelocity(v0_nominal.getNorm());
 
     // Get turret linear velocities (m/s)
     var robotRelative = chassisSpeedsSupplier.get();
@@ -119,7 +118,7 @@ public class Launcher extends SubsystemBase {
             robotRelative, turretBasePose.toPose2d().getRotation());
     Translation3d turretBaseSpeeds = getTurretBaseSpeeds(fieldRelative);
 
-    var residualVelocities = initialVelocities.minus(turretBaseSpeeds);
+    var residualVelocities = v0_nominal.minus(turretBaseSpeeds);
     Rotation2d turretSetpoint =
         new Rotation2d(residualVelocities.getX(), residualVelocities.getY());
 
@@ -158,7 +157,9 @@ public class Launcher extends SubsystemBase {
     //         / turnMaxAngularVelocity.in(RadiansPerSecond);
 
     // turretIO.setPosition(turretOrientationSetpoint, feedforwardVolts);
-    turretIO.setPosition(turretSetpoint.minus(turretBasePose.toPose2d().getRotation()), 0);
+    turretIO.setPosition(
+        turretSetpoint.minus(turretBasePose.toPose2d().getRotation()),
+        RadiansPerSecond.of(robotRelative.omegaRadiansPerSecond).unaryMinus());
   }
 
   @AutoLogOutput(key = "Launcher/TurretPose")
@@ -194,15 +195,15 @@ public class Launcher extends SubsystemBase {
     double v_0x = v_0r * distances.toTranslation2d().getAngle().getCos();
     double v_0y = v_0r * distances.toTranslation2d().getAngle().getSin();
 
-    initialVelocities = new Translation3d(v_0x, v_0y, v_0z);
-    Logger.recordOutput("Launcher/InitialVelocities", initialVelocities);
-    Logger.recordOutput("Launcher/InitialSpeedMetersPerSecond", initialVelocities.getNorm());
+    v0_nominal = new Translation3d(v_0x, v_0y, v_0z);
+    Logger.recordOutput("Launcher/InitialVelocities", v0_nominal);
+    Logger.recordOutput("Launcher/InitialSpeedMetersPerSecond", v0_nominal.getNorm());
     Logger.recordOutput(
         "Launcher/VerticalLaunchAngleDegrees",
         new Translation2d(v_0r, v_0z).getAngle().getDegrees());
     Logger.recordOutput(
         "Launcher/HorizontalLaunchAngleDegrees",
-        initialVelocities.toTranslation2d().getAngle().getDegrees());
+        v0_nominal.toTranslation2d().getAngle().getDegrees());
     Logger.recordOutput("Launcher/NominalTravelTime", dr / v_0r);
 
     var max_height = turretBasePose.getZ() + v_0z * v_0z / (2 * gravity);

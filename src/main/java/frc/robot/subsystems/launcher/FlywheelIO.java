@@ -15,5 +15,5 @@ public interface FlywheelIO {
 
   public default void setOpenLoop(double output) {}
 
-  public default void setVelocity(double velocityRadPerSec, double feedforwardVolts) {}
+  public default void setVelocity(double velocityRadPerSec) {}
 }
