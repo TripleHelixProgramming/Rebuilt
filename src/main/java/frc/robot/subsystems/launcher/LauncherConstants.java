@@ -47,4 +47,8 @@ public final class LauncherConstants {
     public static final double turnKpSim = 0.8;
     public static final double turnKdSim = 0.05;
   }
+
+  public static final class FlywheelConstants {
+    public static final Distance wheelRadius = Inches.of(1.5);
+  }
 }

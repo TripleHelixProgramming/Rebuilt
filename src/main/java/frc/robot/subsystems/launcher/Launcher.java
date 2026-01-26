@@ -2,6 +2,7 @@ package frc.robot.subsystems.launcher;
 
 import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.launcher.LauncherConstants.*;
+import static frc.robot.subsystems.launcher.LauncherConstants.FlywheelConstants.*;
 import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.*;
 
 import edu.wpi.first.math.geometry.Pose2d;
@@ -11,6 +12,7 @@ import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -86,8 +88,8 @@ public class Launcher extends SubsystemBase {
     updateBallisticsSim(fuelNominal);
     updateBallisticsSim(fuelActual);
 
-    Logger.recordOutput("Launcher/FuelNominal", getBallTrajectory(fuelNominal));
-    Logger.recordOutput("Launcher/FuelActual", getBallTrajectory(fuelActual));
+    Logger.recordOutput("Launcher/Nominal/FuelTrajectory", getBallTrajectory(fuelNominal));
+    Logger.recordOutput("Launcher/Actual/FuelTrajectory", getBallTrajectory(fuelActual));
   }
 
   public void stop() {
@@ -97,23 +99,52 @@ public class Launcher extends SubsystemBase {
   }
 
   public void aimAtHub() {
+    // Set flywheel speed assuming a motionless robot
     updateIntialVelocities(vectorTurretBaseToHub);
-    flywheelIO.setVelocity(v0_nominal.getNorm());
+    AngularVelocity flywheelSetpoint =
+        RadiansPerSecond.of(v0_nominal.getNorm() / wheelRadius.in(Meters));
+    flywheelIO.setVelocity(flywheelSetpoint);
 
-    // Get turret linear velocities (m/s)
+    // Get translation velocities (m/s) of the turret caused by motion of the chassis
     var robotRelative = chassisSpeedsSupplier.get();
     var fieldRelative =
         ChassisSpeeds.fromRobotRelativeSpeeds(
             robotRelative, turretBasePose.toPose2d().getRotation());
     Translation3d turretBaseSpeeds = getTurretBaseSpeeds(fieldRelative);
 
-    // Point turret to align velocities
+    // Point turret and hood to align velocity vectors
     var residualVelocities = v0_nominal.minus(turretBaseSpeeds);
     Rotation2d turretSetpoint =
         new Rotation2d(residualVelocities.getX(), residualVelocities.getY());
     turretIO.setPosition(
         turretSetpoint.minus(turretBasePose.toPose2d().getRotation()),
-        RadiansPerSecond.of(robotRelative.omegaRadiansPerSecond).unaryMinus());
+        RadiansPerSecond.of(robotRelative.omegaRadiansPerSecond)
+            .unaryMinus()
+            .times(2)); // TODO: Why is this factor 2 needed?
+    Rotation2d hoodSetpoint =
+        new Rotation2d(
+            Math.hypot(residualVelocities.getX(), residualVelocities.getY()),
+            residualVelocities.getZ());
+    hoodIO.setPosition(hoodSetpoint, RadiansPerSecond.of(0));
+
+    // Get actuals
+    double flywheelSpeedMetersPerSec =
+        flywheelSetpoint.in(RadiansPerSecond)
+            * wheelRadius.in(
+                Meters); // TODO: Replace with actual speed when flywheel simulation is added
+    Rotation2d hoodPosition =
+        hoodSetpoint; // TODO: Replace with actual position when hood simulation is added
+    Rotation2d turretPosition = turretInputs.position.plus(turretBasePose.toPose2d().getRotation());
+
+    // Build actual velocities
+    Translation3d v0_actual =
+        new Translation3d(
+                hoodPosition.getCos() * turretPosition.getCos(),
+                hoodPosition.getCos() * turretPosition.getSin(),
+                hoodPosition.getSin())
+            .times(flywheelSpeedMetersPerSec)
+            .plus(turretBaseSpeeds);
+    Logger.recordOutput("Launcher/Actual/InitialVelocities", v0_actual);
 
     // Spawn simulated fuel
     fuelSpawnTimer += Robot.defaultPeriodSecs;
@@ -130,11 +161,11 @@ public class Launcher extends SubsystemBase {
           new BallisticObject(
               new Translation3d(
                   turretBasePose.getX(), turretBasePose.getY(), turretBasePose.getZ()),
-              new Translation3d(v0_nominal.getX(), v0_nominal.getY(), v0_nominal.getZ())));
+              new Translation3d(v0_actual.getX(), v0_actual.getY(), v0_actual.getZ())));
     }
   }
 
-  @AutoLogOutput(key = "Launcher/TurretPose")
+  @AutoLogOutput(key = "Launcher/Actual/TurretPose")
   public Pose2d getTurretPose() {
     return turretBasePose.toPose2d().plus(new Transform2d(0, 0, turretInputs.position));
   }
@@ -168,21 +199,21 @@ public class Launcher extends SubsystemBase {
     double v_0y = v_0r * distances.toTranslation2d().getAngle().getSin();
 
     v0_nominal = new Translation3d(v_0x, v_0y, v_0z);
-    Logger.recordOutput("Launcher/InitialVelocities", v0_nominal);
-    Logger.recordOutput("Launcher/InitialSpeedMetersPerSecond", v0_nominal.getNorm());
+    Logger.recordOutput("Launcher/Nominal/InitialVelocities", v0_nominal);
+    Logger.recordOutput("Launcher/Nominal/InitialSpeedMetersPerSecond", v0_nominal.getNorm());
     Logger.recordOutput(
-        "Launcher/VerticalLaunchAngleDegrees",
+        "Launcher/Nominal/VerticalLaunchAngleDegrees",
         new Translation2d(v_0r, v_0z).getAngle().getDegrees());
     Logger.recordOutput(
-        "Launcher/HorizontalLaunchAngleDegrees",
+        "Launcher/Nominal/HorizontalLaunchAngleDegrees",
         v0_nominal.toTranslation2d().getAngle().getDegrees());
-    Logger.recordOutput("Launcher/NominalTravelTime", dr / v_0r);
+    Logger.recordOutput("Launcher/Nominal/TravelTime", dr / v_0r);
 
     var max_height = turretBasePose.getZ() + v_0z * v_0z / (2 * gravity);
-    Logger.recordOutput("Launcher/NominalMaxHeight", max_height);
+    Logger.recordOutput("Launcher/Nominal/MaxHeight", max_height);
 
     boolean clearsCeiling = Meters.of(max_height).plus(fuelRadius).lt(ceilingHeight);
-    Logger.recordOutput("Launcher/ClearsCeiling", clearsCeiling);
+    Logger.recordOutput("Launcher/Nominal/ClearsCeiling", clearsCeiling);
   }
 
   private static class BallisticObject {
@@ -192,10 +223,6 @@ public class Launcher extends SubsystemBase {
     BallisticObject(Translation3d position, Translation3d velocity) {
       this.position = position;
       this.velocity = velocity;
-    }
-
-    public Translation3d getPosition() {
-      return position;
     }
   }
 

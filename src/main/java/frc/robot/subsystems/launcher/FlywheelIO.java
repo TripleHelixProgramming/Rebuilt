@@ -1,5 +1,6 @@
 package frc.robot.subsystems.launcher;
 
+import edu.wpi.first.units.measure.AngularVelocity;
 import org.littletonrobotics.junction.AutoLog;
 
 public interface FlywheelIO {
@@ -15,5 +16,5 @@ public interface FlywheelIO {
 
   public default void setOpenLoop(double output) {}
 
-  public default void setVelocity(double velocityRadPerSec) {}
+  public default void setVelocity(AngularVelocity angularVelocity) {}
 }
