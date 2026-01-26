@@ -34,10 +34,12 @@ import frc.robot.subsystems.drive.GyroIOBoron;
 import frc.robot.subsystems.drive.ModuleIO;
 import frc.robot.subsystems.drive.ModuleIOSim;
 import frc.robot.subsystems.drive.ModuleIOTalonFX;
-import frc.robot.subsystems.turret.Turret;
-import frc.robot.subsystems.turret.TurretIO;
-import frc.robot.subsystems.turret.TurretIOSim;
-import frc.robot.subsystems.turret.TurretIOSpark;
+import frc.robot.subsystems.launcher.FlywheelIO;
+import frc.robot.subsystems.launcher.HoodIO;
+import frc.robot.subsystems.launcher.Launcher;
+import frc.robot.subsystems.launcher.TurretIO;
+import frc.robot.subsystems.launcher.TurretIOSim;
+import frc.robot.subsystems.launcher.TurretIOSpark;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionIO;
 import frc.robot.subsystems.vision.VisionIOPhotonVision;
@@ -66,7 +68,7 @@ public class Robot extends LoggedRobot {
   // Subsystems
   private Drive drive;
   private Vision vision;
-  private Turret turret;
+  private Launcher launcher;
 
   public Robot() {
     // Record metadata
@@ -110,8 +112,13 @@ public class Robot extends LoggedRobot {
                 new VisionIOPhotonVision(cameraFrontLeftName, robotToFrontLeftCamera),
                 new VisionIOPhotonVision(cameraBackRightName, robotToBackRightCamera),
                 new VisionIOPhotonVision(cameraBackLeftName, robotToBackLeftCamera));
-        turret =
-            new Turret(drive::getPose, drive::getRobotRelativeChassisSpeeds, new TurretIOSpark());
+        launcher =
+            new Launcher(
+                drive::getPose,
+                drive::getRobotRelativeChassisSpeeds,
+                new TurretIOSpark(),
+                new FlywheelIO() {},
+                new HoodIO() {});
         break;
 
       case SIM: // Running a physics simulator
@@ -138,8 +145,13 @@ public class Robot extends LoggedRobot {
                     cameraBackRightName, robotToBackRightCamera, drive::getPose),
                 new VisionIOPhotonVisionSim(
                     cameraBackLeftName, robotToBackLeftCamera, drive::getPose));
-        turret =
-            new Turret(drive::getPose, drive::getRobotRelativeChassisSpeeds, new TurretIOSim());
+        launcher =
+            new Launcher(
+                drive::getPose,
+                drive::getRobotRelativeChassisSpeeds,
+                new TurretIOSim(),
+                new FlywheelIO() {},
+                new HoodIO() {});
         break;
 
       case REPLAY: // Replaying a log
@@ -166,8 +178,13 @@ public class Robot extends LoggedRobot {
                 new VisionIO() {},
                 new VisionIO() {},
                 new VisionIO() {});
-        turret =
-            new Turret(drive::getPose, drive::getRobotRelativeChassisSpeeds, new TurretIO() {});
+        launcher =
+            new Launcher(
+                drive::getPose,
+                drive::getRobotRelativeChassisSpeeds,
+                new TurretIO() {},
+                new FlywheelIO() {},
+                new HoodIO() {});
         break;
     }
 
@@ -183,7 +200,7 @@ public class Robot extends LoggedRobot {
     SmartDashboard.putData("Field", field);
     Field.plotRegions();
 
-    turret.setDefaultCommand(Commands.run(turret::aimAtHub, turret));
+    launcher.setDefaultCommand(Commands.run(launcher::aimAtHub, launcher).withName("Aim at hub"));
   }
 
   /** This function is called periodically during all modes. */
@@ -201,6 +218,8 @@ public class Robot extends LoggedRobot {
     CommandScheduler.getInstance().run();
     SmartDashboard.putData(CommandScheduler.getInstance());
     SmartDashboard.putData(drive);
+    SmartDashboard.putData(vision);
+    SmartDashboard.putData(launcher);
 
     GameState.logValues();
 
@@ -321,7 +340,11 @@ public class Robot extends LoggedRobot {
                 () -> -zorroDriver.getRightYAxis(),
                 () -> -zorroDriver.getRightXAxis(),
                 () ->
-                    GameState.getMyHubLocation().minus(drive.getPose().getTranslation()).getAngle(),
+                    GameState.getMyHubPose()
+                        .toPose2d()
+                        .getTranslation()
+                        .minus(drive.getPose().getTranslation())
+                        .getAngle(),
                 allianceSelector::fieldRotated));
 
     // Switch to X pattern when button D is pressed
@@ -364,7 +387,11 @@ public class Robot extends LoggedRobot {
                 () -> -xboxDriver.getLeftY(),
                 () -> -xboxDriver.getLeftX(),
                 () ->
-                    GameState.getMyHubLocation().minus(drive.getPose().getTranslation()).getAngle(),
+                    GameState.getMyHubPose()
+                        .toPose2d()
+                        .getTranslation()
+                        .minus(drive.getPose().getTranslation())
+                        .getAngle(),
                 allianceSelector::fieldRotated));
 
     // Point in the direction of the commanded translation while Y button is held

@@ -1,6 +1,7 @@
-package frc.robot.subsystems.turret;
+package frc.robot.subsystems.launcher;
 
-import static frc.robot.subsystems.turret.TurretConstants.*;
+import static edu.wpi.first.units.Units.RadiansPerSecond;
+import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.*;
 import static frc.robot.util.SparkUtil.*;
 
 import com.revrobotics.AbsoluteEncoder;
@@ -18,6 +19,7 @@ import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.units.measure.AngularVelocity;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
 import frc.robot.Constants.RobotConstants;
 import java.util.function.DoubleSupplier;
@@ -81,26 +83,30 @@ public class TurretIOSpark implements TurretIO {
     ifOk(
         turnSpark,
         turnEncoder::getPosition,
-        (value) -> inputs.turnPosition = new Rotation2d(value).minus(rotationOffset));
-    ifOk(turnSpark, turnEncoder::getVelocity, (value) -> inputs.turnVelocityRadPerSec = value);
+        (value) -> inputs.position = new Rotation2d(value).minus(rotationOffset));
+    ifOk(turnSpark, turnEncoder::getVelocity, (value) -> inputs.velocityRadPerSec = value);
     ifOk(
         turnSpark,
         new DoubleSupplier[] {turnSpark::getAppliedOutput, turnSpark::getBusVoltage},
-        (values) -> inputs.turnAppliedVolts = values[0] * values[1]);
-    ifOk(turnSpark, turnSpark::getOutputCurrent, (value) -> inputs.turnCurrentAmps = value);
-    inputs.turnConnected = turnConnectedDebounce.calculate(!sparkStickyFault);
+        (values) -> inputs.appliedVolts = values[0] * values[1]);
+    ifOk(turnSpark, turnSpark::getOutputCurrent, (value) -> inputs.currentAmps = value);
+    inputs.connected = turnConnectedDebounce.calculate(!sparkStickyFault);
   }
 
   @Override
-  public void setTurnOpenLoop(double output) {
+  public void setOpenLoop(double output) {
     turnSpark.setVoltage(output);
   }
 
   @Override
-  public void setTurnPosition(Rotation2d rotation, double feedforwardVolts) {
+  public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
     double setpoint =
         MathUtil.inputModulus(
             rotation.plus(rotationOffset).getRadians(), turnPIDMinInput, turnPIDMaxInput);
+    double feedforwardVolts =
+        RobotConstants.kNominalVoltage
+            * angularVelocity.in(RadiansPerSecond)
+            / turnMaxAngularVelocity.in(RadiansPerSecond);
     turnController.setSetpoint(
         setpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
   }

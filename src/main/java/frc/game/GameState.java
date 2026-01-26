@@ -1,9 +1,8 @@
 package frc.game;
 
-import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
-import frc.game.Field.Region;
 import frc.robot.Robot;
 import java.util.List;
 import java.util.Optional;
@@ -122,10 +121,10 @@ public class GameState {
     Logger.recordOutput("GameState/IsMyHubActive", isMyHubActive());
   }
 
-  public static Translation2d getMyHubLocation() {
+  public static Pose3d getMyHubPose() {
     if (Robot.getAlliance() == Alliance.Red) {
-      return Region.RedHub.getCenter().getTranslation();
+      return Field.redHubCenter;
     }
-    return Region.BlueHub.getCenter().getTranslation();
+    return Field.blueHubCenter;
   }
 }
