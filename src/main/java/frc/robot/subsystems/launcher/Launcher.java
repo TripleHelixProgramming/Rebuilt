@@ -1,6 +1,9 @@
 package frc.robot.subsystems.launcher;
 
+import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.*;
+import static frc.robot.subsystems.launcher.LauncherConstants.ballRadius;
+import static frc.robot.subsystems.launcher.LauncherConstants.ceilingHeight;
 import static frc.robot.subsystems.launcher.LauncherConstants.gravity;
 import static frc.robot.subsystems.launcher.LauncherConstants.impactAngle;
 
@@ -180,5 +183,11 @@ public class Launcher extends SubsystemBase {
         "Launcher/HorizontalLaunchAngleDegrees",
         initialVelocities.toTranslation2d().getAngle().getDegrees());
     Logger.recordOutput("Launcher/NominalTravelTime", dr / v_0r);
+
+    var max_height = turretBasePose.getZ() + v_0z * v_0z / (2 * gravity);
+    Logger.recordOutput("Launcher/NominalMaxHeight", max_height);
+
+    boolean clearsCeiling = Meters.of(max_height).plus(ballRadius).lt(ceilingHeight);
+    Logger.recordOutput("Launcher/ClearsCeiling", clearsCeiling);
   }
 }
