@@ -14,9 +14,10 @@ import frc.robot.Constants.MotorConstants.NEO550Constants;
 public final class LauncherConstants {
 
   public static final Rotation2d impactAngle = Rotation2d.fromDegrees(50);
-  public static final Distance ballRadius = Inches.of(3);
+  public static final Distance fuelRadius = Inches.of(3);
   public static final Distance ceilingHeight = Feet.of(11).plus(Inches.of(2));
   public static final double gravity = 9.81;
+  public static final double fuelSpawnPeriod = 0.1; // seconds
 
   public static final class TurretConstants {
     // Geometry

@@ -1,11 +1,8 @@
 package frc.robot.subsystems.launcher;
 
 import static edu.wpi.first.units.Units.*;
+import static frc.robot.subsystems.launcher.LauncherConstants.*;
 import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.*;
-import static frc.robot.subsystems.launcher.LauncherConstants.ballRadius;
-import static frc.robot.subsystems.launcher.LauncherConstants.ceilingHeight;
-import static frc.robot.subsystems.launcher.LauncherConstants.gravity;
-import static frc.robot.subsystems.launcher.LauncherConstants.impactAngle;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -44,10 +41,10 @@ public class Launcher extends SubsystemBase {
   private Pose3d turretBasePose = new Pose3d();
   private Translation3d v0_nominal = new Translation3d();
 
-  // Ball simulation
-  private final ArrayList<BallInFlight> balls = new ArrayList<>();
-  private static final double kBallSpawnPeriod = 0.1; // seconds
-  private double ballSpawnTimer = 0.0;
+  // Fuel ballistics simulation
+  private final ArrayList<BallisticObject> fuelNominal = new ArrayList<>();
+  private final ArrayList<BallisticObject> fuelActual = new ArrayList<>();
+  private double fuelSpawnTimer = 0.0;
 
   public Launcher(
       Supplier<Pose2d> chassisPoseSupplier,
@@ -86,7 +83,11 @@ public class Launcher extends SubsystemBase {
     turretBasePose = new Pose3d(chassisPoseSupplier.get()).plus(chassisToTurretBase);
     vectorTurretBaseToHub = hubPose.getTranslation().minus(turretBasePose.getTranslation());
 
-    updateBalls();
+    updateBallisticsSim(fuelNominal);
+    updateBallisticsSim(fuelActual);
+
+    Logger.recordOutput("Launcher/FuelNominal", getBallTrajectory(fuelNominal));
+    Logger.recordOutput("Launcher/FuelActual", getBallTrajectory(fuelActual));
   }
 
   public void stop() {
@@ -97,18 +98,6 @@ public class Launcher extends SubsystemBase {
 
   public void aimAtHub() {
     updateIntialVelocities(vectorTurretBaseToHub);
-
-    ballSpawnTimer += Robot.defaultPeriodSecs;
-    if (ballSpawnTimer >= kBallSpawnPeriod) {
-      ballSpawnTimer = 0.0;
-
-      balls.add(
-          new BallInFlight(
-              new Translation3d(
-                  turretBasePose.getX(), turretBasePose.getY(), turretBasePose.getZ()),
-              new Translation3d(v0_nominal.getX(), v0_nominal.getY(), v0_nominal.getZ())));
-    }
-
     flywheelIO.setVelocity(v0_nominal.getNorm());
 
     // Get turret linear velocities (m/s)
@@ -118,48 +107,31 @@ public class Launcher extends SubsystemBase {
             robotRelative, turretBasePose.toPose2d().getRotation());
     Translation3d turretBaseSpeeds = getTurretBaseSpeeds(fieldRelative);
 
+    // Point turret to align velocities
     var residualVelocities = v0_nominal.minus(turretBaseSpeeds);
     Rotation2d turretSetpoint =
         new Rotation2d(residualVelocities.getX(), residualVelocities.getY());
-
-    // // Create unit vectors
-    // var radialUnit = vectorHubToTurretBase.div(vectorHubToTurretBase.getNorm());
-    // var tangentialUnit = radialUnit.rotateBy(Rotation2d.kCCW_90deg);
-
-    // // Compute dot products
-    // var radialMagnitude = turretBaseSpeeds.dot(radialUnit);
-    // var tangentialMagnitude = turretBaseSpeeds.dot(tangentialUnit);
-
-    // // Create radial and tangential components of turret velocity (m/s) relative to hub
-    // var radialVelocity = radialUnit.times(radialMagnitude);
-    // var tangentialVelocity = tangentialUnit.times(tangentialMagnitude);
-
-    // // Calculate distance to lag the target
-    // var lag = tangentialVelocity.times(fuelTravelTime.in(Seconds));
-    // var dynamicTarget = hubPose.minus(lag);
-    // target = new Pose2d(dynamicTarget, Rotation2d.kZero);
-
-    // // Get vector from dynamic target to turret
-    // dynamicTargetToTurretBase = turretBasePose.getTranslation().minus(dynamicTarget);
-
-    // // Get angular velocity omega, where V = omega x R
-    // var apparentAngularVelocityRadPerSec =
-    //     turretBaseSpeeds.cross(dynamicTargetToTurretBase)
-    //         / dynamicTargetToTurretBase.getSquaredNorm();
-
-    // turretOrientationSetpoint =
-    //     dynamicTargetToTurretBase.unaryMinus().getAngle().minus(turretBasePose.getRotation());
-
-    // double feedforwardVolts =
-    //     RobotConstants.kNominalVoltage
-    //         * -(2 * robotRelative.omegaRadiansPerSecond // TODO: Why is this factor 2 needed?
-    //             + apparentAngularVelocityRadPerSec)
-    //         / turnMaxAngularVelocity.in(RadiansPerSecond);
-
-    // turretIO.setPosition(turretOrientationSetpoint, feedforwardVolts);
     turretIO.setPosition(
         turretSetpoint.minus(turretBasePose.toPose2d().getRotation()),
         RadiansPerSecond.of(robotRelative.omegaRadiansPerSecond).unaryMinus());
+
+    // Spawn simulated fuel
+    fuelSpawnTimer += Robot.defaultPeriodSecs;
+    if (fuelSpawnTimer >= fuelSpawnPeriod) {
+      fuelSpawnTimer = 0.0;
+
+      fuelNominal.add(
+          new BallisticObject(
+              new Translation3d(
+                  turretBasePose.getX(), turretBasePose.getY(), turretBasePose.getZ()),
+              new Translation3d(v0_nominal.getX(), v0_nominal.getY(), v0_nominal.getZ())));
+
+      fuelActual.add(
+          new BallisticObject(
+              new Translation3d(
+                  turretBasePose.getX(), turretBasePose.getY(), turretBasePose.getZ()),
+              new Translation3d(v0_nominal.getX(), v0_nominal.getY(), v0_nominal.getZ())));
+    }
   }
 
   @AutoLogOutput(key = "Launcher/TurretPose")
@@ -209,42 +181,45 @@ public class Launcher extends SubsystemBase {
     var max_height = turretBasePose.getZ() + v_0z * v_0z / (2 * gravity);
     Logger.recordOutput("Launcher/NominalMaxHeight", max_height);
 
-    boolean clearsCeiling = Meters.of(max_height).plus(ballRadius).lt(ceilingHeight);
+    boolean clearsCeiling = Meters.of(max_height).plus(fuelRadius).lt(ceilingHeight);
     Logger.recordOutput("Launcher/ClearsCeiling", clearsCeiling);
   }
 
-  private static class BallInFlight {
+  private static class BallisticObject {
     Translation3d position;
     Translation3d velocity;
 
-    BallInFlight(Translation3d position, Translation3d velocity) {
+    BallisticObject(Translation3d position, Translation3d velocity) {
       this.position = position;
       this.velocity = velocity;
     }
+
+    public Translation3d getPosition() {
+      return position;
+    }
   }
 
-  private void updateBalls() {
+  private void updateBallisticsSim(ArrayList<BallisticObject> traj) {
     double dt = Robot.defaultPeriodSecs;
     double hubZ = GameState.getMyHubPose().getZ();
 
-    balls.removeIf(
-        ball -> {
+    traj.removeIf(
+        o -> {
           // Integrate velocity
-          ball.velocity = ball.velocity.plus(new Translation3d(0, 0, -gravity * dt));
+          o.velocity = o.velocity.plus(new Translation3d(0, 0, -gravity * dt));
 
           // Integrate position
-          ball.position = ball.position.plus(ball.velocity.times(dt));
+          o.position = o.position.plus(o.velocity.times(dt));
 
           // Remove when below target height and falling
-          return ball.position.getZ() < hubZ && ball.velocity.getZ() < 0;
+          return o.position.getZ() < hubZ && o.velocity.getZ() < 0;
         });
   }
 
-  @AutoLogOutput(key = "Launcher/BallTrajectory")
-  public Translation3d[] getBallTrajectory() {
-    Translation3d[] t = new Translation3d[balls.size()];
-    for (int i = 0; i < balls.size(); i++) {
-      t[i] = balls.get(i).position;
+  public Translation3d[] getBallTrajectory(ArrayList<BallisticObject> traj) {
+    Translation3d[] t = new Translation3d[traj.size()];
+    for (int i = 0; i < traj.size(); i++) {
+      t[i] = traj.get(i).position;
     }
     return t;
   }
