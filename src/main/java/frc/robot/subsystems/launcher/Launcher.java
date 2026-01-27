@@ -75,7 +75,7 @@ public class Launcher extends SubsystemBase {
     hoodIO.updateInputs(hoodInputs);
 
     Logger.processInputs("Turret", turretInputs);
-    Logger.processInputs("Flyweel", flywheelInputs);
+    Logger.processInputs("Flywheel", flywheelInputs);
     Logger.processInputs("Hood", hoodInputs);
 
     turretDisconnectedAlert.set(!turretInputs.connected);
@@ -258,15 +258,15 @@ public class Launcher extends SubsystemBase {
     }
 
     // Scale to match actual flywheel speed
-    double scale = shotSpeed.in(MetersPerSecond) / v_required / 2.0;
+    double scale = shotSpeed.in(MetersPerSecond) / v_required;
 
     v_r *= scale;
     v_z *= scale;
 
     // Back to field frame
-    Translation2d v_field_xy = r_hat.times(v_r + v_r);
+    Translation2d v_field_xy = r_hat.times(v_r);
 
-    var v0 = new Translation3d(v_field_xy.getX(), v_field_xy.getY(), v_z + v_z);
+    var v0 = new Translation3d(v_field_xy.getX(), v_field_xy.getY(), v_z);
     log(d, v0, key);
     return v0;
   }
