@@ -116,7 +116,7 @@ public class Launcher extends SubsystemBase {
     var fieldRelative =
         ChassisSpeeds.fromRobotRelativeSpeeds(
             robotRelative, turretBasePose.toPose2d().getRotation());
-    var v_base = getTurretBaseSpeeds(fieldRelative);
+    var v_base = getTurretBaseSpeeds(turretBasePose.toPose2d().getRotation(), fieldRelative);
 
     // Get actual flywheel speed
     // TODO: Replace with actual speed when flywheel simulation is added
@@ -188,13 +188,17 @@ public class Launcher extends SubsystemBase {
   //       < (hubWidth.in(Meters) / 2.0);
   // }
 
-  private Translation3d getTurretBaseSpeeds(ChassisSpeeds chassisSpeeds) {
+  private Translation3d getTurretBaseSpeeds(Rotation2d rotation, ChassisSpeeds chassisSpeeds) {
     double vx = chassisSpeeds.vxMetersPerSecond;
     double vy = chassisSpeeds.vyMetersPerSecond;
     double omega = chassisSpeeds.omegaRadiansPerSecond;
-    var baseSpeeds =
-        new Translation3d(
-            vx - omega * chassisToTurretBase.getY(), vy + omega * chassisToTurretBase.getX(), 0);
+
+    Translation2d r = new Translation2d(chassisToTurretBase.getX(), chassisToTurretBase.getY());
+    Translation2d v_offset = new Translation2d(-omega * r.getY(), omega * r.getX());
+    Translation2d v_base_field = new Translation2d(vx, vy).plus(v_offset.rotateBy(rotation));
+
+    Translation3d baseSpeeds = new Translation3d(v_base_field.getX(), v_base_field.getY(), 0);
+
     Logger.recordOutput("Launcher/BaseSpeeds", baseSpeeds);
     return baseSpeeds;
   }
