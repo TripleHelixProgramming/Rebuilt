@@ -16,8 +16,12 @@ public final class LauncherConstants {
   public static final Rotation2d impactAngle = Rotation2d.fromDegrees(50);
   public static final Distance fuelRadius = Inches.of(3);
   public static final Distance ceilingHeight = Feet.of(11).plus(Inches.of(2));
-  public static final double gravity = 9.81;
+  public static final double g = 9.81;
   public static final double fuelSpawnPeriod = 0.1; // seconds
+
+  public static final String nominalKey = "Nominal";
+  public static final String replannedKey = "Replanned";
+  public static final String actualKey = "Actual";
 
   public static final class TurretConstants {
     // Geometry
