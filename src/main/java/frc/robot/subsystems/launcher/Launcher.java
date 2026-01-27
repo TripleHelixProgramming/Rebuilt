@@ -124,10 +124,10 @@ public class Launcher extends SubsystemBase {
         MetersPerSecond.of(flywheelSetpoint.in(RadiansPerSecond) * wheelRadius.in(Meters));
 
     // Replan shot using actual flywheel speed
-    var v0_required = getV0(vectorTurretBaseToHub, flywheelSpeed, replannedKey);
+    var v0_total = getV0(vectorTurretBaseToHub, flywheelSpeed, replannedKey);
 
     // Point turret to align velocity vectors
-    var v0_flywheel = v0_required.minus(v_base);
+    var v0_flywheel = v0_total.minus(v_base);
     Rotation2d turretSetpoint = new Rotation2d(v0_flywheel.getX(), v0_flywheel.getY());
     turretIO.setPosition(
         turretSetpoint.minus(turretBasePose.toPose2d().getRotation()),
@@ -166,7 +166,7 @@ public class Launcher extends SubsystemBase {
           new BallisticObject(
               new Translation3d(
                   turretBasePose.getX(), turretBasePose.getY(), turretBasePose.getZ()),
-              new Translation3d(v0_required.getX(), v0_required.getY(), v0_required.getZ())));
+              new Translation3d(v0_total.getX(), v0_total.getY(), v0_total.getZ())));
 
       fuelActual.add(
           new BallisticObject(
