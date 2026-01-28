@@ -2,6 +2,8 @@ package frc.robot.subsystems.launcher;
 
 import static edu.wpi.first.units.Units.*;
 
+import javax.sound.sampled.Port;
+
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
@@ -55,4 +57,28 @@ public final class LauncherConstants {
   public static final class FlywheelConstants {
     public static final Distance wheelRadius = Inches.of(1.5);
   }
+
+  public static final class HoodConstants {
+    //Absolute encoder
+    public static final double hoodEncoderPositionFactor = 2 * Math.PI; //Radians
+    public static final double hoodEncoderVelocityFactor = (2 * Math.PI) / 60.0; //Rad/sec
+
+    //Position controller
+    public static final double hoodPIDMinInput = 0.0;
+    public static final double hoodPIDMaxInput = 2 * Math.PI;
+    public static final double hoodKp = 0.35;
+
+    //Motor controller
+    public static final int hoodPort = 1;
+    public static final double hoodMotorReduction = 275.0;
+    public static final AngularVelocity hoodMaxAngularVelocity =
+      NEO550Constants.kFreeSpeed.div(hoodMotorReduction);
+
+    //Simulation
+    public static final double hoodKpSim = 1;
+    public static final double hoodKdSim = 0;
+    public static final DCMotor hoodGearbox = DCMotor.getNeo550(1);
+
+  }
 }
+
