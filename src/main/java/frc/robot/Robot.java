@@ -35,7 +35,9 @@ import frc.robot.subsystems.drive.ModuleIO;
 import frc.robot.subsystems.drive.ModuleIOSim;
 import frc.robot.subsystems.drive.ModuleIOTalonFX;
 import frc.robot.subsystems.launcher.FlywheelIO;
+import frc.robot.subsystems.launcher.FlywheelIOSim;
 import frc.robot.subsystems.launcher.HoodIO;
+import frc.robot.subsystems.launcher.HoodIOSim;
 import frc.robot.subsystems.launcher.Launcher;
 import frc.robot.subsystems.launcher.TurretIO;
 import frc.robot.subsystems.launcher.TurretIOSim;
@@ -150,8 +152,8 @@ public class Robot extends LoggedRobot {
                 drive::getPose,
                 drive::getRobotRelativeChassisSpeeds,
                 new TurretIOSim(),
-                new FlywheelIO() {},
-                new HoodIO() {});
+                new FlywheelIOSim(),
+                new HoodIOSim());
         break;
 
       case REPLAY: // Replaying a log
