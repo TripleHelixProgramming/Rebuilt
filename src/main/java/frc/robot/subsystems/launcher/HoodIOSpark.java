@@ -1,10 +1,9 @@
 package frc.robot.subsystems.launcher;
 
 import static edu.wpi.first.units.Units.RadiansPerSecond;
+import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.*;
 import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.hoodPort;
 import static frc.robot.util.SparkUtil.*;
-
-import java.util.function.DoubleSupplier;
 
 import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.PersistMode;
@@ -18,14 +17,13 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
-
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.AngularVelocity;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
 import frc.robot.Constants.RobotConstants;
-import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.*;
+import java.util.function.DoubleSupplier;
 
 public class HoodIOSpark implements HoodIO {
 
@@ -73,8 +71,8 @@ public class HoodIOSpark implements HoodIO {
         .outputCurrentPeriodMs(20);
 
     tryUntilOk(
-        hoodSpark, 
-        5, 
+        hoodSpark,
+        5,
         () ->
             hoodSpark.configure(
                 hoodConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters));
@@ -83,10 +81,7 @@ public class HoodIOSpark implements HoodIO {
   @Override
   public void updateInputs(HoodIOInputs inputs) {
     sparkStickyFault = false;
-    ifOk(
-        hoodSpark,
-        hoodEncoder::getPosition,
-        (value) -> inputs.position = new Rotation2d(value));
+    ifOk(hoodSpark, hoodEncoder::getPosition, (value) -> inputs.position = new Rotation2d(value));
     ifOk(hoodSpark, hoodEncoder::getVelocity, (value) -> inputs.velocityRadPerSec = value);
     ifOk(
         hoodSpark,
@@ -104,8 +99,7 @@ public class HoodIOSpark implements HoodIO {
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
     double setpoint =
-        MathUtil.inputModulus(
-            rotation.getRadians(), hoodPIDMinInput, hoodPIDMaxInput);
+        MathUtil.inputModulus(rotation.getRadians(), hoodPIDMinInput, hoodPIDMaxInput);
     double feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
@@ -114,4 +108,3 @@ public class HoodIOSpark implements HoodIO {
         setpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
   }
 }
-

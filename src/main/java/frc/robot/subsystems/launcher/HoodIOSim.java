@@ -1,5 +1,7 @@
 package frc.robot.subsystems.launcher;
 
+import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.*;
+
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -9,12 +11,10 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants.RobotConstants;
 
-import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.*;
-
 public class HoodIOSim implements HoodIO {
   private static final AngularVelocityUnit RadiansPerSecond = null;
 
-private final DCMotorSim hoodSim;
+  private final DCMotorSim hoodSim;
 
   private boolean turnClosedLoop = false;
   private PIDController turnController = new PIDController(hoodKpSim, 0.0, hoodKdSim);

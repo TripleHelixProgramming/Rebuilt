@@ -119,9 +119,8 @@ public class Launcher extends SubsystemBase {
     var v_base = getTurretBaseSpeeds(turretBasePose.toPose2d().getRotation(), fieldRelative);
 
     // Get actual flywheel speed
-    // TODO: Replace with actual speed when flywheel simulation is added
     LinearVelocity flywheelSpeed =
-        MetersPerSecond.of(flywheelSetpoint.in(RadiansPerSecond) * wheelRadius.in(Meters));
+        MetersPerSecond.of(flywheelInputs.velocityRadPerSec * wheelRadius.in(Meters));
 
     // Replan shot using actual flywheel speed
     var v0_total = getV0(vectorTurretBaseToHub, flywheelSpeed, replannedKey);
@@ -137,8 +136,7 @@ public class Launcher extends SubsystemBase {
     hoodIO.setPosition(hoodSetpoint, RadiansPerSecond.of(0));
 
     // Get actual hood & turret position
-    // TODO: Replace with actual hood position when hood simulation is added
-    Rotation2d hoodPosition = hoodSetpoint;
+    Rotation2d hoodPosition = hoodInputs.position;
     Rotation2d turretPosition = turretInputs.position.plus(turretBasePose.toPose2d().getRotation());
 
     // Build actual velocities
