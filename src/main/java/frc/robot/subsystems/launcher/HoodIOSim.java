@@ -9,15 +9,16 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
+import frc.robot.Robot;
 import frc.robot.Constants.RobotConstants;
 
 public class HoodIOSim implements HoodIO {
 
   private final DCMotorSim hoodSim;
 
-  private boolean turnClosedLoop = false;
-  private PIDController turnController = new PIDController(hoodKpSim, 0.0, hoodKdSim);
-  private double turnAppliedVolts = 0.0;
+  private boolean closedLoop = false;
+  private PIDController positionController = new PIDController(hoodKpSim, 0.0, hoodKdSim);
+  private double appliedVolts = 0.0;
   private double feedforwardVolts = 0.0;
 
   public HoodIOSim() {
@@ -25,46 +26,43 @@ public class HoodIOSim implements HoodIO {
         new DCMotorSim(
             LinearSystemId.createDCMotorSystem(hoodGearbox, 0.004, hoodMotorReduction),
             hoodGearbox);
-
-    // Enable wrapping for turn PID
-    turnController.enableContinuousInput(-Math.PI, Math.PI);
   }
 
   @Override
   public void updateInputs(HoodIOInputs inputs) {
     // Run closed-loop control
-    if (turnClosedLoop) {
-      turnAppliedVolts =
-          turnController.calculate(hoodSim.getAngularPositionRad()) + feedforwardVolts;
+    if (closedLoop) {
+      appliedVolts =
+          positionController.calculate(hoodSim.getAngularPositionRad()) + feedforwardVolts;
     } else {
-      turnController.reset();
+      positionController.reset();
     }
 
     // Update simulation state
-    hoodSim.setInputVoltage(MathUtil.clamp(turnAppliedVolts, -12.0, 12.0));
-    hoodSim.update(0.02);
+    hoodSim.setInputVoltage(MathUtil.clamp(appliedVolts, -RobotConstants.kNominalVoltage, RobotConstants.kNominalVoltage));
+    hoodSim.update(Robot.defaultPeriodSecs);
 
     // Update turn inputs
     inputs.connected = true;
     inputs.position = new Rotation2d(hoodSim.getAngularPositionRad());
     inputs.velocityRadPerSec = hoodSim.getAngularVelocityRadPerSec();
-    inputs.appliedVolts = turnAppliedVolts;
+    inputs.appliedVolts = appliedVolts;
     inputs.currentAmps = Math.abs(hoodSim.getCurrentDrawAmps());
   }
 
   @Override
   public void setOpenLoop(double output) {
-    turnClosedLoop = false;
-    turnAppliedVolts = output;
+    closedLoop = false;
+    appliedVolts = output;
   }
 
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
-    turnClosedLoop = true;
+    closedLoop = true;
     this.feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
             / hoodMaxAngularVelocity.in(RadiansPerSecond);
-    turnController.setSetpoint(rotation.getRadians());
+    positionController.setSetpoint(rotation.getRadians());
   }
 }
