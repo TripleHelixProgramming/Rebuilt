@@ -90,7 +90,7 @@ public final class LauncherConstants {
 
     // Motor controller
     public static final int port = 1;
-    public static final double motorReduction = 275.0;
+    public static final double motorReduction = 27.5;
     public static final AngularVelocity maxAngularVelocity =
         NEO550Constants.kFreeSpeed.div(motorReduction);
 
