@@ -8,6 +8,7 @@ import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
+import frc.robot.Constants.RobotConstants;
 
 public class FlywheelIOSim implements FlywheelIO {
   private final DCMotorSim flywheelSim;
@@ -27,7 +28,8 @@ public class FlywheelIOSim implements FlywheelIO {
     // Run closed-loop control
     if (closedLoop) {
       appliedVolts =
-          velocityController.calculate(flywheelSim.getAngularPositionRad()) + feedforwardVolts;
+          velocityController.calculate(flywheelSim.getAngularVelocityRadPerSec())
+              + feedforwardVolts;
     } else {
       velocityController.reset();
     }
@@ -52,6 +54,10 @@ public class FlywheelIOSim implements FlywheelIO {
   @Override
   public void setVelocity(AngularVelocity angularVelocity) {
     closedLoop = true;
+    this.feedforwardVolts =
+        RobotConstants.kNominalVoltage
+            * angularVelocity.in(RadiansPerSecond)
+            / maxAngularVelocity.in(RadiansPerSecond);
     velocityController.setSetpoint(angularVelocity.in(RadiansPerSecond));
   }
 }
