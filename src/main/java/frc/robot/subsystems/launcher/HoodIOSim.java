@@ -1,18 +1,17 @@
 package frc.robot.subsystems.launcher;
 
+import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.*;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.LinearSystemId;
-import edu.wpi.first.units.AngularVelocityUnit;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants.RobotConstants;
 
 public class HoodIOSim implements HoodIO {
-  private static final AngularVelocityUnit RadiansPerSecond = null;
 
   private final DCMotorSim hoodSim;
 

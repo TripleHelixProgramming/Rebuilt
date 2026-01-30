@@ -127,12 +127,19 @@ public class Launcher extends SubsystemBase {
 
     // Point turret to align velocity vectors
     var v0_flywheel = v0_total.minus(v_base);
+
+    // Check if v0_flywheel has non-zero horizontal component
+    double v0_horizontal = Math.hypot(v0_flywheel.getX(), v0_flywheel.getY());
+    if (v0_horizontal < 1e-6) {
+      // Flywheel velocity is too low or target unreachable, stop mechanisms
+      return;
+    }
+
     Rotation2d turretSetpoint = new Rotation2d(v0_flywheel.getX(), v0_flywheel.getY());
     turretIO.setPosition(
         turretSetpoint.minus(turretBasePose.toPose2d().getRotation()),
         RadiansPerSecond.of(robotRelative.omegaRadiansPerSecond).unaryMinus().times(2.0));
-    Rotation2d hoodSetpoint =
-        new Rotation2d(Math.hypot(v0_flywheel.getX(), v0_flywheel.getY()), v0_flywheel.getZ());
+    Rotation2d hoodSetpoint = new Rotation2d(v0_horizontal, v0_flywheel.getZ());
     hoodIO.setPosition(hoodSetpoint, RadiansPerSecond.of(0));
 
     // Get actual hood & turret position
