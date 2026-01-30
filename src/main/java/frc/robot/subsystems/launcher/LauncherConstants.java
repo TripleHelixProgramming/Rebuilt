@@ -90,13 +90,13 @@ public final class LauncherConstants {
 
     // Motor controller
     public static final int port = 1;
-    public static final double motorReduction = 27.5;
+    public static final double motorReduction = 2.75;
     public static final AngularVelocity maxAngularVelocity =
         NEO550Constants.kFreeSpeed.div(motorReduction);
 
     // Simulation
-    public static final double kPSim = 1.0;
-    public static final double kDSim = 0.0;
+    public static final double kPSim = 0.2;
+    public static final double kDSim = 0.05;
     public static final DCMotor gearbox = DCMotor.getNeo550(1);
   }
 }
