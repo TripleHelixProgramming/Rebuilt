@@ -2,7 +2,7 @@ package frc.robot.subsystems.launcher;
 
 import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.*;
-import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.hoodPort;
+import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.port;
 import static frc.robot.util.SparkUtil.*;
 
 import com.revrobotics.AbsoluteEncoder;
@@ -34,7 +34,7 @@ public class HoodIOSpark implements HoodIO {
       new Debouncer(0.5, Debouncer.DebounceType.kFalling);
 
   public HoodIOSpark() {
-    hoodSpark = new SparkMax(hoodPort, MotorType.kBrushless);
+    hoodSpark = new SparkMax(port, MotorType.kBrushless);
     hoodEncoder = hoodSpark.getAbsoluteEncoder();
     hoodController = hoodSpark.getClosedLoopController();
 
@@ -49,16 +49,16 @@ public class HoodIOSpark implements HoodIO {
     hoodConfig
         .absoluteEncoder
         .inverted(false)
-        .positionConversionFactor(hoodEncoderPositionFactor)
-        .velocityConversionFactor(hoodEncoderVelocityFactor)
+        .positionConversionFactor(encoderPositionFactor)
+        .velocityConversionFactor(encoderVelocityFactor)
         .averageDepth(2);
 
     hoodConfig
         .closedLoop
         .feedbackSensor(FeedbackSensor.kAbsoluteEncoder)
         .positionWrappingEnabled(true)
-        .positionWrappingInputRange(hoodPIDMinInput, hoodPIDMaxInput)
-        .pid(hoodKp, 0.0, 0.0);
+        .positionWrappingInputRange(minInput, maxInput)
+        .pid(kPReal, 0.0, 0.0);
 
     hoodConfig
         .signals
@@ -98,12 +98,11 @@ public class HoodIOSpark implements HoodIO {
 
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
-    double setpoint =
-        MathUtil.inputModulus(rotation.getRadians(), hoodPIDMinInput, hoodPIDMaxInput);
+    double setpoint = MathUtil.inputModulus(rotation.getRadians(), minInput, maxInput);
     double feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
-            / hoodMaxAngularVelocity.in(RadiansPerSecond);
+            / maxAngularVelocity.in(RadiansPerSecond);
     hoodController.setSetpoint(
         setpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
   }

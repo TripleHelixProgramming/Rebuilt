@@ -48,16 +48,16 @@ public class TurretIOSpark implements TurretIO {
     turnConfig
         .absoluteEncoder
         .inverted(false)
-        .positionConversionFactor(turnEncoderPositionFactor)
-        .velocityConversionFactor(turnEncoderVelocityFactor)
+        .positionConversionFactor(encoderPositionFactor)
+        .velocityConversionFactor(encoderVelocityFactor)
         .averageDepth(2);
 
     turnConfig
         .closedLoop
         .feedbackSensor(FeedbackSensor.kAbsoluteEncoder)
         .positionWrappingEnabled(true)
-        .positionWrappingInputRange(turnPIDMinInput, turnPIDMaxInput)
-        .pid(turnKp, 0.0, 0.0);
+        .positionWrappingInputRange(minInput, maxInput)
+        .pid(kPReal, 0.0, 0.0);
 
     turnConfig
         .signals
@@ -101,12 +101,11 @@ public class TurretIOSpark implements TurretIO {
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
     double setpoint =
-        MathUtil.inputModulus(
-            rotation.plus(rotationOffset).getRadians(), turnPIDMinInput, turnPIDMaxInput);
+        MathUtil.inputModulus(rotation.plus(rotationOffset).getRadians(), minInput, maxInput);
     double feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
-            / turnMaxAngularVelocity.in(RadiansPerSecond);
+            / maxAngularVelocity.in(RadiansPerSecond);
     turnController.setSetpoint(
         setpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
   }

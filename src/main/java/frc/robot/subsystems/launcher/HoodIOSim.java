@@ -9,23 +9,21 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
-import frc.robot.Robot;
 import frc.robot.Constants.RobotConstants;
+import frc.robot.Robot;
 
 public class HoodIOSim implements HoodIO {
 
   private final DCMotorSim hoodSim;
 
   private boolean closedLoop = false;
-  private PIDController positionController = new PIDController(hoodKpSim, 0.0, hoodKdSim);
+  private PIDController positionController = new PIDController(kPSim, 0.0, kDSim);
   private double appliedVolts = 0.0;
   private double feedforwardVolts = 0.0;
 
   public HoodIOSim() {
     hoodSim =
-        new DCMotorSim(
-            LinearSystemId.createDCMotorSystem(hoodGearbox, 0.004, hoodMotorReduction),
-            hoodGearbox);
+        new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
   }
 
   @Override
@@ -39,7 +37,9 @@ public class HoodIOSim implements HoodIO {
     }
 
     // Update simulation state
-    hoodSim.setInputVoltage(MathUtil.clamp(appliedVolts, -RobotConstants.kNominalVoltage, RobotConstants.kNominalVoltage));
+    hoodSim.setInputVoltage(
+        MathUtil.clamp(
+            appliedVolts, -RobotConstants.kNominalVoltage, RobotConstants.kNominalVoltage));
     hoodSim.update(Robot.defaultPeriodSecs);
 
     // Update turn inputs
@@ -62,7 +62,7 @@ public class HoodIOSim implements HoodIO {
     this.feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
-            / hoodMaxAngularVelocity.in(RadiansPerSecond);
+            / maxAngularVelocity.in(RadiansPerSecond);
     positionController.setSetpoint(rotation.getRadians());
   }
 }

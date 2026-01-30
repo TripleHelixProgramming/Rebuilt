@@ -33,24 +33,24 @@ public final class LauncherConstants {
     public static final Rotation2d rotationOffset = new Rotation2d(0.44);
 
     // Absolute encoder
-    public static final double turnEncoderPositionFactor = 2 * Math.PI; // Radians
-    public static final double turnEncoderVelocityFactor = (2 * Math.PI) / 60.0; // Rad/sec
+    public static final double encoderPositionFactor = 2 * Math.PI; // Radians
+    public static final double encoderVelocityFactor = (2 * Math.PI) / 60.0; // Rad/sec
 
     // Position controller
-    public static final double turnPIDMinInput = 0.0;
-    public static final double turnPIDMaxInput = 2 * Math.PI;
-    public static final double turnKp = 0.35;
+    public static final double minInput = 0.0;
+    public static final double maxInput = 2 * Math.PI;
+    public static final double kPReal = 0.35;
 
     // Motor controller
     public static final int port = 12;
-    public static final double turnMotorReduction = 5.0;
-    public static final AngularVelocity turnMaxAngularVelocity =
-        NEO550Constants.kFreeSpeed.div(turnMotorReduction);
+    public static final double motorReduction = 5.0;
+    public static final AngularVelocity maxAngularVelocity =
+        NEO550Constants.kFreeSpeed.div(motorReduction);
 
     // Simulation
-    public static final DCMotor turnGearbox = DCMotor.getNeo550(1);
-    public static final double turnKpSim = 0.8;
-    public static final double turnKdSim = 0.05;
+    public static final DCMotor gearbox = DCMotor.getNeo550(1);
+    public static final double kPSim = 0.8;
+    public static final double kDSim = 0.05;
   }
 
   public static final class FlywheelConstants {
@@ -59,44 +59,44 @@ public final class LauncherConstants {
     // Velocity Controller
     public static final Slot0Configs flywheelGains =
         new Slot0Configs()
-            .withKP(1)
-            .withKI(0)
-            .withKD(1)
-            .withKS(0)
-            .withKV(0)
-            .withKA(0)
+            .withKP(1.0)
+            .withKI(0.0)
+            .withKD(1.0)
+            .withKS(0.0)
+            .withKV(0.0)
+            .withKA(0.0)
             .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign);
 
     // Motor controller
-    public static final int flywheelPort = 2;
-    public static final double flywheelMotorReduction = 1.0;
-    public static final AngularVelocity flywheelMaxAngularVelocity =
-        KrakenX60Constants.kFreeSpeed.div(flywheelMotorReduction);
+    public static final int port = 2;
+    public static final double motorReduction = 1.0;
+    public static final AngularVelocity maxAngularVelocity =
+        KrakenX60Constants.kFreeSpeed.div(motorReduction);
 
     // Simulation
-    public static final double flywheelKpSim = 1;
-    public static final DCMotor flywheelGearbox = DCMotor.getKrakenX60(1);
+    public static final double kPSim = 1.0;
+    public static final DCMotor gearbox = DCMotor.getKrakenX60(1);
   }
 
   public static final class HoodConstants {
     // Absolute encoder
-    public static final double hoodEncoderPositionFactor = 2 * Math.PI; // Radians
-    public static final double hoodEncoderVelocityFactor = (2 * Math.PI) / 60.0; // Rad/sec
+    public static final double encoderPositionFactor = 2 * Math.PI; // Radians
+    public static final double encoderVelocityFactor = (2 * Math.PI) / 60.0; // Rad/sec
 
     // Position controller
-    public static final double hoodPIDMinInput = 0.0;
-    public static final double hoodPIDMaxInput = 2 * Math.PI;
-    public static final double hoodKp = 0.35;
+    public static final double minInput = 0.0;
+    public static final double maxInput = 2 * Math.PI;
+    public static final double kPReal = 0.35;
 
     // Motor controller
-    public static final int hoodPort = 1;
-    public static final double hoodMotorReduction = 275.0;
-    public static final AngularVelocity hoodMaxAngularVelocity =
-        NEO550Constants.kFreeSpeed.div(hoodMotorReduction);
+    public static final int port = 1;
+    public static final double motorReduction = 275.0;
+    public static final AngularVelocity maxAngularVelocity =
+        NEO550Constants.kFreeSpeed.div(motorReduction);
 
     // Simulation
-    public static final double hoodKpSim = 1;
-    public static final double hoodKdSim = 0;
-    public static final DCMotor hoodGearbox = DCMotor.getNeo550(1);
+    public static final double kPSim = 1.0;
+    public static final double kDSim = 0.0;
+    public static final DCMotor gearbox = DCMotor.getNeo550(1);
   }
 }

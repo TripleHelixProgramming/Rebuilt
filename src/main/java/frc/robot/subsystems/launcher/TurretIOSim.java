@@ -9,22 +9,20 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
-import frc.robot.Robot;
 import frc.robot.Constants.RobotConstants;
+import frc.robot.Robot;
 
 public class TurretIOSim implements TurretIO {
   private final DCMotorSim turnSim;
 
   private boolean closedLoop = false;
-  private PIDController positionController = new PIDController(turnKpSim, 0.0, turnKdSim);
+  private PIDController positionController = new PIDController(kPSim, 0.0, kDSim);
   private double appliedVolts = 0.0;
   private double feedforwardVolts = 0.0;
 
   public TurretIOSim() {
     turnSim =
-        new DCMotorSim(
-            LinearSystemId.createDCMotorSystem(turnGearbox, 0.004, turnMotorReduction),
-            turnGearbox);
+        new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
 
     // Enable wrapping for turn PID
     positionController.enableContinuousInput(-Math.PI, Math.PI);
@@ -41,7 +39,9 @@ public class TurretIOSim implements TurretIO {
     }
 
     // Update simulation state
-    turnSim.setInputVoltage(MathUtil.clamp(appliedVolts, -RobotConstants.kNominalVoltage, RobotConstants.kNominalVoltage));
+    turnSim.setInputVoltage(
+        MathUtil.clamp(
+            appliedVolts, -RobotConstants.kNominalVoltage, RobotConstants.kNominalVoltage));
     turnSim.update(Robot.defaultPeriodSecs);
 
     // Update turn inputs
@@ -64,7 +64,7 @@ public class TurretIOSim implements TurretIO {
     this.feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
-            / turnMaxAngularVelocity.in(RadiansPerSecond);
+            / maxAngularVelocity.in(RadiansPerSecond);
     positionController.setSetpoint(rotation.getRadians());
   }
 }

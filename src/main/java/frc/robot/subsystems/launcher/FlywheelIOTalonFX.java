@@ -52,7 +52,7 @@ public class FlywheelIOTalonFX implements FlywheelIO {
   private final StatusSignal<Current> flywheelCurrent;
 
   public FlywheelIOTalonFX() {
-    flywheelTalon = new TalonFX(flywheelPort, kCANBus);
+    flywheelTalon = new TalonFX(port, kCANBus);
     // Configuration
     config = new TalonFXConfiguration();
     config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
