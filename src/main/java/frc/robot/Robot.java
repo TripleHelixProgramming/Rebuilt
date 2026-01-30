@@ -202,7 +202,9 @@ public class Robot extends LoggedRobot {
     SmartDashboard.putData("Field", field);
     Field.plotRegions();
 
-    launcher.setDefaultCommand(Commands.run(launcher::aimAtHub, launcher).withName("Aim at hub"));
+    launcher.setDefaultCommand(
+        Commands.run(() -> launcher.aim(GameState.getMyHubPose().getTranslation()), launcher)
+            .withName("Aim at hub"));
   }
 
   /** This function is called periodically during all modes. */
