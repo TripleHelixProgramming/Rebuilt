@@ -74,7 +74,7 @@ public final class LauncherConstants {
         KrakenX60Constants.kFreeSpeed.div(motorReduction);
 
     // Simulation
-    public static final double kPSim = 1.0;
+    public static final double kPSim = 0.1;
     public static final DCMotor gearbox = DCMotor.getKrakenX60(1);
   }
 
