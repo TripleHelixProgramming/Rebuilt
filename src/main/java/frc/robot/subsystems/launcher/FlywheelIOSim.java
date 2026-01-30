@@ -9,6 +9,7 @@ import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants.RobotConstants;
+import frc.robot.Robot;
 
 public class FlywheelIOSim implements FlywheelIO {
   private final DCMotorSim flywheelSim;
@@ -35,8 +36,10 @@ public class FlywheelIOSim implements FlywheelIO {
     }
 
     // Update simulation state
-    flywheelSim.setInputVoltage(MathUtil.clamp(appliedVolts, -12.0, 12.0));
-    flywheelSim.update(0.02);
+    flywheelSim.setInputVoltage(
+        MathUtil.clamp(
+            appliedVolts, -RobotConstants.kNominalVoltage, RobotConstants.kNominalVoltage));
+    flywheelSim.update(Robot.defaultPeriodSecs);
 
     // Update turn inputs
     inputs.connected = true;
