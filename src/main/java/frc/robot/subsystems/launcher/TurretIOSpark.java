@@ -58,12 +58,13 @@ public class TurretIOSpark implements TurretIO {
         .positionWrappingEnabled(true)
         .positionWrappingInputRange(minInput, maxInput)
         .pid(kPReal, 0.0, 0.0)
+        .outputRange(minAngle / Math.PI, maxAngle / Math.PI)
         .maxMotion
         .positionMode(MAXMotionPositionMode.kMAXMotionTrapezoidal);
 
     // turnConfig
     //     .softLimit
-    //     .forwardSoftLimitEnabled(true)
+    //     .forwardSoftLimitEnabled(false)
     //     .forwardSoftLimit(maxAngle)
     //     .reverseSoftLimitEnabled(true)
     //     .reverseSoftLimit(minAngle);
@@ -109,7 +110,8 @@ public class TurretIOSpark implements TurretIO {
 
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
-    double setpoint = rotation.getRadians();
+    double setpoint =
+        Math.max(minAngle, Math.min(maxAngle, rotation.getRadians())) + rotationOffset.getRadians();
     // MathUtil.inputModulus(rotation.plus(rotationOffset).getRadians(), minInput, maxInput);
     double feedforwardVolts =
         RobotConstants.kNominalVoltage

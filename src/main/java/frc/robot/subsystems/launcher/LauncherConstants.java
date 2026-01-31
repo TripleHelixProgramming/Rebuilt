@@ -39,8 +39,8 @@ public final class LauncherConstants {
     // Position controller
     public static final double minInput = -Math.PI;
     public static final double maxInput = Math.PI;
-    public static final double maxAngle = Math.PI / 2;
-    public static final double minAngle = -Math.PI / 2;
+    public static final double maxAngle = 135 * (Math.PI / 180);
+    public static final double minAngle = -135 * (Math.PI / 180);
     public static final double kPReal = 0.35;
 
     // Motor controller
