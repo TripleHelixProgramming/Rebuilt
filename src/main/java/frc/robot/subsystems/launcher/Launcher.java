@@ -11,6 +11,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
+import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.LinearVelocity;
@@ -45,6 +46,8 @@ public class Launcher extends SubsystemBase {
   private Pose3d turretBasePose = new Pose3d();
   // private Translation3d v0_nominal = new Translation3d();
 
+  private final InterpolatingDoubleTreeMap fuelToFlywheelSpeedMap = new InterpolatingDoubleTreeMap();
+
   // Fuel ballistics simulation
   private final ArrayList<BallisticObject> fuelNominal = new ArrayList<>();
   private final ArrayList<BallisticObject> fuelReplanned = new ArrayList<>();
@@ -67,6 +70,9 @@ public class Launcher extends SubsystemBase {
     turretDisconnectedAlert = new Alert("Disconnected turret motor", AlertType.kError);
     flywheelDisconnectedAlert = new Alert("Disconnected flywheel motor", AlertType.kError);
     hoodDisconnectedAlert = new Alert("Disconnected hood motor", AlertType.kError);
+
+    fuelToFlywheelSpeedMap.put(0.0, 0.0);
+    fuelToFlywheelSpeedMap.put(100000.0, 200000.0);
   }
 
   @Override
@@ -104,9 +110,8 @@ public class Launcher extends SubsystemBase {
 
     // Set flywheel speed assuming a motionless robot
     var v0_nominal = getV0(vectorTurretBaseToTarget, impactAngle, nominalKey);
-    double fuelToFlyweel = 2.0;
     AngularVelocity flywheelSetpoint =
-        RadiansPerSecond.of(fuelToFlyweel * v0_nominal.getNorm() / wheelRadius.in(Meters));
+        RadiansPerSecond.of(fuelToFlywheelSpeedMap.get(v0_nominal.getNorm()) / wheelRadius.in(Meters));
     flywheelIO.setVelocity(flywheelSetpoint);
 
     // Get translation velocities (m/s) of the turret caused by motion of the chassis
@@ -119,7 +124,7 @@ public class Launcher extends SubsystemBase {
     // Get actual fuel speed
     LinearVelocity fuelSpeed =
         MetersPerSecond.of(
-            flywheelInputs.velocityRadPerSec * wheelRadius.in(Meters) / fuelToFlyweel);
+            fuelToFlywheelSpeedMapReversed.get(flywheelInputs.velocityRadPerSec) * wheelRadius.in(Meters));
 
     // Replan shot using actual flywheel speed
     var v0_total = getV0(vectorTurretBaseToTarget, fuelSpeed, replannedKey);
