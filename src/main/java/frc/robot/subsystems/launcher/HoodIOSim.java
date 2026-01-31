@@ -1,7 +1,7 @@
 package frc.robot.subsystems.launcher;
 
-import static edu.wpi.first.units.Units.RadiansPerSecond;
-import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.*;
+import static edu.wpi.first.units.Units.*;
+import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.*;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
@@ -12,44 +12,42 @@ import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
 
-public class TurretIOSim implements TurretIO {
-  private final DCMotorSim turnSim;
+public class HoodIOSim implements HoodIO {
+
+  private final DCMotorSim hoodSim;
 
   private boolean closedLoop = false;
   private PIDController positionController = new PIDController(kPSim, 0.0, kDSim);
   private double appliedVolts = 0.0;
   private double feedforwardVolts = 0.0;
 
-  public TurretIOSim() {
-    turnSim =
+  public HoodIOSim() {
+    hoodSim =
         new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
-
-    // Enable wrapping for turn PID
-    positionController.enableContinuousInput(-Math.PI, Math.PI);
   }
 
   @Override
-  public void updateInputs(TurretIOInputs inputs) {
+  public void updateInputs(HoodIOInputs inputs) {
     // Run closed-loop control
     if (closedLoop) {
       appliedVolts =
-          positionController.calculate(turnSim.getAngularPositionRad()) + feedforwardVolts;
+          positionController.calculate(hoodSim.getAngularPositionRad()) + feedforwardVolts;
     } else {
       positionController.reset();
     }
 
     // Update simulation state
-    turnSim.setInputVoltage(
+    hoodSim.setInputVoltage(
         MathUtil.clamp(
             appliedVolts, -RobotConstants.kNominalVoltage, RobotConstants.kNominalVoltage));
-    turnSim.update(Robot.defaultPeriodSecs);
+    hoodSim.update(Robot.defaultPeriodSecs);
 
     // Update turn inputs
     inputs.connected = true;
-    inputs.position = new Rotation2d(turnSim.getAngularPositionRad());
-    inputs.velocityRadPerSec = turnSim.getAngularVelocityRadPerSec();
+    inputs.position = new Rotation2d(hoodSim.getAngularPositionRad());
+    inputs.velocityRadPerSec = hoodSim.getAngularVelocityRadPerSec();
     inputs.appliedVolts = appliedVolts;
-    inputs.currentAmps = Math.abs(turnSim.getCurrentDrawAmps());
+    inputs.currentAmps = Math.abs(hoodSim.getCurrentDrawAmps());
   }
 
   @Override
