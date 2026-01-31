@@ -14,9 +14,9 @@ import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.config.MAXMotionConfig.MAXMotionPositionMode;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
-import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.AngularVelocity;
@@ -57,7 +57,16 @@ public class TurretIOSpark implements TurretIO {
         .feedbackSensor(FeedbackSensor.kAbsoluteEncoder)
         .positionWrappingEnabled(true)
         .positionWrappingInputRange(minInput, maxInput)
-        .pid(kPReal, 0.0, 0.0);
+        .pid(kPReal, 0.0, 0.0)
+        .maxMotion
+        .positionMode(MAXMotionPositionMode.kMAXMotionTrapezoidal);
+
+    // turnConfig
+    //     .softLimit
+    //     .forwardSoftLimitEnabled(true)
+    //     .forwardSoftLimit(maxAngle)
+    //     .reverseSoftLimitEnabled(true)
+    //     .reverseSoftLimit(minAngle);
 
     turnConfig
         .signals
@@ -100,8 +109,8 @@ public class TurretIOSpark implements TurretIO {
 
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
-    double setpoint =
-        MathUtil.inputModulus(rotation.plus(rotationOffset).getRadians(), minInput, maxInput);
+    double setpoint = rotation.getRadians();
+    // MathUtil.inputModulus(rotation.plus(rotationOffset).getRadians(), minInput, maxInput);
     double feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)

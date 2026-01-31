@@ -119,7 +119,7 @@ public class Robot extends LoggedRobot {
                 drive::getPose,
                 drive::getRobotRelativeChassisSpeeds,
                 new TurretIOSpark(),
-                new FlywheelIO() {},
+                new FlywheelIOSim() {},
                 new HoodIO() {});
         break;
 
