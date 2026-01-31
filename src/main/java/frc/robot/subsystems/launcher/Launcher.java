@@ -104,8 +104,9 @@ public class Launcher extends SubsystemBase {
 
     // Set flywheel speed assuming a motionless robot
     var v0_nominal = getV0(vectorTurretBaseToTarget, impactAngle, nominalKey);
+    double fuelToFlyweel = 2.0;
     AngularVelocity flywheelSetpoint =
-        RadiansPerSecond.of(v0_nominal.getNorm() / wheelRadius.in(Meters));
+        RadiansPerSecond.of(fuelToFlyweel * v0_nominal.getNorm() / wheelRadius.in(Meters));
     flywheelIO.setVelocity(flywheelSetpoint);
 
     // Get translation velocities (m/s) of the turret caused by motion of the chassis
@@ -115,12 +116,13 @@ public class Launcher extends SubsystemBase {
             robotRelative, turretBasePose.toPose2d().getRotation());
     var v_base = getTurretBaseSpeeds(turretBasePose.toPose2d().getRotation(), fieldRelative);
 
-    // Get actual flywheel speed
-    LinearVelocity flywheelSpeed =
-        MetersPerSecond.of(flywheelInputs.velocityRadPerSec * wheelRadius.in(Meters));
+    // Get actual fuel speed
+    LinearVelocity fuelSpeed =
+        MetersPerSecond.of(
+            flywheelInputs.velocityRadPerSec * wheelRadius.in(Meters) / fuelToFlyweel);
 
     // Replan shot using actual flywheel speed
-    var v0_total = getV0(vectorTurretBaseToTarget, flywheelSpeed, replannedKey);
+    var v0_total = getV0(vectorTurretBaseToTarget, fuelSpeed, replannedKey);
 
     // Point turret to align velocity vectors
     var v0_flywheel = v0_total.minus(v_base);
@@ -149,7 +151,7 @@ public class Launcher extends SubsystemBase {
                 hoodPosition.getCos() * turretPosition.getCos(),
                 hoodPosition.getCos() * turretPosition.getSin(),
                 hoodPosition.getSin())
-            .times(flywheelSpeed.in(MetersPerSecond))
+            .times(fuelSpeed.in(MetersPerSecond))
             .plus(v_base);
     log(vectorTurretBaseToTarget, v0_actual, actualKey);
 
