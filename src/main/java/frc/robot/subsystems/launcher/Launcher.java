@@ -40,7 +40,8 @@ public class Launcher extends SubsystemBase {
   private final Alert flywheelDisconnectedAlert;
   private final Alert hoodDisconnectedAlert;
 
-  private Translation3d vectorTurretBaseToHub = new Translation3d();
+  private Translation3d target = new Translation3d();
+  private Translation3d vectorTurretBaseToTarget = new Translation3d();
   private Pose3d turretBasePose = new Pose3d();
   // private Translation3d v0_nominal = new Translation3d();
 
@@ -82,20 +83,10 @@ public class Launcher extends SubsystemBase {
     flywheelDisconnectedAlert.set(!flywheelInputs.connected);
     hoodDisconnectedAlert.set(!hoodInputs.connected);
 
-    // Get vector from static target to turret
-    var hubPose = GameState.getMyHubPose();
-    turretBasePose = new Pose3d(chassisPoseSupplier.get()).plus(chassisToTurretBase);
-    vectorTurretBaseToHub = hubPose.getTranslation().minus(turretBasePose.getTranslation());
-
-    updateBallisticsSim(fuelNominal);
-    updateBallisticsSim(fuelReplanned);
-    updateBallisticsSim(fuelActual);
-
-    Logger.recordOutput(
-        "Launcher/" + nominalKey + "/FuelTrajectory", getBallTrajectory(fuelNominal));
-    Logger.recordOutput(
-        "Launcher/" + replannedKey + "/FuelTrajectory", getBallTrajectory(fuelReplanned));
-    Logger.recordOutput("Launcher/" + actualKey + "/FuelTrajectory", getBallTrajectory(fuelActual));
+    // Update and plot ball trajectories
+    updateBallisticsSim(fuelNominal, nominalKey);
+    updateBallisticsSim(fuelReplanned, replannedKey);
+    updateBallisticsSim(fuelActual, actualKey);
   }
 
   public void stop() {
@@ -104,9 +95,15 @@ public class Launcher extends SubsystemBase {
     hoodIO.setOpenLoop(0.0);
   }
 
-  public void aimAtHub() {
+  public void aim(Translation3d target) {
+    this.target = target;
+
+    // Get vector from static target to turret
+    turretBasePose = new Pose3d(chassisPoseSupplier.get()).plus(chassisToTurretBase);
+    vectorTurretBaseToTarget = target.minus(turretBasePose.getTranslation());
+
     // Set flywheel speed assuming a motionless robot
-    var v0_nominal = getV0(vectorTurretBaseToHub, impactAngle, nominalKey);
+    var v0_nominal = getV0(vectorTurretBaseToTarget, impactAngle, nominalKey);
     AngularVelocity flywheelSetpoint =
         RadiansPerSecond.of(v0_nominal.getNorm() / wheelRadius.in(Meters));
     flywheelIO.setVelocity(flywheelSetpoint);
@@ -119,26 +116,31 @@ public class Launcher extends SubsystemBase {
     var v_base = getTurretBaseSpeeds(turretBasePose.toPose2d().getRotation(), fieldRelative);
 
     // Get actual flywheel speed
-    // TODO: Replace with actual speed when flywheel simulation is added
     LinearVelocity flywheelSpeed =
-        MetersPerSecond.of(flywheelSetpoint.in(RadiansPerSecond) * wheelRadius.in(Meters));
+        MetersPerSecond.of(flywheelInputs.velocityRadPerSec * wheelRadius.in(Meters));
 
     // Replan shot using actual flywheel speed
-    var v0_total = getV0(vectorTurretBaseToHub, flywheelSpeed, replannedKey);
+    var v0_total = getV0(vectorTurretBaseToTarget, flywheelSpeed, replannedKey);
 
     // Point turret to align velocity vectors
     var v0_flywheel = v0_total.minus(v_base);
+
+    // Check if v0_flywheel has non-zero horizontal component
+    double v0_horizontal = Math.hypot(v0_flywheel.getX(), v0_flywheel.getY());
+    if (v0_horizontal < 1e-6) {
+      // Flywheel velocity is too low or target unreachable, stop mechanisms
+      return;
+    }
+
     Rotation2d turretSetpoint = new Rotation2d(v0_flywheel.getX(), v0_flywheel.getY());
     turretIO.setPosition(
         turretSetpoint.minus(turretBasePose.toPose2d().getRotation()),
         RadiansPerSecond.of(robotRelative.omegaRadiansPerSecond).unaryMinus().times(2.0));
-    Rotation2d hoodSetpoint =
-        new Rotation2d(Math.hypot(v0_flywheel.getX(), v0_flywheel.getY()), v0_flywheel.getZ());
+    Rotation2d hoodSetpoint = new Rotation2d(v0_horizontal, v0_flywheel.getZ());
     hoodIO.setPosition(hoodSetpoint, RadiansPerSecond.of(0));
 
     // Get actual hood & turret position
-    // TODO: Replace with actual hood position when hood simulation is added
-    Rotation2d hoodPosition = hoodSetpoint;
+    Rotation2d hoodPosition = hoodInputs.position;
     Rotation2d turretPosition = turretInputs.position.plus(turretBasePose.toPose2d().getRotation());
 
     // Build actual velocities
@@ -149,7 +151,7 @@ public class Launcher extends SubsystemBase {
                 hoodPosition.getSin())
             .times(flywheelSpeed.in(MetersPerSecond))
             .plus(v_base);
-    log(vectorTurretBaseToHub, v0_actual, actualKey);
+    log(vectorTurretBaseToTarget, v0_actual, actualKey);
 
     // Spawn simulated fuel
     fuelSpawnTimer += Robot.defaultPeriodSecs;
@@ -304,7 +306,7 @@ public class Launcher extends SubsystemBase {
     }
   }
 
-  private void updateBallisticsSim(ArrayList<BallisticObject> traj) {
+  private void updateBallisticsSim(ArrayList<BallisticObject> traj, String key) {
     double dt = Robot.defaultPeriodSecs;
     double hubZ = GameState.getMyHubPose().getZ();
 
@@ -319,6 +321,8 @@ public class Launcher extends SubsystemBase {
           // Remove when below target height and falling
           return o.position.getZ() < hubZ && o.velocity.getZ() < 0;
         });
+
+    Logger.recordOutput("Launcher/" + key + "/FuelTrajectory", getBallTrajectory(traj));
   }
 
   public Translation3d[] getBallTrajectory(ArrayList<BallisticObject> traj) {

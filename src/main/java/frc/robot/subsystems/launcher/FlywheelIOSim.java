@@ -1,55 +1,51 @@
 package frc.robot.subsystems.launcher;
 
-import static edu.wpi.first.units.Units.RadiansPerSecond;
-import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.*;
+import static edu.wpi.first.units.Units.*;
+import static frc.robot.subsystems.launcher.LauncherConstants.FlywheelConstants.*;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
 
-public class TurretIOSim implements TurretIO {
-  private final DCMotorSim turnSim;
+public class FlywheelIOSim implements FlywheelIO {
+  private final DCMotorSim flywheelSim;
 
   private boolean closedLoop = false;
-  private PIDController positionController = new PIDController(kPSim, 0.0, kDSim);
+  private PIDController velocityController = new PIDController(kPSim, 0.0, 0.0);
   private double appliedVolts = 0.0;
   private double feedforwardVolts = 0.0;
 
-  public TurretIOSim() {
-    turnSim =
+  public FlywheelIOSim() {
+    flywheelSim =
         new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
-
-    // Enable wrapping for turn PID
-    positionController.enableContinuousInput(-Math.PI, Math.PI);
   }
 
   @Override
-  public void updateInputs(TurretIOInputs inputs) {
+  public void updateInputs(FlywheelIOInputs inputs) {
     // Run closed-loop control
     if (closedLoop) {
       appliedVolts =
-          positionController.calculate(turnSim.getAngularPositionRad()) + feedforwardVolts;
+          velocityController.calculate(flywheelSim.getAngularVelocityRadPerSec())
+              + feedforwardVolts;
     } else {
-      positionController.reset();
+      velocityController.reset();
     }
 
     // Update simulation state
-    turnSim.setInputVoltage(
+    flywheelSim.setInputVoltage(
         MathUtil.clamp(
             appliedVolts, -RobotConstants.kNominalVoltage, RobotConstants.kNominalVoltage));
-    turnSim.update(Robot.defaultPeriodSecs);
+    flywheelSim.update(Robot.defaultPeriodSecs);
 
     // Update turn inputs
     inputs.connected = true;
-    inputs.position = new Rotation2d(turnSim.getAngularPositionRad());
-    inputs.velocityRadPerSec = turnSim.getAngularVelocityRadPerSec();
+    inputs.velocityRadPerSec = flywheelSim.getAngularVelocityRadPerSec();
     inputs.appliedVolts = appliedVolts;
-    inputs.currentAmps = Math.abs(turnSim.getCurrentDrawAmps());
+    inputs.currentAmps = Math.abs(flywheelSim.getCurrentDrawAmps());
   }
 
   @Override
@@ -59,12 +55,12 @@ public class TurretIOSim implements TurretIO {
   }
 
   @Override
-  public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
+  public void setVelocity(AngularVelocity angularVelocity) {
     closedLoop = true;
     this.feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
-    positionController.setSetpoint(rotation.getRadians());
+    velocityController.setSetpoint(angularVelocity.in(RadiansPerSecond));
   }
 }

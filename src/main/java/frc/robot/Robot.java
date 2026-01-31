@@ -35,7 +35,9 @@ import frc.robot.subsystems.drive.ModuleIO;
 import frc.robot.subsystems.drive.ModuleIOSim;
 import frc.robot.subsystems.drive.ModuleIOTalonFX;
 import frc.robot.subsystems.launcher.FlywheelIO;
+import frc.robot.subsystems.launcher.FlywheelIOSim;
 import frc.robot.subsystems.launcher.HoodIO;
+import frc.robot.subsystems.launcher.HoodIOSim;
 import frc.robot.subsystems.launcher.Launcher;
 import frc.robot.subsystems.launcher.TurretIO;
 import frc.robot.subsystems.launcher.TurretIOSim;
@@ -150,8 +152,8 @@ public class Robot extends LoggedRobot {
                 drive::getPose,
                 drive::getRobotRelativeChassisSpeeds,
                 new TurretIOSim(),
-                new FlywheelIO() {},
-                new HoodIO() {});
+                new FlywheelIOSim(),
+                new HoodIOSim());
         break;
 
       case REPLAY: // Replaying a log
@@ -200,7 +202,9 @@ public class Robot extends LoggedRobot {
     SmartDashboard.putData("Field", field);
     Field.plotRegions();
 
-    launcher.setDefaultCommand(Commands.run(launcher::aimAtHub, launcher).withName("Aim at hub"));
+    launcher.setDefaultCommand(
+        Commands.run(() -> launcher.aim(GameState.getMyHubPose().getTranslation()), launcher)
+            .withName("Aim at hub"));
   }
 
   /** This function is called periodically during all modes. */

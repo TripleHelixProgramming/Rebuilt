@@ -1,7 +1,8 @@
 package frc.robot.subsystems.launcher;
 
 import static edu.wpi.first.units.Units.RadiansPerSecond;
-import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.*;
+import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.*;
+import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.port;
 import static frc.robot.util.SparkUtil.*;
 
 import com.revrobotics.AbsoluteEncoder;
@@ -24,42 +25,42 @@ import frc.robot.Constants.MotorConstants.NEO550Constants;
 import frc.robot.Constants.RobotConstants;
 import java.util.function.DoubleSupplier;
 
-public class TurretIOSpark implements TurretIO {
+public class HoodIOSpark implements HoodIO {
 
-  private final SparkBase turnSpark;
-  private final AbsoluteEncoder turnEncoder;
-  private final SparkClosedLoopController turnController;
+  private final SparkBase hoodSpark;
+  private final AbsoluteEncoder hoodEncoder;
+  private final SparkClosedLoopController hoodController;
   private final Debouncer turnConnectedDebounce =
       new Debouncer(0.5, Debouncer.DebounceType.kFalling);
 
-  public TurretIOSpark() {
-    turnSpark = new SparkMax(port, MotorType.kBrushless);
-    turnEncoder = turnSpark.getAbsoluteEncoder();
-    turnController = turnSpark.getClosedLoopController();
+  public HoodIOSpark() {
+    hoodSpark = new SparkMax(port, MotorType.kBrushless);
+    hoodEncoder = hoodSpark.getAbsoluteEncoder();
+    hoodController = hoodSpark.getClosedLoopController();
 
-    var turnConfig = new SparkMaxConfig();
+    var hoodConfig = new SparkMaxConfig();
 
-    turnConfig
+    hoodConfig
         .inverted(false)
         .idleMode(IdleMode.kBrake)
         .smartCurrentLimit(NEO550Constants.kDefaultSupplyCurrentLimit)
         .voltageCompensation(RobotConstants.kNominalVoltage);
 
-    turnConfig
+    hoodConfig
         .absoluteEncoder
         .inverted(false)
         .positionConversionFactor(encoderPositionFactor)
         .velocityConversionFactor(encoderVelocityFactor)
         .averageDepth(2);
 
-    turnConfig
+    hoodConfig
         .closedLoop
         .feedbackSensor(FeedbackSensor.kAbsoluteEncoder)
         .positionWrappingEnabled(true)
         .positionWrappingInputRange(minInput, maxInput)
         .pid(kPReal, 0.0, 0.0);
 
-    turnConfig
+    hoodConfig
         .signals
         .absoluteEncoderPositionAlwaysOn(true)
         .absoluteEncoderPositionPeriodMs(20)
@@ -70,43 +71,39 @@ public class TurretIOSpark implements TurretIO {
         .outputCurrentPeriodMs(20);
 
     tryUntilOk(
-        turnSpark,
+        hoodSpark,
         5,
         () ->
-            turnSpark.configure(
-                turnConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters));
+            hoodSpark.configure(
+                hoodConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters));
   }
 
   @Override
-  public void updateInputs(TurretIOInputs inputs) {
+  public void updateInputs(HoodIOInputs inputs) {
     sparkStickyFault = false;
+    ifOk(hoodSpark, hoodEncoder::getPosition, (value) -> inputs.position = new Rotation2d(value));
+    ifOk(hoodSpark, hoodEncoder::getVelocity, (value) -> inputs.velocityRadPerSec = value);
     ifOk(
-        turnSpark,
-        turnEncoder::getPosition,
-        (value) -> inputs.position = new Rotation2d(value).minus(rotationOffset));
-    ifOk(turnSpark, turnEncoder::getVelocity, (value) -> inputs.velocityRadPerSec = value);
-    ifOk(
-        turnSpark,
-        new DoubleSupplier[] {turnSpark::getAppliedOutput, turnSpark::getBusVoltage},
+        hoodSpark,
+        new DoubleSupplier[] {hoodSpark::getAppliedOutput, hoodSpark::getBusVoltage},
         (values) -> inputs.appliedVolts = values[0] * values[1]);
-    ifOk(turnSpark, turnSpark::getOutputCurrent, (value) -> inputs.currentAmps = value);
+    ifOk(hoodSpark, hoodSpark::getOutputCurrent, (value) -> inputs.currentAmps = value);
     inputs.connected = turnConnectedDebounce.calculate(!sparkStickyFault);
   }
 
   @Override
   public void setOpenLoop(double output) {
-    turnSpark.setVoltage(output);
+    hoodSpark.setVoltage(output);
   }
 
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
-    double setpoint =
-        MathUtil.inputModulus(rotation.plus(rotationOffset).getRadians(), minInput, maxInput);
+    double setpoint = MathUtil.inputModulus(rotation.getRadians(), minInput, maxInput);
     double feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
-    turnController.setSetpoint(
+    hoodController.setSetpoint(
         setpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
   }
 }
