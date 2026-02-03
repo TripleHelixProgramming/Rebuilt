@@ -120,7 +120,7 @@ public class Robot extends LoggedRobot {
                 drive::getRobotRelativeChassisSpeeds,
                 new TurretIOSpark(),
                 new FlywheelIOSim() {},
-                new HoodIO() {});
+                new HoodIOSim() );
         break;
 
       case SIM: // Running a physics simulator
