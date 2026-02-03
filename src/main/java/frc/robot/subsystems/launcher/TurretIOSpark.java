@@ -48,6 +48,8 @@ public class TurretIOSpark implements TurretIO {
     turnConfig
         .absoluteEncoder
         .inverted(false)
+        .zeroCentered(false)
+        .zeroOffset(rotationOffset.getRotations())
         .positionConversionFactor(encoderPositionFactor)
         .velocityConversionFactor(encoderVelocityFactor)
         .averageDepth(2);
@@ -56,8 +58,15 @@ public class TurretIOSpark implements TurretIO {
         .closedLoop
         .feedbackSensor(FeedbackSensor.kAbsoluteEncoder)
         .positionWrappingEnabled(true)
-        .positionWrappingInputRange(minInput, maxInput)
+        .positionWrappingInputRange(0, 2 * Math.PI)
         .pid(kPReal, 0.0, 0.0);
+
+    // turnConfig
+    //     .softLimit
+    //     .forwardSoftLimitEnabled(false)
+    //     .forwardSoftLimit(maxAngle)
+    //     .reverseSoftLimitEnabled(true)
+    //     .reverseSoftLimit(minAngle);
 
     turnConfig
         .signals
@@ -80,10 +89,7 @@ public class TurretIOSpark implements TurretIO {
   @Override
   public void updateInputs(TurretIOInputs inputs) {
     sparkStickyFault = false;
-    ifOk(
-        turnSpark,
-        turnEncoder::getPosition,
-        (value) -> inputs.position = new Rotation2d(value).minus(rotationOffset));
+    ifOk(turnSpark, turnEncoder::getPosition, (value) -> inputs.position = new Rotation2d(value));
     ifOk(turnSpark, turnEncoder::getVelocity, (value) -> inputs.velocityRadPerSec = value);
     ifOk(
         turnSpark,
@@ -101,7 +107,9 @@ public class TurretIOSpark implements TurretIO {
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
     double setpoint =
-        MathUtil.inputModulus(rotation.plus(rotationOffset).getRadians(), minInput, maxInput);
+        //  Math.max(minAngle, Math.min(maxAngle, rotation.getRadians())) +
+        // rotationOffset.getRadians();
+        MathUtil.inputModulus(rotation.getRadians(), minInput, maxInput);
     double feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
