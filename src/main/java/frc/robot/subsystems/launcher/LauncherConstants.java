@@ -37,12 +37,8 @@ public final class LauncherConstants {
     public static final double encoderVelocityFactor = (2 * Math.PI) / 60.0; // Rad/sec
 
     // Position controller
-    // public static final double minInput = -Math.PI;
-    // public static final double maxInput = Math.PI;
     public static final double minInput = 0.0;
     public static final double maxInput = 2 * Math.PI;
-    public static final double maxAngle = 90.0 * (Math.PI / 180.0);
-    public static final double minAngle = -90.0 * (Math.PI / 180.0);
     public static final double kPReal = 0.35;
 
     // Motor controller
