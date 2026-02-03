@@ -14,10 +14,8 @@ import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
-import com.revrobotics.spark.config.MAXMotionConfig.MAXMotionPositionMode;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
-
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -50,6 +48,8 @@ public class TurretIOSpark implements TurretIO {
     turnConfig
         .absoluteEncoder
         .inverted(false)
+        .zeroCentered(false)
+        .zeroOffset(rotationOffset.getRotations())
         .positionConversionFactor(encoderPositionFactor)
         .velocityConversionFactor(encoderVelocityFactor)
         .averageDepth(2);
@@ -58,9 +58,8 @@ public class TurretIOSpark implements TurretIO {
         .closedLoop
         .feedbackSensor(FeedbackSensor.kAbsoluteEncoder)
         .positionWrappingEnabled(true)
-        .positionWrappingInputRange(minInput, maxInput)
-        .pid(kPReal, 0.0, 0.0)
-        .outputRange(minAngle / Math.PI, maxAngle / Math.PI);
+        .positionWrappingInputRange(0, 2 * Math.PI)
+        .pid(kPReal, 0.0, 0.0);
 
     // turnConfig
     //     .softLimit
@@ -90,10 +89,7 @@ public class TurretIOSpark implements TurretIO {
   @Override
   public void updateInputs(TurretIOInputs inputs) {
     sparkStickyFault = false;
-    ifOk(
-        turnSpark,
-        turnEncoder::getPosition,
-        (value) -> inputs.position = new Rotation2d(value).minus(rotationOffset));
+    ifOk(turnSpark, turnEncoder::getPosition, (value) -> inputs.position = new Rotation2d(value));
     ifOk(turnSpark, turnEncoder::getVelocity, (value) -> inputs.velocityRadPerSec = value);
     ifOk(
         turnSpark,
@@ -111,8 +107,9 @@ public class TurretIOSpark implements TurretIO {
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
     double setpoint =
-      //  Math.max(minAngle, Math.min(maxAngle, rotation.getRadians())) + rotationOffset.getRadians();
-     MathUtil.inputModulus(rotation.plus(rotationOffset).getRadians(), minInput, maxInput);
+        //  Math.max(minAngle, Math.min(maxAngle, rotation.getRadians())) +
+        // rotationOffset.getRadians();
+        MathUtil.inputModulus(rotation.getRadians(), minInput, maxInput);
     double feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
