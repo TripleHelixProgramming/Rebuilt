@@ -204,7 +204,9 @@ public class Robot extends LoggedRobot {
 
     launcher.setDefaultCommand(
         Commands.run(() -> launcher.aim(GameState.getMyHubPose().getTranslation()), launcher)
-            .withName("Aim at hub"));
+            .withName("Aim at hub")
+            .beforeStarting(launcher::initializeTurret)
+            .ignoringDisable(true));
   }
 
   /** This function is called periodically during all modes. */

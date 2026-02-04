@@ -16,6 +16,8 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.FunctionalCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.game.GameState;
 import frc.robot.Robot;
@@ -331,5 +333,19 @@ public class Launcher extends SubsystemBase {
       t[i] = traj.get(i).position;
     }
     return t;
+  }
+
+  public Command initializeTurret() {
+    return new FunctionalCommand(
+        // initialize
+        () -> {},
+        // execute
+        () -> {},
+        // end
+        interrupted -> turretIO.resetEncoder(),
+        // isFinished
+        () -> turretIO.isAbsoluteEncoderConnected(),
+        // requirements
+        this);
   }
 }

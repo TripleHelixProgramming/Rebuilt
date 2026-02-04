@@ -77,8 +77,6 @@ public class TurretIOSparkAlternate implements TurretIO {
                 turnConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters));
 
     // tryUntilOk(turnSpark, 5, () -> turnSparkEncoder.setPosition(absoluteEncoder.get()));
-
-    ifOk(turnSpark, absoluteEncoder::get, (value) -> turnSparkEncoder.setPosition(value));
   }
 
   @Override
@@ -128,5 +126,15 @@ public class TurretIOSparkAlternate implements TurretIO {
             * angularVelocity.in(RadiansPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
     controller.setSetpoint(setpoint);
+  }
+
+  @Override
+  public void resetEncoder() {
+    ifOk(turnSpark, absoluteEncoder::get, (value) -> turnSparkEncoder.setPosition(value));
+  }
+
+  @Override
+  public boolean isAbsoluteEncoderConnected() {
+    return absoluteEncoder.isConnected();
   }
 }
