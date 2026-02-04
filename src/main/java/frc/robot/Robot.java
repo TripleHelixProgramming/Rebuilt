@@ -41,7 +41,7 @@ import frc.robot.subsystems.launcher.HoodIOSim;
 import frc.robot.subsystems.launcher.Launcher;
 import frc.robot.subsystems.launcher.TurretIO;
 import frc.robot.subsystems.launcher.TurretIOSim;
-import frc.robot.subsystems.launcher.TurretIOSpark;
+import frc.robot.subsystems.launcher.TurretIOSparkAlternate;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionIO;
 import frc.robot.subsystems.vision.VisionIOPhotonVision;
@@ -118,7 +118,7 @@ public class Robot extends LoggedRobot {
             new Launcher(
                 drive::getPose,
                 drive::getRobotRelativeChassisSpeeds,
-                new TurretIOSpark(),
+                new TurretIOSparkAlternate(),
                 new FlywheelIOSim() {},
                 new HoodIOSim());
         break;

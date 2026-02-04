@@ -33,8 +33,8 @@ public final class LauncherConstants {
     public static final Rotation2d rotationOffset = new Rotation2d(0.44);
 
     // Absolute encoder
-    public static final double encoderPositionFactor = 2 * Math.PI; // Radians
-    public static final double encoderVelocityFactor = (2 * Math.PI) / 60.0; // Rad/sec
+    public static final double encoderPositionFactor = (2 * Math.PI) / 5.0; // Radians
+    public static final double encoderVelocityFactor = (2 * Math.PI) / (60.0 * 5.0); // Rad/sec
 
     // Position controller
     public static final double minInput = 0.0;

@@ -23,6 +23,7 @@ import edu.wpi.first.wpilibj.DutyCycleEncoder;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
 import frc.robot.Constants.RobotConstants;
 import java.util.function.DoubleSupplier;
+import org.littletonrobotics.junction.Logger;
 
 public class TurretIOSparkAlternate implements TurretIO {
 
@@ -41,7 +42,7 @@ public class TurretIOSparkAlternate implements TurretIO {
     turnSpark = new SparkMax(port, MotorType.kBrushless);
     turnSparkEncoder = turnSpark.getEncoder();
     controller = new PIDController(kPReal, 0.0, 0.0);
-    absoluteEncoder = new DutyCycleEncoder(new DigitalInput(DIOPort), 2 * Math.PI, Math.PI);
+    absoluteEncoder = new DutyCycleEncoder(new DigitalInput(DIOPort), 2 * Math.PI, 0.5);
 
     var turnConfig = new SparkMaxConfig();
 
@@ -53,7 +54,6 @@ public class TurretIOSparkAlternate implements TurretIO {
 
     turnConfig
         .encoder
-        .inverted(false)
         .positionConversionFactor(encoderPositionFactor)
         .velocityConversionFactor(encoderVelocityFactor);
 
@@ -76,7 +76,9 @@ public class TurretIOSparkAlternate implements TurretIO {
             turnSpark.configure(
                 turnConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters));
 
-    turnSparkEncoder.setPosition(absoluteEncoder.get());
+    // tryUntilOk(turnSpark, 5, () -> turnSparkEncoder.setPosition(absoluteEncoder.get()));
+
+    ifOk(turnSpark, absoluteEncoder::get, (value) -> turnSparkEncoder.setPosition(value));
   }
 
   @Override
@@ -105,6 +107,7 @@ public class TurretIOSparkAlternate implements TurretIO {
         (values) -> inputs.appliedVolts = values[0] * values[1]);
     ifOk(turnSpark, turnSpark::getOutputCurrent, (value) -> inputs.currentAmps = value);
     inputs.connected = turnConnectedDebounce.calculate(!sparkStickyFault);
+    Logger.recordOutput("Turret/AbsoluteEncoder", absoluteEncoder.get());
   }
 
   @Override
