@@ -60,10 +60,6 @@ public class TurretIOSparkAlternate implements TurretIO {
 
     turnConfig
         .signals
-        .absoluteEncoderPositionAlwaysOn(true)
-        .absoluteEncoderPositionPeriodMs(20)
-        .absoluteEncoderVelocityAlwaysOn(true)
-        .absoluteEncoderVelocityPeriodMs(20)
         .appliedOutputPeriodMs(20)
         .busVoltagePeriodMs(20)
         .outputCurrentPeriodMs(20);
@@ -75,7 +71,7 @@ public class TurretIOSparkAlternate implements TurretIO {
             turnSpark.configure(
                 turnConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters));
 
-    // tryUntilOk(turnSpark, 5, () -> turnSparkEncoder.setPosition(absoluteEncoder.get()));
+    tryUntilOk(turnSpark, 5, () -> turnSparkEncoder.setPosition(absoluteEncoder.get()));
   }
 
   @Override
@@ -131,6 +127,6 @@ public class TurretIOSparkAlternate implements TurretIO {
 
   @Override
   public void resetEncoder() {
-    ifOk(turnSpark, absoluteEncoder::get, (value) -> turnSparkEncoder.setPosition(value));
+    // ifOk(turnSpark, absoluteEncoder::get, (value) -> turnSparkEncoder.setPosition(value));
   }
 }

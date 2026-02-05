@@ -210,8 +210,8 @@ public class Robot extends LoggedRobot {
 
   @Override
   public void robotInit() {
-    CommandScheduler.getInstance()
-        .schedule(launcher.initializeTurret().andThen(new WaitCommand(3.0)));
+    // CommandScheduler.getInstance()
+    //     .schedule(launcher.initializeTurret().andThen(new WaitCommand(3.0)));
   }
 
   /** This function is called periodically during all modes. */
