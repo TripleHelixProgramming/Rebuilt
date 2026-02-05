@@ -337,15 +337,17 @@ public class Launcher extends SubsystemBase {
 
   public Command initializeTurret() {
     return new FunctionalCommand(
-        // initialize
-        () -> {},
-        // execute
-        () -> {},
-        // end
-        interrupted -> turretIO.resetEncoder(),
-        // isFinished
-        () -> turretIO.isAbsoluteEncoderConnected(),
-        // requirements
-        this);
+            // initialize
+            () -> {},
+            // execute
+            () -> {},
+            // end
+            interrupted -> turretIO.resetEncoder(),
+            // isFinished
+            () -> turretIO.isAbsoluteEncoderConnected(),
+            // requirements
+            this)
+        .ignoringDisable(true)
+        .withName("Initialize turret");
   }
 }

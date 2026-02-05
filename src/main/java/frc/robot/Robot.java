@@ -204,9 +204,7 @@ public class Robot extends LoggedRobot {
 
     launcher.setDefaultCommand(
         Commands.run(() -> launcher.aim(GameState.getMyHubPose().getTranslation()), launcher)
-            .withName("Aim at hub")
-            .beforeStarting(launcher::initializeTurret)
-            .ignoringDisable(true));
+            .withName("Aim at hub"));
   }
 
   /** This function is called periodically during all modes. */
@@ -233,7 +231,13 @@ public class Robot extends LoggedRobot {
     // Threads.setCurrentThreadPriority(false, 10);
   }
 
+  @Override
+  public void robotInit() {
+    launcher.initializeTurret().schedule();
+  }
+
   /** This function is called once when the robot is disabled. */
+  @Override
   public void disabledInit() {}
 
   /** This function is called periodically when disabled. */
