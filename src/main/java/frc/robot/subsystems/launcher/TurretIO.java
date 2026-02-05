@@ -12,6 +12,9 @@ public interface TurretIO {
     public double velocityRadPerSec = 0.0;
     public double appliedVolts = 0.0;
     public double currentAmps = 0.0;
+
+    public boolean absoluteEncoderConnected = false;
+    public Rotation2d absolutePosition = Rotation2d.kZero;
   }
 
   public default void updateInputs(TurretIOInputs inputs) {}
@@ -21,8 +24,4 @@ public interface TurretIO {
   public default void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {}
 
   public default void resetEncoder() {}
-
-  public default boolean isAbsoluteEncoderConnected() {
-    return false;
-  }
 }

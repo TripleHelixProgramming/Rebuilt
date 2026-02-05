@@ -9,6 +9,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.game.Field;
 import frc.game.GameState;
@@ -207,6 +208,12 @@ public class Robot extends LoggedRobot {
             .withName("Aim at hub"));
   }
 
+  @Override
+  public void robotInit() {
+    CommandScheduler.getInstance()
+        .schedule(launcher.initializeTurret().andThen(new WaitCommand(3.0)));
+  }
+
   /** This function is called periodically during all modes. */
   @Override
   public void robotPeriodic() {
@@ -229,11 +236,6 @@ public class Robot extends LoggedRobot {
 
     // Return to non-RT thread priority (do not modify the first argument)
     // Threads.setCurrentThreadPriority(false, 10);
-  }
-
-  @Override
-  public void robotInit() {
-    launcher.initializeTurret().schedule();
   }
 
   /** This function is called once when the robot is disabled. */

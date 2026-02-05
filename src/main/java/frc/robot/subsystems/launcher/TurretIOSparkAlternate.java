@@ -23,7 +23,6 @@ import edu.wpi.first.wpilibj.DutyCycleEncoder;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
 import frc.robot.Constants.RobotConstants;
 import java.util.function.DoubleSupplier;
-import org.littletonrobotics.junction.Logger;
 
 public class TurretIOSparkAlternate implements TurretIO {
 
@@ -105,7 +104,9 @@ public class TurretIOSparkAlternate implements TurretIO {
         (values) -> inputs.appliedVolts = values[0] * values[1]);
     ifOk(turnSpark, turnSpark::getOutputCurrent, (value) -> inputs.currentAmps = value);
     inputs.connected = turnConnectedDebounce.calculate(!sparkStickyFault);
-    Logger.recordOutput("Turret/AbsoluteEncoder", absoluteEncoder.get());
+
+    inputs.absoluteEncoderConnected = absoluteEncoder.isConnected();
+    inputs.absolutePosition = new Rotation2d(absoluteEncoder.get());
   }
 
   @Override
@@ -131,10 +132,5 @@ public class TurretIOSparkAlternate implements TurretIO {
   @Override
   public void resetEncoder() {
     ifOk(turnSpark, absoluteEncoder::get, (value) -> turnSparkEncoder.setPosition(value));
-  }
-
-  @Override
-  public boolean isAbsoluteEncoderConnected() {
-    return absoluteEncoder.isConnected();
   }
 }
