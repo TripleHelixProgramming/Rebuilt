@@ -36,6 +36,7 @@ public class TurretIOSparkAlternate implements TurretIO {
   private boolean closedLoop = false;
   private double appliedVolts = 0.0;
   private double feedforwardVolts = 0.0;
+  private boolean seeded = false;
 
   public TurretIOSparkAlternate() {
     turnSpark = new SparkMax(port, MotorType.kBrushless);
@@ -58,11 +59,7 @@ public class TurretIOSparkAlternate implements TurretIO {
 
     turnConfig.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kPReal, 0.0, 0.0);
 
-    turnConfig
-        .signals
-        .appliedOutputPeriodMs(20)
-        .busVoltagePeriodMs(20)
-        .outputCurrentPeriodMs(20);
+    turnConfig.signals.appliedOutputPeriodMs(20).busVoltagePeriodMs(20).outputCurrentPeriodMs(20);
 
     tryUntilOk(
         turnSpark,
@@ -70,12 +67,15 @@ public class TurretIOSparkAlternate implements TurretIO {
         () ->
             turnSpark.configure(
                 turnConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters));
-
-    tryUntilOk(turnSpark, 5, () -> turnSparkEncoder.setPosition(absoluteEncoder.get()));
   }
 
   @Override
   public void updateInputs(TurretIOInputs inputs) {
+    if (!seeded && absoluteEncoder.isConnected()) {
+      turnSparkEncoder.setPosition(absoluteEncoder.get());
+      seeded = true;
+    }
+
     // Run closed-loop control
     if (closedLoop) {
       appliedVolts = controller.calculate(turnSparkEncoder.getPosition()) + feedforwardVolts;
@@ -123,10 +123,5 @@ public class TurretIOSparkAlternate implements TurretIO {
             * angularVelocity.in(RadiansPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
     controller.setSetpoint(setpoint);
-  }
-
-  @Override
-  public void resetEncoder() {
-    // ifOk(turnSpark, absoluteEncoder::get, (value) -> turnSparkEncoder.setPosition(value));
   }
 }

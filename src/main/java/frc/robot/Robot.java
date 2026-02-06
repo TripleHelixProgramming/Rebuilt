@@ -9,7 +9,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
-import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.game.Field;
 import frc.game.GameState;
@@ -206,12 +205,6 @@ public class Robot extends LoggedRobot {
     launcher.setDefaultCommand(
         Commands.run(() -> launcher.aim(GameState.getMyHubPose().getTranslation()), launcher)
             .withName("Aim at hub"));
-  }
-
-  @Override
-  public void robotInit() {
-    // CommandScheduler.getInstance()
-    //     .schedule(launcher.initializeTurret().andThen(new WaitCommand(3.0)));
   }
 
   /** This function is called periodically during all modes. */

@@ -22,6 +22,4 @@ public interface TurretIO {
   public default void setOpenLoop(double output) {}
 
   public default void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {}
-
-  public default void resetEncoder() {}
 }
