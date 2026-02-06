@@ -39,7 +39,7 @@ public final class LauncherConstants {
     // Position controller
     public static final double minInput = 0.0;
     public static final double maxInput = 2 * Math.PI;
-    public static final double kPReal = 0.35;
+    public static final double kPReal = 0.5;
 
     // Motor controller
     public static final int port = 12;

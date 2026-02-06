@@ -37,12 +37,14 @@ public class TurretIOSparkAlternate implements TurretIO {
   private double appliedVolts = 0.0;
   private double feedforwardVolts = 0.0;
   private boolean seeded = false;
+  private Rotation2d offset = Rotation2d.kCCW_Pi_2;
 
   public TurretIOSparkAlternate() {
     turnSpark = new SparkMax(port, MotorType.kBrushless);
     turnSparkEncoder = turnSpark.getEncoder();
     controller = new PIDController(kPReal, 0.0, 0.0);
-    absoluteEncoder = new DutyCycleEncoder(new DigitalInput(DIOPort), 2 * Math.PI, 0.5);
+    absoluteEncoder =
+        new DutyCycleEncoder(new DigitalInput(DIOPort), 2 * Math.PI, 0.5 + offset.getRadians());
 
     var turnConfig = new SparkMaxConfig();
 
@@ -92,7 +94,7 @@ public class TurretIOSparkAlternate implements TurretIO {
     ifOk(
         turnSpark,
         turnSparkEncoder::getPosition,
-        (value) -> inputs.position = new Rotation2d(value));
+        (value) -> inputs.position = new Rotation2d(value).plus(offset));
     ifOk(turnSpark, turnSparkEncoder::getVelocity, (value) -> inputs.velocityRadPerSec = value);
     ifOk(
         turnSpark,
@@ -117,7 +119,7 @@ public class TurretIOSparkAlternate implements TurretIO {
     double setpoint =
         //  Math.max(minAngle, Math.min(maxAngle, rotation.getRadians())) +
         // rotationOffset.getRadians();
-        MathUtil.inputModulus(rotation.getRadians(), minInput, maxInput);
+        MathUtil.inputModulus(rotation.getRadians() - offset.getRadians(), minInput, maxInput);
     this.feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
