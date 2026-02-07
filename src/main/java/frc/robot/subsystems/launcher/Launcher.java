@@ -79,7 +79,7 @@ public class Launcher extends SubsystemBase {
     Logger.processInputs("Flywheel", flywheelInputs);
     Logger.processInputs("Hood", hoodInputs);
 
-    turretDisconnectedAlert.set(!turretInputs.connected);
+    turretDisconnectedAlert.set(!turretInputs.motorControllerConnected);
     flywheelDisconnectedAlert.set(!flywheelInputs.connected);
     hoodDisconnectedAlert.set(!hoodInputs.connected);
 
@@ -141,7 +141,8 @@ public class Launcher extends SubsystemBase {
 
     // Get actual hood & turret position
     Rotation2d hoodPosition = hoodInputs.position;
-    Rotation2d turretPosition = turretInputs.position.plus(turretBasePose.toPose2d().getRotation());
+    Rotation2d turretPosition =
+        turretInputs.relativePosition.plus(turretBasePose.toPose2d().getRotation());
 
     // Build actual velocities
     Translation3d v0_actual =
@@ -180,7 +181,7 @@ public class Launcher extends SubsystemBase {
 
   @AutoLogOutput(key = "Launcher/TurretPose")
   public Pose2d getTurretPose() {
-    return turretBasePose.toPose2d().plus(new Transform2d(0, 0, turretInputs.position));
+    return turretBasePose.toPose2d().plus(new Transform2d(0, 0, turretInputs.relativePosition));
   }
 
   // @AutoLogOutput(key = "Turret/IsOnTarget")
