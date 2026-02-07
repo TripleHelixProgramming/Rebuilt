@@ -34,6 +34,9 @@ import frc.robot.subsystems.drive.GyroIOBoron;
 import frc.robot.subsystems.drive.ModuleIO;
 import frc.robot.subsystems.drive.ModuleIOSim;
 import frc.robot.subsystems.drive.ModuleIOTalonFX;
+import frc.robot.subsystems.feeder.Feeder;
+import frc.robot.subsystems.feeder.KickerIO;
+import frc.robot.subsystems.feeder.SpindexerIOSim;
 import frc.robot.subsystems.launcher.FlywheelIO;
 import frc.robot.subsystems.launcher.FlywheelIOSim;
 import frc.robot.subsystems.launcher.HoodIO;
@@ -71,6 +74,7 @@ public class Robot extends LoggedRobot {
   private Drive drive;
   private Vision vision;
   private Launcher launcher;
+  private Feeder feeder;
 
   public Robot() {
     // Record metadata
@@ -154,6 +158,8 @@ public class Robot extends LoggedRobot {
                 new TurretIOSim(),
                 new FlywheelIOSim(),
                 new HoodIOSim());
+
+        feeder = new Feeder(new SpindexerIOSim(), new KickerIO() {});
         break;
 
       case REPLAY: // Replaying a log
@@ -205,6 +211,8 @@ public class Robot extends LoggedRobot {
     launcher.setDefaultCommand(
         Commands.run(() -> launcher.aim(GameState.getMyHubPose().getTranslation()), launcher)
             .withName("Aim at hub"));
+
+    feeder.setDefaultCommand(Commands.run(feeder::spinForward, feeder).withName("Spin forward"));
   }
 
   /** This function is called periodically during all modes. */
@@ -224,7 +232,9 @@ public class Robot extends LoggedRobot {
     SmartDashboard.putData(drive);
     SmartDashboard.putData(vision);
     SmartDashboard.putData(launcher);
+    SmartDashboard.putData(feeder);
 
+    
     GameState.logValues();
 
     // Return to non-RT thread priority (do not modify the first argument)
