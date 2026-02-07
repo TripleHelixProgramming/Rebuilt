@@ -1,6 +1,7 @@
 package frc.robot.subsystems.intake;
 
 import static edu.wpi.first.units.Units.Meters;
+import static edu.wpi.first.units.Units.Volts;
 import static frc.robot.subsystems.drive.DriveConstants.kCANBus;
 import static frc.robot.subsystems.intake.IntakeConstants.IntakeRoller.*;
 import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.motorReduction;
@@ -15,13 +16,13 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.sim.ChassisReference;
-import com.ctre.phoenix6.sim.TalonFXSimState;
 import com.ctre.phoenix6.sim.TalonFXSimState.MotorType;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
+import frc.robot.Robot;
 
 public class IntakeRollerIOSim implements IntakeRollerIO {
 
@@ -29,7 +30,6 @@ public class IntakeRollerIOSim implements IntakeRollerIO {
 
   private final TalonFX intakeMotor;
   private final TalonFXConfiguration config;
-  private final TalonFXSimState intakeMotorSim;
 
   private final VoltageOut voltageRequest = new VoltageOut(0);
   private final VelocityTorqueCurrentFOC velocityTorqueCurrentRequest =
@@ -48,7 +48,7 @@ public class IntakeRollerIOSim implements IntakeRollerIO {
     config.Slot0 = intakeGains;
     tryUntilOk(5, () -> intakeMotor.getConfigurator().apply(config, 0.25));
 
-    intakeMotorSim = intakeMotor.getSimState();
+    var intakeMotorSim = intakeMotor.getSimState();
     intakeMotorSim.Orientation = ChassisReference.Clockwise_Positive;
     intakeMotorSim.setMotorType(MotorType.KrakenX60);
 
@@ -65,6 +65,13 @@ public class IntakeRollerIOSim implements IntakeRollerIO {
 
   @Override
   public void updateInputs(IntakeIOInputs inputs) {
+        // Update simulation state
+        var intakeMotorSim = intakeMotor.getSimState();
+    intakeRollerSim.setInput(intakeMotorSim.getMotorVoltageMeasure().in(Volts));
+    intakeRollerSim.update(Robot.defaultPeriodSecs);
+    intakeMotorSim.setRawRotorPosition(intakeRollerSim.getAngularPosition().times(motorReudction));
+   intakeMotorSim.setRotorVelocity(intakeRollerSim.getAngularVelocity().times(motorReudction));
+
     BaseStatusSignal.setUpdateFrequencyForAll(
             50.0, intakeVelocity, intakeAppliedVolts, intakeCurrent)
         .isOK();
