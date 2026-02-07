@@ -55,6 +55,7 @@ public final class LauncherConstants {
 
   public static final class FlywheelConstants {
     public static final Distance wheelRadius = Inches.of(1.5);
+    public static final double gearboxRatio = 1.0;
 
     // Velocity Controller
     public static final Slot0Configs flywheelGains =
@@ -68,7 +69,8 @@ public final class LauncherConstants {
             .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign);
 
     // Motor controller
-    public static final int port = 2;
+    public static final int leaderPort = 2;
+    public static final int followerPort = 3;
     public static final double motorReduction = 1.0;
     public static final AngularVelocity maxAngularVelocity =
         KrakenX60Constants.kFreeSpeed.div(motorReduction);
