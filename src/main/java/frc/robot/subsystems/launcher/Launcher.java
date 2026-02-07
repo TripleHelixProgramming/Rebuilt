@@ -17,7 +17,6 @@ import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.game.GameState;
 import frc.robot.Robot;
 import java.util.ArrayList;
 import java.util.function.Supplier;
@@ -309,7 +308,7 @@ public class Launcher extends SubsystemBase {
 
   private void updateBallisticsSim(ArrayList<BallisticObject> traj, String key) {
     double dt = Robot.defaultPeriodSecs;
-    double hubZ = GameState.getMyHubPose().getZ();
+    double hubZ = 0;
 
     traj.removeIf(
         o -> {

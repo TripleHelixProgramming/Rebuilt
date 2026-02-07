@@ -209,7 +209,8 @@ public class Robot extends LoggedRobot {
     Field.plotRegions();
 
     launcher.setDefaultCommand(
-        Commands.run(() -> launcher.aim(GameState.getMyHubPose().getTranslation()), launcher)
+        Commands.run(
+                () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()), launcher)
             .withName("Aim at hub"));
 
     feeder.setDefaultCommand(Commands.run(feeder::spinForward, feeder).withName("Spin forward"));
@@ -354,7 +355,7 @@ public class Robot extends LoggedRobot {
                 () -> -zorroDriver.getRightYAxis(),
                 () -> -zorroDriver.getRightXAxis(),
                 () ->
-                    GameState.getMyHubPose()
+                    GameState.getTarget(drive.getPose())
                         .toPose2d()
                         .getTranslation()
                         .minus(drive.getPose().getTranslation())
@@ -392,31 +393,44 @@ public class Robot extends LoggedRobot {
                     drive)
                 .ignoringDisable(true));
 
-    // Point at Hub while A button is held
-    xboxDriver
-        .a()
-        .whileTrue(
-            DriveCommands.joystickDriveAtFixedOrientation(
-                drive,
-                () -> -xboxDriver.getLeftY(),
-                () -> -xboxDriver.getLeftX(),
-                () ->
-                    GameState.getMyHubPose()
-                        .toPose2d()
-                        .getTranslation()
-                        .minus(drive.getPose().getTranslation())
-                        .getAngle(),
-                allianceSelector::fieldRotated));
+    // xboxDriver
+    //     .a()
+    //     .whileTrue(
+    //         Commands.run(() -> launcher.aim(GameState.getMyHubPose().getTranslation()), launcher)
+    //             .withName("Aim at hub"));
 
-    // Point in the direction of the commanded translation while Y button is held
-    xboxDriver
-        .y()
-        .whileTrue(
-            DriveCommands.joystickDrivePointedForward(
-                drive,
-                () -> -xboxDriver.getLeftY(),
-                () -> -xboxDriver.getLeftX(),
-                allianceSelector::fieldRotated));
+    // xboxDriver
+    //     .y()
+    //     .whileTrue(
+    //         Commands.run(() -> launcher.aim(GameState.getFieldTarget().getTranslation()),
+    // launcher)
+    //             .withName("Aim at Target"));
+
+    // // Point at Hub while A button is held
+    // xboxDriver
+    //     .a()
+    //     .whileTrue(
+    //         DriveCommands.joystickDriveAtFixedOrientation(
+    //             drive,
+    //             () -> -xboxDriver.getLeftY(),
+    //             () -> -xboxDriver.getLeftX(),
+    //             () ->
+    //                 GameState.getMyHubPose()
+    //                     .toPose2d()
+    //                     .getTranslation()
+    //                     .minus(drive.getPose().getTranslation())
+    //                     .getAngle(),
+    //             allianceSelector::fieldRotated));
+
+    // // Point in the direction of the commanded translation while Y button is held
+    // xboxDriver
+    //     .y()
+    //     .whileTrue(
+    //         DriveCommands.joystickDrivePointedForward(
+    //             drive,
+    //             () -> -xboxDriver.getLeftY(),
+    //             () -> -xboxDriver.getLeftX(),
+    //             allianceSelector::fieldRotated));
 
     // Point at vision target while A button is held
     // xboxDriver
