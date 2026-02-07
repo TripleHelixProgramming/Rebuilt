@@ -35,7 +35,7 @@ import frc.robot.subsystems.drive.ModuleIO;
 import frc.robot.subsystems.drive.ModuleIOSim;
 import frc.robot.subsystems.drive.ModuleIOTalonFX;
 import frc.robot.subsystems.feeder.Feeder;
-import frc.robot.subsystems.feeder.KickerIO;
+import frc.robot.subsystems.feeder.KickerIOSim;
 import frc.robot.subsystems.feeder.SpindexerIOSim;
 import frc.robot.subsystems.launcher.FlywheelIO;
 import frc.robot.subsystems.launcher.FlywheelIOSim;
@@ -159,7 +159,7 @@ public class Robot extends LoggedRobot {
                 new FlywheelIOSim(),
                 new HoodIOSim());
 
-        feeder = new Feeder(new SpindexerIOSim(), new KickerIO() {});
+        feeder = new Feeder(new SpindexerIOSim(), new KickerIOSim());
         break;
 
       case REPLAY: // Replaying a log

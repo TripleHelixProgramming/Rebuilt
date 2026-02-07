@@ -32,4 +32,26 @@ public final class FeederConstants {
     public static final double kPSim = 0.05;
     public static final DCMotor gearbox = DCMotor.getNeoVortex(1);
   }
+
+  public static final class KIckerConstants {
+    // Geometry
+    public static final Distance radius = Inches.of(1.5);
+
+    // Motor
+    public static final int port = 51;
+    public static final double motorReduction = 1.0;
+    public static final LinearVelocity maxTangentialVelocity =
+        MetersPerSecond.of(
+            NEOVortexConstants.kFreeSpeed.in(RadiansPerSecond)
+                * radius.in(Meters)
+                / motorReduction);
+
+    // Encoder
+    public static final double encoderPositionFactor = 2.0 * Math.PI / motorReduction; // Meters
+    public static final double encoderVelocityFactor = encoderPositionFactor / 60.0; // Meters/sec
+
+    // Simulation
+    public static final double kPSim = 0.05;
+    public static final DCMotor gearbox = DCMotor.getNeoVortex(1);
+  }
 }
