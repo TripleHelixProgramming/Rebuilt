@@ -4,7 +4,6 @@ import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.*;
 
 import com.revrobotics.PersistMode;
-import com.revrobotics.RelativeEncoder;
 import com.revrobotics.ResetMode;
 import com.revrobotics.sim.SparkMaxSim;
 import com.revrobotics.spark.FeedbackSensor;
@@ -17,8 +16,6 @@ import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
-import edu.wpi.first.wpilibj.DigitalInput;
-import edu.wpi.first.wpilibj.DutyCycleEncoder;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
 import frc.robot.Constants.RobotConstants;
@@ -29,29 +26,16 @@ public class TurretIOSim implements TurretIO {
   private final DCMotorSim turnSim;
 
   private final SparkMax turnSpark;
-  private final RelativeEncoder turnSparkEncoder;
+  private final SparkMaxSim turnSparkSim;
   private final PIDController controller;
-  private final DutyCycleEncoder absoluteEncoder;
+
   private boolean closedLoop = false;
-  private PIDController positionController = new PIDController(kPSim, 0.0, kDSim);
   private double appliedVolts = 0.0;
   private double feedforwardVolts = 0.0;
-  private boolean seeded = false;
-  private final SparkMaxSim turnSparkSim;
 
   public TurretIOSim() {
-
-    // Enable wrapping for turn PID
-    // positionController.enableContinuousInput(-Math.PI, Math.PI);
-
     turnSpark = new SparkMax(port, MotorType.kBrushless);
-    turnSparkEncoder = turnSpark.getEncoder();
-    controller = new PIDController(kPReal, 0.0, 0.0);
-    absoluteEncoder =
-        new DutyCycleEncoder(
-            new DigitalInput(absEncoderPort),
-            2 * Math.PI,
-            absEncoderOffset.getRadians() + mechanismOffset.getRadians());
+    controller = new PIDController(kPSim, 0.0, 0.0);
 
     var turnConfig = new SparkMaxConfig();
 
@@ -73,8 +57,6 @@ public class TurretIOSim implements TurretIO {
     turnSpark.configure(turnConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     turnSparkSim = new SparkMaxSim(turnSpark, gearbox);
 
-    turnSparkSim.setPosition(-mechanismOffset.getRadians());
-
     turnSim =
         new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
   }
@@ -83,24 +65,30 @@ public class TurretIOSim implements TurretIO {
   public void updateInputs(TurretIOInputs inputs) {
     // Run closed-loop control
     if (closedLoop) {
-      appliedVolts =
-          positionController.calculate(turnSim.getAngularPositionRad()) + feedforwardVolts;
+      appliedVolts = controller.calculate(turnSim.getAngularPositionRad()) + feedforwardVolts;
     } else {
-      positionController.reset();
+      controller.reset();
     }
 
-    // Update simulation state
-    turnSim.setInputVoltage(
-        MathUtil.clamp(
-            appliedVolts, -RobotConstants.kNominalVoltage, RobotConstants.kNominalVoltage));
-    turnSim.update(Robot.defaultPeriodSecs);
+    // Update state
+    turnSparkSim.setAppliedOutput(appliedVolts / RobotConstants.kNominalVoltage);
 
-    // Update turn inputs
+    // Update simulation state
+    turnSim.setInput(turnSparkSim.getAppliedOutput() * RobotConstants.kNominalVoltage);
+    turnSim.update(Robot.defaultPeriodSecs);
+    turnSparkSim.iterate(
+        turnSim.getAngularVelocityRadPerSec(),
+        RobotConstants.kNominalVoltage,
+        Robot.defaultPeriodSecs);
+
+    // Update inputs
     inputs.motorControllerConnected = true;
-    inputs.relativePosition = new Rotation2d(turnSim.getAngularPositionRad()).plus(mechanismOffset);
-    inputs.velocityRadPerSec = turnSim.getAngularVelocityRadPerSec();
-    inputs.appliedVolts = appliedVolts;
-    inputs.currentAmps = Math.abs(turnSim.getCurrentDrawAmps());
+    inputs.relativePosition = new Rotation2d(turnSparkSim.getPosition()).plus(mechanismOffset);
+    inputs.velocityRadPerSec = turnSparkSim.getVelocity();
+    inputs.appliedVolts = turnSparkSim.getAppliedOutput() * turnSparkSim.getBusVoltage();
+    inputs.currentAmps = Math.abs(turnSparkSim.getMotorCurrent());
+
+    inputs.absoluteEncoderConnected = true;
   }
 
   @Override
@@ -119,6 +107,6 @@ public class TurretIOSim implements TurretIO {
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
-    positionController.setSetpoint(setpoint);
+    controller.setSetpoint(setpoint);
   }
 }

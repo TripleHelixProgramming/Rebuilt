@@ -3,7 +3,6 @@ package frc.robot.subsystems.launcher;
 import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.*;
 
-import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.PersistMode;
 import com.revrobotics.ResetMode;
 import com.revrobotics.sim.SparkMaxSim;
@@ -29,13 +28,11 @@ public class HoodIOSim implements HoodIO {
   private final DCMotorSim hoodSim;
 
   private final SparkMax max;
-  private final AbsoluteEncoder absEncoder;
   private final SparkClosedLoopController controller;
   private final SparkMaxSim maxSim;
 
   public HoodIOSim() {
     max = new SparkMax(port, MotorType.kBrushless);
-    absEncoder = max.getAbsoluteEncoder();
     controller = max.getClosedLoopController();
 
     var hoodConfig = new SparkMaxConfig();
@@ -58,7 +55,7 @@ public class HoodIOSim implements HoodIO {
         .feedbackSensor(FeedbackSensor.kAbsoluteEncoder)
         .positionWrappingEnabled(true)
         .positionWrappingInputRange(minInput, maxInput)
-        .pid(kPReal, 0.0, 0.0);
+        .pid(kPSim, 0.0, kDSim);
 
     hoodConfig
         .signals
