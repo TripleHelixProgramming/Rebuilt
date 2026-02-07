@@ -35,7 +35,9 @@ import frc.robot.subsystems.drive.ModuleIO;
 import frc.robot.subsystems.drive.ModuleIOSim;
 import frc.robot.subsystems.drive.ModuleIOTalonFX;
 import frc.robot.subsystems.feeder.Feeder;
+import frc.robot.subsystems.feeder.KickerIO;
 import frc.robot.subsystems.feeder.KickerIOSim;
+import frc.robot.subsystems.feeder.SpindexerIO;
 import frc.robot.subsystems.feeder.SpindexerIOSim;
 import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.intake.IntakeRollerIO;
@@ -45,6 +47,7 @@ import frc.robot.subsystems.launcher.FlywheelIO;
 import frc.robot.subsystems.launcher.FlywheelIOSim;
 import frc.robot.subsystems.launcher.HoodIO;
 import frc.robot.subsystems.launcher.HoodIOSim;
+import frc.robot.subsystems.launcher.HoodIOSimHardwareless;
 import frc.robot.subsystems.launcher.Launcher;
 import frc.robot.subsystems.launcher.TurretIO;
 import frc.robot.subsystems.launcher.TurretIOSim;
@@ -128,9 +131,10 @@ public class Robot extends LoggedRobot {
                 drive::getPose,
                 drive::getRobotRelativeChassisSpeeds,
                 new TurretIOSpark(),
-                new FlywheelIOSim() {},
-                new HoodIOSim());
+                new FlywheelIOSim(),
+                new HoodIOSimHardwareless());
         intake = new Intake(new IntakeRollerIOTalonFX());
+        feeder = new Feeder(new SpindexerIO() {}, new KickerIO() {});
         break;
 
       case SIM: // Running a physics simulator
@@ -200,6 +204,7 @@ public class Robot extends LoggedRobot {
                 new FlywheelIO() {},
                 new HoodIO() {});
         intake = new Intake(new IntakeRollerIO() {});
+        feeder = new Feeder(new SpindexerIO() {}, new KickerIO() {});
         break;
     }
 
@@ -216,7 +221,8 @@ public class Robot extends LoggedRobot {
     Field.plotRegions();
 
     launcher.setDefaultCommand(
-        Commands.run(() -> launcher.aim(GameState.getMyHubPose().getTranslation()), launcher)
+        Commands.run(
+                () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()), launcher)
             .withName("Aim at hub"));
 
     feeder.setDefaultCommand(Commands.run(feeder::spinForward, feeder).withName("Spin forward"));
@@ -364,7 +370,7 @@ public class Robot extends LoggedRobot {
                 () -> -zorroDriver.getRightYAxis(),
                 () -> -zorroDriver.getRightXAxis(),
                 () ->
-                    GameState.getMyHubPose()
+                    GameState.getTarget(drive.getPose())
                         .toPose2d()
                         .getTranslation()
                         .minus(drive.getPose().getTranslation())
@@ -402,31 +408,44 @@ public class Robot extends LoggedRobot {
                     drive)
                 .ignoringDisable(true));
 
-    // Point at Hub while A button is held
-    xboxDriver
-        .a()
-        .whileTrue(
-            DriveCommands.joystickDriveAtFixedOrientation(
-                drive,
-                () -> -xboxDriver.getLeftY(),
-                () -> -xboxDriver.getLeftX(),
-                () ->
-                    GameState.getMyHubPose()
-                        .toPose2d()
-                        .getTranslation()
-                        .minus(drive.getPose().getTranslation())
-                        .getAngle(),
-                allianceSelector::fieldRotated));
+    // xboxDriver
+    //     .a()
+    //     .whileTrue(
+    //         Commands.run(() -> launcher.aim(GameState.getMyHubPose().getTranslation()), launcher)
+    //             .withName("Aim at hub"));
 
-    // Point in the direction of the commanded translation while Y button is held
-    xboxDriver
-        .y()
-        .whileTrue(
-            DriveCommands.joystickDrivePointedForward(
-                drive,
-                () -> -xboxDriver.getLeftY(),
-                () -> -xboxDriver.getLeftX(),
-                allianceSelector::fieldRotated));
+    // xboxDriver
+    //     .y()
+    //     .whileTrue(
+    //         Commands.run(() -> launcher.aim(GameState.getFieldTarget().getTranslation()),
+    // launcher)
+    //             .withName("Aim at Target"));
+
+    // // Point at Hub while A button is held
+    // xboxDriver
+    //     .a()
+    //     .whileTrue(
+    //         DriveCommands.joystickDriveAtFixedOrientation(
+    //             drive,
+    //             () -> -xboxDriver.getLeftY(),
+    //             () -> -xboxDriver.getLeftX(),
+    //             () ->
+    //                 GameState.getMyHubPose()
+    //                     .toPose2d()
+    //                     .getTranslation()
+    //                     .minus(drive.getPose().getTranslation())
+    //                     .getAngle(),
+    //             allianceSelector::fieldRotated));
+
+    // // Point in the direction of the commanded translation while Y button is held
+    // xboxDriver
+    //     .y()
+    //     .whileTrue(
+    //         DriveCommands.joystickDrivePointedForward(
+    //             drive,
+    //             () -> -xboxDriver.getLeftY(),
+    //             () -> -xboxDriver.getLeftX(),
+    //             allianceSelector::fieldRotated));
 
     // Point at vision target while A button is held
     // xboxDriver

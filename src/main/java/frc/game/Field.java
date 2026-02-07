@@ -8,6 +8,7 @@ import edu.wpi.first.math.geometry.Rectangle2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.units.measure.Distance;
 import frc.robot.Robot;
 import java.util.List;
@@ -48,11 +49,35 @@ public class Field {
           hub_z_len,
           Rotation3d.kZero);
 
+  public static final Pose3d redRightTarget =
+      new Pose3d(
+          new Translation3d(Inches.of(651.2), Inches.of(49.86), Inches.of(0)), Rotation3d.kZero);
+
+  public static final Pose3d blueLeftTarget =
+      new Pose3d(
+          new Translation3d(Inches.of(0), Inches.of(200.86), Inches.of(0)), Rotation3d.kZero);
+
+  public static final Pose3d redLeftTarget =
+      new Pose3d(
+          new Translation3d(Inches.of(651.2), Inches.of(200.86), Inches.of(0)), Rotation3d.kZero);
+
+  public static final Pose3d blueRightTarget =
+      new Pose3d(new Translation3d(Inches.of(0), Inches.of(49.86), Inches.of(0)), Rotation3d.kZero);
+
   enum Region {
     BlueZone(
         new Rectangle2d(
             new Translation2d(0, 0), new Translation2d(allianceZone_x_len, field_y_len))),
-    NeutralZone(new Rectangle2d(fieldCenter, neutralZone_x_len, field_y_len)),
+    RightNeutralZone(
+        new Rectangle2d(
+            new Translation2d(centerField_x_pos.minus(neutralZone_x_len.div(2.0)), Inches.of(0)),
+            new Translation2d(
+                centerField_x_pos.plus(neutralZone_x_len.div(2.0)), centerField_y_pos))),
+    LeftNeutralZone(
+        new Rectangle2d(
+            new Translation2d(
+                centerField_x_pos.minus(neutralZone_x_len.div(2.0)), centerField_y_pos),
+            new Translation2d(centerField_x_pos.plus(neutralZone_x_len.div(2.0)), field_y_len))),
     RedZone(
         new Rectangle2d(
             new Translation2d(field_x_len.minus(allianceZone_x_len), Inches.of(0)),
@@ -134,6 +159,7 @@ public class Field {
                 field_y_len.minus(tower_y_centerPos).minus(tower_y_len.div(2))),
             new Translation2d(
                 field_x_len, field_y_len.minus(tower_y_centerPos).plus(tower_y_len.div(2))))),
+
     FuelArrangement(new Rectangle2d(fieldCenter, fuel_x_len, fuel_y_len)),
     Field(new Rectangle2d(new Translation2d(0, 0), new Translation2d(field_x_len, field_y_len)));
 
@@ -159,7 +185,10 @@ public class Field {
     if (Region.RedZone.contains(pose)) {
       return Region.RedZone;
     }
-    return Region.NeutralZone;
+    if (Region.LeftNeutralZone.contains(pose)) {
+      return Region.LeftNeutralZone;
+    }
+    return Region.RightNeutralZone;
   }
 
   public static void plotRegions() {
