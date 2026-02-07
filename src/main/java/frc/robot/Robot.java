@@ -234,7 +234,6 @@ public class Robot extends LoggedRobot {
     SmartDashboard.putData(launcher);
     SmartDashboard.putData(feeder);
 
-    
     GameState.logValues();
 
     // Return to non-RT thread priority (do not modify the first argument)
