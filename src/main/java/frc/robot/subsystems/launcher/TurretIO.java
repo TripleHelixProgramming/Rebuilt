@@ -7,8 +7,8 @@ import org.littletonrobotics.junction.AutoLog;
 public interface TurretIO {
   @AutoLog
   public static class TurretIOInputs {
-    public boolean connected = false;
-    public Rotation2d position = Rotation2d.kZero;
+    public boolean motorControllerConnected = false;
+    public Rotation2d relativePosition = Rotation2d.kZero;
     public double velocityRadPerSec = 0.0;
     public double appliedVolts = 0.0;
     public double currentAmps = 0.0;

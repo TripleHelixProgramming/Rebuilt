@@ -30,7 +30,8 @@ public final class LauncherConstants {
     // Geometry
     public static final Transform3d chassisToTurretBase =
         new Transform3d(Inches.of(0), Inches.of(10), Inches.of(22), Rotation3d.kZero);
-    public static final Rotation2d rotationOffset = new Rotation2d(0.44);
+    public static final Rotation2d absEncoderOffset = new Rotation2d(0.5);
+    public static final Rotation2d mechanismOffset = Rotation2d.kCCW_Pi_2;
 
     // Absolute encoder
     public static final double encoderPositionFactor = (2 * Math.PI) / 5.0; // Radians
