@@ -45,8 +45,8 @@ public class TurretIOSim implements TurretIO {
     turnSim.update(Robot.defaultPeriodSecs);
 
     // Update turn inputs
-    inputs.connected = true;
-    inputs.position = new Rotation2d(turnSim.getAngularPositionRad());
+    inputs.motorControllerConnected = true;
+    inputs.relativePosition = new Rotation2d(turnSim.getAngularPositionRad());
     inputs.velocityRadPerSec = turnSim.getAngularVelocityRadPerSec();
     inputs.appliedVolts = appliedVolts;
     inputs.currentAmps = Math.abs(turnSim.getCurrentDrawAmps());
