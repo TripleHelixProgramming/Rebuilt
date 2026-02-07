@@ -44,7 +44,7 @@ public class TurretIOSpark implements TurretIO {
     controller = new PIDController(kPReal, 0.0, 0.0);
     absoluteEncoder =
         new DutyCycleEncoder(
-            new DigitalInput(DIOPort),
+            new DigitalInput(absEncoderPort),
             2 * Math.PI,
             absEncoderOffset.getRadians() + mechanismOffset.getRadians());
 
