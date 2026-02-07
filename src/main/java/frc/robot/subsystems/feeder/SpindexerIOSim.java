@@ -1,6 +1,7 @@
 package frc.robot.subsystems.feeder;
 
-import static edu.wpi.first.units.Units.RadiansPerSecond;
+import static edu.wpi.first.units.Units.Meters;
+import static edu.wpi.first.units.Units.MetersPerSecond;
 import static frc.robot.subsystems.feeder.FeederConstants.SpindexerConstants.*;
 
 import com.revrobotics.PersistMode;
@@ -15,7 +16,7 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkFlexConfig;
 import edu.wpi.first.math.system.plant.LinearSystemId;
-import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants.MotorConstants.NEOVortexConstants;
 import frc.robot.Constants.RobotConstants;
@@ -66,7 +67,7 @@ public class SpindexerIOSim implements SpindexerIO {
 
     // Update inputs
     inputs.connected = true;
-    inputs.velocityRadPerSec = flexSim.getVelocity();
+    inputs.velocityMetersPerSec = flexSim.getVelocity() * radius.in(Meters);
     inputs.appliedVolts = flexSim.getAppliedOutput() * flexSim.getBusVoltage();
     inputs.currentAmps = Math.abs(flexSim.getMotorCurrent());
   }
@@ -77,13 +78,13 @@ public class SpindexerIOSim implements SpindexerIO {
   }
 
   @Override
-  public void setVelocity(AngularVelocity angularVelocity) {
+  public void setVelocity(LinearVelocity tangentialVelocity) {
     double feedforwardVolts =
         RobotConstants.kNominalVoltage
-            * angularVelocity.in(RadiansPerSecond)
-            / maxAngularVelocity.in(RadiansPerSecond);
+            * tangentialVelocity.in(MetersPerSecond)
+            / maxTangentialVelocity.in(MetersPerSecond);
     controller.setSetpoint(
-        angularVelocity.in(RadiansPerSecond),
+        tangentialVelocity.in(MetersPerSecond) / radius.in(Meters),
         ControlType.kVelocity,
         ClosedLoopSlot.kSlot0,
         feedforwardVolts);

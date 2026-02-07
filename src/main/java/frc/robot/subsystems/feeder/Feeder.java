@@ -1,6 +1,6 @@
 package frc.robot.subsystems.feeder;
 
-import static edu.wpi.first.units.Units.RotationsPerSecond;
+import static edu.wpi.first.units.Units.MetersPerSecond;
 
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
@@ -43,7 +43,7 @@ public class Feeder extends SubsystemBase {
   }
 
   public void spinForward() {
-    spindexerIO.setVelocity(RotationsPerSecond.of(1));
-    kickerIO.setVelocity(RotationsPerSecond.of(1));
+    spindexerIO.setVelocity(MetersPerSecond.of(1.0));
+    kickerIO.setVelocity(MetersPerSecond.of(1.0));
   }
 }
