@@ -39,6 +39,10 @@ import frc.robot.subsystems.feeder.KickerIO;
 import frc.robot.subsystems.feeder.KickerIOSim;
 import frc.robot.subsystems.feeder.SpindexerIO;
 import frc.robot.subsystems.feeder.SpindexerIOSim;
+import frc.robot.subsystems.intake.Intake;
+import frc.robot.subsystems.intake.IntakeRollerIO;
+import frc.robot.subsystems.intake.IntakeRollerIOSim;
+import frc.robot.subsystems.intake.IntakeRollerIOTalonFX;
 import frc.robot.subsystems.launcher.FlywheelIO;
 import frc.robot.subsystems.launcher.FlywheelIOSim;
 import frc.robot.subsystems.launcher.HoodIO;
@@ -78,6 +82,7 @@ public class Robot extends LoggedRobot {
   private Vision vision;
   private Launcher launcher;
   private Feeder feeder;
+  private Intake intake;
 
   public Robot() {
     // Record metadata
@@ -128,6 +133,7 @@ public class Robot extends LoggedRobot {
                 new TurretIOSpark(),
                 new FlywheelIOSim(),
                 new HoodIOSimHardwareless());
+        intake = new Intake(new IntakeRollerIOTalonFX());
         feeder = new Feeder(new SpindexerIO() {}, new KickerIO() {});
         break;
 
@@ -163,6 +169,7 @@ public class Robot extends LoggedRobot {
                 new FlywheelIOSim(),
                 new HoodIOSim());
         feeder = new Feeder(new SpindexerIOSim(), new KickerIOSim());
+        intake = new Intake(new IntakeRollerIOSim());
         break;
 
       case REPLAY: // Replaying a log
@@ -196,6 +203,7 @@ public class Robot extends LoggedRobot {
                 new TurretIO() {},
                 new FlywheelIO() {},
                 new HoodIO() {});
+        intake = new Intake(new IntakeRollerIO() {});
         feeder = new Feeder(new SpindexerIO() {}, new KickerIO() {});
         break;
     }
@@ -218,6 +226,8 @@ public class Robot extends LoggedRobot {
             .withName("Aim at hub"));
 
     feeder.setDefaultCommand(Commands.run(feeder::spinForward, feeder).withName("Spin forward"));
+
+    intake.setDefaultCommand(Commands.run(intake::intake, intake).withName("Intake Command"));
   }
 
   /** This function is called periodically during all modes. */
@@ -238,6 +248,7 @@ public class Robot extends LoggedRobot {
     SmartDashboard.putData(vision);
     SmartDashboard.putData(launcher);
     SmartDashboard.putData(feeder);
+    SmartDashboard.putData(intake);
 
     GameState.logValues();
 
