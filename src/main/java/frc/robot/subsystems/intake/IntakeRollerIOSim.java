@@ -21,6 +21,7 @@ import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Voltage;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Robot;
 
@@ -67,14 +68,14 @@ public class IntakeRollerIOSim implements IntakeRollerIO {
   public void updateInputs(IntakeRollerIOInputs inputs) {
     // Update simulation state
     var intakeMotorSim = intakeMotor.getSimState();
+    intakeMotorSim.setSupplyVoltage(RobotController.getBatteryVoltage());
     intakeRollerSim.setInput(intakeMotorSim.getMotorVoltageMeasure().in(Volts));
     intakeRollerSim.update(Robot.defaultPeriodSecs);
-    intakeMotorSim.setRawRotorPosition(intakeRollerSim.getAngularPosition().times(motorReudction));
-    intakeMotorSim.setRotorVelocity(intakeRollerSim.getAngularVelocity().times(motorReudction));
+    intakeMotorSim.setRawRotorPosition(
+        intakeRollerSim.getAngularPositionRotations() * motorReudction);
+    intakeMotorSim.setRotorVelocity(intakeRollerSim.getAngularVelocityRPM() * motorReudction);
 
-    BaseStatusSignal.setUpdateFrequencyForAll(
-            50.0, intakeVelocity, intakeAppliedVolts, intakeCurrent)
-        .isOK();
+    BaseStatusSignal.refreshAll(intakeVelocity, intakeAppliedVolts, intakeCurrent).isOK();
 
     inputs.appliedVolts = intakeAppliedVolts.getValueAsDouble();
     inputs.connected = intakeMotor.isConnected();
@@ -85,10 +86,12 @@ public class IntakeRollerIOSim implements IntakeRollerIO {
 
   @Override
   public void setOpenLoop(double output) {
-    intakeMotor.setControl(voltageRequest.withOutput(output));
+    // intakeMotor.setControl(voltageRequest.withOutput(output));
+    intakeRollerSim.setInputVoltage(output);
   }
 
   public void setVelocity(AngularVelocity angularVelocity) {
-    intakeMotor.setControl(velocityTorqueCurrentRequest.withVelocity(angularVelocity));
+    // intakeMotor.setControl(velocityTorqueCurrentRequest.withVelocity(angularVelocity));
+    intakeRollerSim.setState(0.0, angularVelocity.baseUnitMagnitude());
   }
 }
