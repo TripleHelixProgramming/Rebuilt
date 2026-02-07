@@ -128,7 +128,7 @@ public class GameState {
       if (Region.RedZone.contains(robotPose)) {
         return Field.redHubCenter;
       }
-      if (Region.LeftNeutralZone.contains(robotPose)) {
+      if (robotPose.getMeasureY().gt(Field.centerField_y_pos)) {
         return Field.redLeftTarget;
       }
       return Field.redRightTarget;
@@ -136,7 +136,7 @@ public class GameState {
     if (Region.BlueZone.contains(robotPose)) {
       return Field.blueHubCenter;
     }
-    if (Region.LeftNeutralZone.contains(robotPose)) {
+    if (robotPose.getMeasureY().gt(Field.centerField_y_pos)) {
       return Field.blueLeftTarget;
     }
     return Field.blueRightTarget;
