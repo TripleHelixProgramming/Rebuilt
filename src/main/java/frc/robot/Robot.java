@@ -242,6 +242,7 @@ public class Robot extends LoggedRobot {
     SmartDashboard.putData(vision);
     SmartDashboard.putData(launcher);
     SmartDashboard.putData(feeder);
+    SmartDashboard.putData(intake);
 
     GameState.logValues();
 
