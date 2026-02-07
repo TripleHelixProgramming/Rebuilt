@@ -1,11 +1,10 @@
 package frc.robot.subsystems.intake;
 
+import edu.wpi.first.units.measure.AngularVelocity;
 import org.littletonrobotics.junction.AutoLog;
 
-import edu.wpi.first.units.measure.AngularVelocity;
-
 public interface IntakeIO {
-    @AutoLog
+  @AutoLog
   public static class IntakeIOInputs {
     public boolean connected = false;
     public double velocityRadPerSec = 0.0;

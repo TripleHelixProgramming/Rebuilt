@@ -1,11 +1,10 @@
 package frc.robot.subsystems.feeder;
 
+import edu.wpi.first.units.measure.AngularVelocity;
 import org.littletonrobotics.junction.AutoLog;
 
-import edu.wpi.first.units.measure.AngularVelocity;
-
 public interface SpindexerIO {
-    @AutoLog
+  @AutoLog
   public static class SpindexerIOInputs {
     public boolean connected = false;
     public double velocityRadPerSec = 0.0;
