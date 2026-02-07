@@ -1,6 +1,8 @@
 package frc.robot.subsystems.intake;
 
 import static edu.wpi.first.units.Units.Meters;
+import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static frc.robot.subsystems.drive.DriveConstants.kCANBus;
 import static frc.robot.subsystems.intake.IntakeConstants.IntakeRoller.*;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
@@ -15,6 +17,7 @@ import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
+import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
 
 public class IntakeRollerIOTalonFX implements IntakeRollerIO {
@@ -64,7 +67,10 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
     intakeMotor.setControl(voltageRequest.withOutput(output));
   }
 
-  public void setVelocity(AngularVelocity angularVelocity) {
+  @Override
+  public void setVelocity(LinearVelocity tangentialVelocity) {
+    var angularVelocity =
+        RadiansPerSecond.of(tangentialVelocity.in(MetersPerSecond) / rollerRadius.in(Meters));
     intakeMotor.setControl(velocityTorqueCurrentRequest.withVelocity(angularVelocity));
   }
 }

@@ -1,6 +1,7 @@
 package frc.robot.subsystems.intake;
 
 import static edu.wpi.first.units.Units.Meters;
+import static edu.wpi.first.units.Units.MetersPerSecond;
 import static edu.wpi.first.units.Units.Volts;
 import static frc.robot.subsystems.drive.DriveConstants.kCANBus;
 import static frc.robot.subsystems.intake.IntakeConstants.IntakeRoller.*;
@@ -20,6 +21,7 @@ import com.ctre.phoenix6.sim.TalonFXSimState.MotorType;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
+import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
@@ -90,8 +92,9 @@ public class IntakeRollerIOSim implements IntakeRollerIO {
     intakeRollerSim.setInputVoltage(output);
   }
 
-  public void setVelocity(AngularVelocity angularVelocity) {
+  @Override
+  public void setVelocity(LinearVelocity tangentialVelocity) {
     // intakeMotor.setControl(velocityTorqueCurrentRequest.withVelocity(angularVelocity));
-    intakeRollerSim.setState(0.0, angularVelocity.baseUnitMagnitude());
+    intakeRollerSim.setState(0.0, tangentialVelocity.in(MetersPerSecond));
   }
 }
