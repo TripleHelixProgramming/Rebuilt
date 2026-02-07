@@ -47,7 +47,7 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
   }
 
   @Override
-  public void updateInputs(IntakeIOInputs inputs) {
+  public void updateInputs(IntakeRollerIOInputs inputs) {
     BaseStatusSignal.setUpdateFrequencyForAll(
             50.0, intakeVelocity, intakeAppliedVolts, intakeCurrent)
         .isOK();

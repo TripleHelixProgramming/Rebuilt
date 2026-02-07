@@ -64,13 +64,13 @@ public class IntakeRollerIOSim implements IntakeRollerIO {
   }
 
   @Override
-  public void updateInputs(IntakeIOInputs inputs) {
-        // Update simulation state
-        var intakeMotorSim = intakeMotor.getSimState();
+  public void updateInputs(IntakeRollerIOInputs inputs) {
+    // Update simulation state
+    var intakeMotorSim = intakeMotor.getSimState();
     intakeRollerSim.setInput(intakeMotorSim.getMotorVoltageMeasure().in(Volts));
     intakeRollerSim.update(Robot.defaultPeriodSecs);
     intakeMotorSim.setRawRotorPosition(intakeRollerSim.getAngularPosition().times(motorReudction));
-   intakeMotorSim.setRotorVelocity(intakeRollerSim.getAngularVelocity().times(motorReudction));
+    intakeMotorSim.setRotorVelocity(intakeRollerSim.getAngularVelocity().times(motorReudction));
 
     BaseStatusSignal.setUpdateFrequencyForAll(
             50.0, intakeVelocity, intakeAppliedVolts, intakeCurrent)

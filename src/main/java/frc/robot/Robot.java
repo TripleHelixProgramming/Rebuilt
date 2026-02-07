@@ -37,6 +37,10 @@ import frc.robot.subsystems.drive.ModuleIOTalonFX;
 import frc.robot.subsystems.feeder.Feeder;
 import frc.robot.subsystems.feeder.KickerIOSim;
 import frc.robot.subsystems.feeder.SpindexerIOSim;
+import frc.robot.subsystems.intake.Intake;
+import frc.robot.subsystems.intake.IntakeRollerIO;
+import frc.robot.subsystems.intake.IntakeRollerIOSim;
+import frc.robot.subsystems.intake.IntakeRollerIOTalonFX;
 import frc.robot.subsystems.launcher.FlywheelIO;
 import frc.robot.subsystems.launcher.FlywheelIOSim;
 import frc.robot.subsystems.launcher.HoodIO;
@@ -75,6 +79,7 @@ public class Robot extends LoggedRobot {
   private Vision vision;
   private Launcher launcher;
   private Feeder feeder;
+  private Intake intake;
 
   public Robot() {
     // Record metadata
@@ -125,6 +130,7 @@ public class Robot extends LoggedRobot {
                 new TurretIOSpark(),
                 new FlywheelIOSim() {},
                 new HoodIOSim());
+        intake = new Intake(new IntakeRollerIOTalonFX());
         break;
 
       case SIM: // Running a physics simulator
@@ -158,8 +164,8 @@ public class Robot extends LoggedRobot {
                 new TurretIOSim(),
                 new FlywheelIOSim(),
                 new HoodIOSim());
-
         feeder = new Feeder(new SpindexerIOSim(), new KickerIOSim());
+        intake = new Intake(new IntakeRollerIOSim());
         break;
 
       case REPLAY: // Replaying a log
@@ -193,6 +199,7 @@ public class Robot extends LoggedRobot {
                 new TurretIO() {},
                 new FlywheelIO() {},
                 new HoodIO() {});
+        intake = new Intake(new IntakeRollerIO() {});
         break;
     }
 
