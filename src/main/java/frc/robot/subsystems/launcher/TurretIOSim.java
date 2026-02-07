@@ -35,7 +35,7 @@ public class TurretIOSim implements TurretIO {
 
   public TurretIOSim() {
     turnSpark = new SparkMax(port, MotorType.kBrushless);
-    controller = new PIDController(kPSim, 0.0, 0.0);
+    controller = new PIDController(kPSim, 0.0, kDSim);
 
     var turnConfig = new SparkMaxConfig();
 
