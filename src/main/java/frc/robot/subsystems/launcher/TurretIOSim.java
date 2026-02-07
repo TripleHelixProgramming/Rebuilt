@@ -25,7 +25,9 @@ public class TurretIOSim implements TurretIO {
         new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
 
     // Enable wrapping for turn PID
-    positionController.enableContinuousInput(-Math.PI, Math.PI);
+    // positionController.enableContinuousInput(-Math.PI, Math.PI);
+
+    turnSim.setAngle(-mechanismOffset.getRadians());
   }
 
   @Override
@@ -46,7 +48,7 @@ public class TurretIOSim implements TurretIO {
 
     // Update turn inputs
     inputs.motorControllerConnected = true;
-    inputs.relativePosition = new Rotation2d(turnSim.getAngularPositionRad());
+    inputs.relativePosition = new Rotation2d(turnSim.getAngularPositionRad()).plus(mechanismOffset);
     inputs.velocityRadPerSec = turnSim.getAngularVelocityRadPerSec();
     inputs.appliedVolts = appliedVolts;
     inputs.currentAmps = Math.abs(turnSim.getCurrentDrawAmps());
@@ -61,10 +63,13 @@ public class TurretIOSim implements TurretIO {
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
     closedLoop = true;
+    double setpoint =
+        MathUtil.inputModulus(
+            rotation.getRadians() - mechanismOffset.getRadians(), 0.0, 2.0 * Math.PI);
     this.feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
-    positionController.setSetpoint(rotation.getRadians());
+    positionController.setSetpoint(setpoint);
   }
 }

@@ -120,7 +120,7 @@ public class TurretIOSpark implements TurretIO {
     closedLoop = true;
     double setpoint =
         MathUtil.inputModulus(
-            rotation.getRadians() - mechanismOffset.getRadians(), minInput, maxInput);
+            rotation.getRadians() - mechanismOffset.getRadians(), 0.0, 2 * Math.PI);
     this.feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
