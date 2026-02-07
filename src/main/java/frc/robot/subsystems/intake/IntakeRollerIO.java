@@ -3,7 +3,7 @@ package frc.robot.subsystems.intake;
 import edu.wpi.first.units.measure.LinearVelocity;
 import org.littletonrobotics.junction.AutoLog;
 
-public interface IntakeIO {
+public interface IntakeRollerIO {
   @AutoLog
   public static class IntakeIOInputs {
     public boolean connected = false;
