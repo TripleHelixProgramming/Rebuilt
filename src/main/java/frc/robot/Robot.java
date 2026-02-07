@@ -220,6 +220,8 @@ public class Robot extends LoggedRobot {
             .withName("Aim at hub"));
 
     feeder.setDefaultCommand(Commands.run(feeder::spinForward, feeder).withName("Spin forward"));
+
+    intake.setDefaultCommand(Commands.run(intake::intake, intake).withName("Intake Command"));
   }
 
   /** This function is called periodically during all modes. */
