@@ -14,15 +14,16 @@ import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkFlexConfig;
-import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants.MotorConstants.NEOVortexConstants;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
 
 public class SpindexerIOSim implements SpindexerIO {
 
-  private final DCMotor gearbox = DCMotor.getNeoVortex(1);
+  private final DCMotorSim spindexerSim;
 
   private final SparkFlex flex;
   private final SparkClosedLoopController controller;
@@ -48,12 +49,22 @@ public class SpindexerIOSim implements SpindexerIO {
 
     flex.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     flexSim = new SparkFlexSim(flex, gearbox);
+
+    spindexerSim =
+        new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
   }
 
   @Override
   public void updateInputs(SpindexerIOInputs inputs) {
-    flexSim.iterate(flexSim.getVelocity(), RobotConstants.kNominalVoltage, Robot.defaultPeriodSecs);
+    // Update simulation state
+    spindexerSim.setInput(flexSim.getAppliedOutput() * RobotConstants.kNominalVoltage);
+    spindexerSim.update(Robot.defaultPeriodSecs);
+    flexSim.iterate(
+        spindexerSim.getAngularVelocityRadPerSec(),
+        RobotConstants.kNominalVoltage,
+        Robot.defaultPeriodSecs);
 
+    // Update inputs
     inputs.connected = true;
     inputs.velocityRadPerSec = flexSim.getVelocity();
     inputs.appliedVolts = flexSim.getAppliedOutput() * flexSim.getBusVoltage();
