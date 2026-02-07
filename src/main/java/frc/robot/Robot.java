@@ -35,7 +35,9 @@ import frc.robot.subsystems.drive.ModuleIO;
 import frc.robot.subsystems.drive.ModuleIOSim;
 import frc.robot.subsystems.drive.ModuleIOTalonFX;
 import frc.robot.subsystems.feeder.Feeder;
+import frc.robot.subsystems.feeder.KickerIO;
 import frc.robot.subsystems.feeder.KickerIOSim;
+import frc.robot.subsystems.feeder.SpindexerIO;
 import frc.robot.subsystems.feeder.SpindexerIOSim;
 import frc.robot.subsystems.launcher.FlywheelIO;
 import frc.robot.subsystems.launcher.FlywheelIOSim;
@@ -124,8 +126,9 @@ public class Robot extends LoggedRobot {
                 drive::getPose,
                 drive::getRobotRelativeChassisSpeeds,
                 new TurretIOSpark(),
-                new FlywheelIOSim() {},
+                new FlywheelIOSim(),
                 new HoodIOSimHardwareless());
+        feeder = new Feeder(new SpindexerIO() {}, new KickerIO() {});
         break;
 
       case SIM: // Running a physics simulator
@@ -159,7 +162,6 @@ public class Robot extends LoggedRobot {
                 new TurretIOSim(),
                 new FlywheelIOSim(),
                 new HoodIOSim());
-
         feeder = new Feeder(new SpindexerIOSim(), new KickerIOSim());
         break;
 
@@ -194,6 +196,7 @@ public class Robot extends LoggedRobot {
                 new TurretIO() {},
                 new FlywheelIO() {},
                 new HoodIO() {});
+        feeder = new Feeder(new SpindexerIO() {}, new KickerIO() {});
         break;
     }
 
