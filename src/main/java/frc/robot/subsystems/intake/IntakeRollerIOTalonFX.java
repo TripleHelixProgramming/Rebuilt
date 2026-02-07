@@ -3,7 +3,6 @@ package frc.robot.subsystems.intake;
 import static edu.wpi.first.units.Units.Meters;
 import static frc.robot.subsystems.drive.DriveConstants.kCANBus;
 import static frc.robot.subsystems.intake.IntakeConstants.IntakeRoller.*;
-import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.motorReduction;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
 import com.ctre.phoenix6.BaseStatusSignal;
@@ -14,22 +13,13 @@ import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
-import com.ctre.phoenix6.sim.ChassisReference;
-import com.ctre.phoenix6.sim.TalonFXSimState;
-import com.ctre.phoenix6.sim.TalonFXSimState.MotorType;
-import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Voltage;
-import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 
-public class IntakeRollerIOSim implements IntakeRollerIO {
-
-  private final DCMotorSim intakeRollerSim;
-
+public class IntakeRollerIOTalonFX implements IntakeRollerIO {
   private final TalonFX intakeMotor;
   private final TalonFXConfiguration config;
-  private final TalonFXSimState intakeMotorSim;
 
   private final VoltageOut voltageRequest = new VoltageOut(0);
   private final VelocityTorqueCurrentFOC velocityTorqueCurrentRequest =
@@ -40,20 +30,13 @@ public class IntakeRollerIOSim implements IntakeRollerIO {
   private final StatusSignal<Voltage> intakeAppliedVolts;
   private final StatusSignal<Current> intakeCurrent;
 
-  public IntakeRollerIOSim() {
+  public IntakeRollerIOTalonFX() {
     intakeMotor = new TalonFX(port, kCANBus);
     config = new TalonFXConfiguration();
     config.MotorOutput.withInverted(InvertedValue.CounterClockwise_Positive)
         .withNeutralMode(NeutralModeValue.Brake);
     config.Slot0 = intakeGains;
     tryUntilOk(5, () -> intakeMotor.getConfigurator().apply(config, 0.25));
-
-    intakeMotorSim = intakeMotor.getSimState();
-    intakeMotorSim.Orientation = ChassisReference.Clockwise_Positive;
-    intakeMotorSim.setMotorType(MotorType.KrakenX60);
-
-    intakeRollerSim =
-        new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
 
     intakeVelocity = intakeMotor.getVelocity();
     intakeAppliedVolts = intakeMotor.getMotorVoltage();
