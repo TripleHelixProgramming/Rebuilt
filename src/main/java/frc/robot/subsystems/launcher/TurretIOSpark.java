@@ -1,5 +1,6 @@
 package frc.robot.subsystems.launcher;
 
+import static edu.wpi.first.units.Units.Radians;
 import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.*;
 import static frc.robot.util.SparkUtil.*;
@@ -62,6 +63,13 @@ public class TurretIOSpark implements TurretIO {
         .encoder
         .positionConversionFactor(encoderPositionFactor)
         .velocityConversionFactor(encoderVelocityFactor);
+
+    turnConfig
+        .softLimit
+        .forwardSoftLimit(Math.PI + rangeOfMotion.div(2).in(Radians))
+        .forwardSoftLimitEnabled(true)
+        .reverseSoftLimit(Math.PI - rangeOfMotion.div(2).in(Radians))
+        .reverseSoftLimitEnabled(true);
 
     turnConfig.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kPReal, 0.0, 0.0);
 

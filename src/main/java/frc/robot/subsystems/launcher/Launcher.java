@@ -13,6 +13,7 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
@@ -162,19 +163,22 @@ public class Launcher extends SubsystemBase {
           new BallisticObject(
               new Translation3d(
                   turretBasePose.getX(), turretBasePose.getY(), turretBasePose.getZ()),
-              new Translation3d(v0_nominal.getX(), v0_nominal.getY(), v0_nominal.getZ())));
+              new Translation3d(v0_nominal.getX(), v0_nominal.getY(), v0_nominal.getZ()),
+              target.getMeasureZ()));
 
       fuelReplanned.add(
           new BallisticObject(
               new Translation3d(
                   turretBasePose.getX(), turretBasePose.getY(), turretBasePose.getZ()),
-              new Translation3d(v0_total.getX(), v0_total.getY(), v0_total.getZ())));
+              new Translation3d(v0_total.getX(), v0_total.getY(), v0_total.getZ()),
+              target.getMeasureZ()));
 
       fuelActual.add(
           new BallisticObject(
               new Translation3d(
                   turretBasePose.getX(), turretBasePose.getY(), turretBasePose.getZ()),
-              new Translation3d(v0_actual.getX(), v0_actual.getY(), v0_actual.getZ())));
+              new Translation3d(v0_actual.getX(), v0_actual.getY(), v0_actual.getZ()),
+              target.getMeasureZ()));
     }
   }
 
@@ -299,16 +303,17 @@ public class Launcher extends SubsystemBase {
   private static class BallisticObject {
     Translation3d position;
     Translation3d velocity;
+    Distance targetHeight;
 
-    BallisticObject(Translation3d position, Translation3d velocity) {
+    BallisticObject(Translation3d position, Translation3d velocity, Distance targetHeight) {
       this.position = position;
       this.velocity = velocity;
+      this.targetHeight = targetHeight;
     }
   }
 
   private void updateBallisticsSim(ArrayList<BallisticObject> traj, String key) {
     double dt = Robot.defaultPeriodSecs;
-    double hubZ = 0;
 
     traj.removeIf(
         o -> {
@@ -319,7 +324,7 @@ public class Launcher extends SubsystemBase {
           o.position = o.position.plus(o.velocity.times(dt));
 
           // Remove when below target height and falling
-          return o.position.getZ() < hubZ && o.velocity.getZ() < 0;
+          return o.position.getMeasureZ().lt(o.targetHeight) && o.velocity.getZ() < 0;
         });
 
     Logger.recordOutput("Launcher/" + key + "/FuelTrajectory", getBallTrajectory(traj));
