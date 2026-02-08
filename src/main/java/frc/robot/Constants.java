@@ -82,6 +82,8 @@ public final class Constants {
   public static final class CANBusPorts {
 
     public static final class CAN2 {
+      public static final CANBus bus = CANBus.roboRIO();
+
       // Drivetrain
       public static final int gyro = 0;
 
@@ -94,12 +96,15 @@ public final class Constants {
       // Feeder
       public static final int spindexer = 16;
       public static final int kicker = 17;
+
+      // Intake
+      public static final int intakeRoller = 22;
     }
 
     public static final class CANHD {
       // CAN bus that the devices are located on;
       // All swerve devices must share the same CAN bus
-      public static final CANBus kCANBus = new CANBus("canivore", "./logs/example.hoot");
+      public static final CANBus bus = new CANBus("canivore", "./logs/example.hoot");
 
       // Drivetrain
       public static final int backLeftDrive = 10;
@@ -116,9 +121,6 @@ public final class Constants {
       public static final int frontRightTurnAbsEncoder = 33;
       public static final int frontLeftTurnAbsEncoder = 43;
       public static final int backLeftTurnAbsEncoder = 45;
-
-      // Intake
-      public static final int intakeRoller = 22;
     }
   }
 }

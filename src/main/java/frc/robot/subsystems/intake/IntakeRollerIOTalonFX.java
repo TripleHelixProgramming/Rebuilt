@@ -18,7 +18,7 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
-import frc.robot.Constants.CANBusPorts.CANHD;
+import frc.robot.Constants.CANBusPorts.CAN2;
 
 public class IntakeRollerIOTalonFX implements IntakeRollerIO {
   private final TalonFX intakeMotor;
@@ -34,7 +34,7 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
   private final StatusSignal<Current> intakeCurrent;
 
   public IntakeRollerIOTalonFX() {
-    intakeMotor = new TalonFX(CANHD.intakeRoller, CANHD.kCANBus);
+    intakeMotor = new TalonFX(CAN2.intakeRoller, CAN2.bus);
     config = new TalonFXConfiguration();
     config.MotorOutput.withInverted(InvertedValue.CounterClockwise_Positive)
         .withNeutralMode(NeutralModeValue.Brake);

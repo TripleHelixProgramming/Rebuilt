@@ -185,7 +185,7 @@ public class DriveConstants {
   private static final Voltage kDriveFrictionVoltage = Volts.of(0.2);
 
   public static final SwerveDrivetrainConstants DrivetrainConstants =
-      new SwerveDrivetrainConstants().withCANBusName(CANHD.kCANBus.getName());
+      new SwerveDrivetrainConstants().withCANBusName(CANHD.bus.getName());
 
   private static final SwerveModuleConstantsFactory<
           TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>

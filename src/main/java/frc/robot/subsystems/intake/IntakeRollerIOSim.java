@@ -24,7 +24,7 @@ import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
-import frc.robot.Constants.CANBusPorts.CANHD;
+import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Robot;
 
 public class IntakeRollerIOSim implements IntakeRollerIO {
@@ -44,7 +44,7 @@ public class IntakeRollerIOSim implements IntakeRollerIO {
   private final StatusSignal<Current> intakeCurrent;
 
   public IntakeRollerIOSim() {
-    intakeMotor = new TalonFX(CANHD.intakeRoller, CANHD.kCANBus);
+    intakeMotor = new TalonFX(CAN2.intakeRoller, CAN2.bus);
     config = new TalonFXConfiguration();
     config.MotorOutput.withInverted(InvertedValue.CounterClockwise_Positive)
         .withNeutralMode(NeutralModeValue.Brake);

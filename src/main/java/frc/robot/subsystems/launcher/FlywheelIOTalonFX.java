@@ -19,7 +19,6 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.Constants.CANBusPorts.CAN2;
-import frc.robot.Constants.CANBusPorts.CANHD;
 
 public class FlywheelIOTalonFX implements FlywheelIO {
   private final TalonFX flywheelLeaderTalon;
@@ -43,8 +42,8 @@ public class FlywheelIOTalonFX implements FlywheelIO {
   private final StatusSignal<Current> flywheelCurrent;
 
   public FlywheelIOTalonFX() {
-    flywheelLeaderTalon = new TalonFX(CAN2.flywheelLeader, CANHD.kCANBus);
-    flywheelFollowerTalon = new TalonFX(CAN2.flywheelFollower, CANHD.kCANBus);
+    flywheelLeaderTalon = new TalonFX(CAN2.flywheelLeader, CAN2.bus);
+    flywheelFollowerTalon = new TalonFX(CAN2.flywheelFollower, CAN2.bus);
     // Configuration
     config = new TalonFXConfiguration();
     config.MotorOutput.withInverted(InvertedValue.CounterClockwise_Positive)
