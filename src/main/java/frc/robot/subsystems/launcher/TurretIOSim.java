@@ -7,13 +7,15 @@ import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.*;
 import com.revrobotics.PersistMode;
 import com.revrobotics.ResetMode;
 import com.revrobotics.sim.SparkMaxSim;
+import com.revrobotics.spark.ClosedLoopSlot;
 import com.revrobotics.spark.FeedbackSensor;
+import com.revrobotics.spark.SparkBase.ControlType;
+import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
@@ -28,16 +30,12 @@ public class TurretIOSim implements TurretIO {
   private final DCMotorSim turnSim;
 
   private final SparkMax turnSpark;
+  private final SparkClosedLoopController controller;
   private final SparkMaxSim turnSparkSim;
-  private final PIDController controller;
-
-  private boolean closedLoop = false;
-  private double appliedVolts = 0.0;
-  private double feedforwardVolts = 0.0;
 
   public TurretIOSim() {
     turnSpark = new SparkMax(CAN2.turret, MotorType.kBrushless);
-    controller = new PIDController(kPSim, 0.0, kDSim);
+    controller = turnSpark.getClosedLoopController();
 
     var turnConfig = new SparkMaxConfig();
 
@@ -59,7 +57,7 @@ public class TurretIOSim implements TurretIO {
         .reverseSoftLimit(Math.PI - rangeOfMotion.div(2).in(Radians))
         .reverseSoftLimitEnabled(true);
 
-    turnConfig.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kPReal, 0.0, 0.0);
+    turnConfig.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kPSim, 0.0, kDSim);
 
     turnConfig.signals.appliedOutputPeriodMs(20).busVoltagePeriodMs(20).outputCurrentPeriodMs(20);
 
@@ -68,20 +66,12 @@ public class TurretIOSim implements TurretIO {
 
     turnSim =
         new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
+
+    turnSim.setState(2.0 * Math.PI - mechanismOffset.getRadians(), 0);
   }
 
   @Override
   public void updateInputs(TurretIOInputs inputs) {
-    // Run closed-loop control
-    if (closedLoop) {
-      appliedVolts = controller.calculate(turnSim.getAngularPositionRad()) + feedforwardVolts;
-    } else {
-      controller.reset();
-    }
-
-    // Update state
-    turnSparkSim.setAppliedOutput(appliedVolts / RobotConstants.kNominalVoltage);
-
     // Update simulation state
     turnSim.setInput(turnSparkSim.getAppliedOutput() * RobotConstants.kNominalVoltage);
     turnSim.update(Robot.defaultPeriodSecs);
@@ -98,24 +88,29 @@ public class TurretIOSim implements TurretIO {
     inputs.currentAmps = Math.abs(turnSparkSim.getMotorCurrent());
 
     inputs.absoluteEncoderConnected = true;
+    inputs.absolutePosition = new Rotation2d(turnSparkSim.getPosition()).plus(mechanismOffset);
   }
 
   @Override
   public void setOpenLoop(double output) {
-    closedLoop = false;
-    appliedVolts = output;
+    controller.setSetpoint(output, ControlType.kDutyCycle);
   }
 
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
-    closedLoop = true;
     double setpoint =
         MathUtil.inputModulus(
             rotation.getRadians() - mechanismOffset.getRadians(), 0.0, 2.0 * Math.PI);
-    this.feedforwardVolts =
+    setpoint =
+        MathUtil.clamp(
+            setpoint,
+            Math.PI - rangeOfMotion.div(2).in(Radians),
+            Math.PI + rangeOfMotion.div(2).in(Radians));
+    var feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
-    controller.setSetpoint(setpoint);
+    controller.setSetpoint(
+        setpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
   }
 }

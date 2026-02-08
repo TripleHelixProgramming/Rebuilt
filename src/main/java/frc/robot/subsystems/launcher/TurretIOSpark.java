@@ -8,14 +8,16 @@ import static frc.robot.util.SparkUtil.*;
 import com.revrobotics.PersistMode;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.ResetMode;
+import com.revrobotics.spark.ClosedLoopSlot;
 import com.revrobotics.spark.FeedbackSensor;
 import com.revrobotics.spark.SparkBase;
+import com.revrobotics.spark.SparkBase.ControlType;
+import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.AngularVelocity;
@@ -31,20 +33,19 @@ public class TurretIOSpark implements TurretIO {
 
   private final SparkBase turnSpark;
   private final RelativeEncoder turnSparkEncoder;
-  private final PIDController controller;
+  private final SparkClosedLoopController controller;
   private final DutyCycleEncoder absoluteEncoder;
-  private final Debouncer turnConnectedDebounce =
-      new Debouncer(0.5, Debouncer.DebounceType.kFalling);
 
-  private boolean closedLoop = false;
-  private double appliedVolts = 0.0;
-  private double feedforwardVolts = 0.0;
-  private boolean seeded = false;
+  private final Debouncer motorControllerConnectedDebounce =
+      new Debouncer(0.5, Debouncer.DebounceType.kFalling);
+  private final Debouncer absEncoderConnectedDebounce =
+      new Debouncer(0.5, Debouncer.DebounceType.kFalling);
+  private boolean relativeEncoderSeeded = false;
 
   public TurretIOSpark() {
     turnSpark = new SparkMax(CAN2.turret, MotorType.kBrushless);
+    controller = turnSpark.getClosedLoopController();
     turnSparkEncoder = turnSpark.getEncoder();
-    controller = new PIDController(kPReal, 0.0, 0.0);
     absoluteEncoder =
         new DutyCycleEncoder(
             new DigitalInput(DIOPorts.turretAbsEncoder),
@@ -85,22 +86,10 @@ public class TurretIOSpark implements TurretIO {
 
   @Override
   public void updateInputs(TurretIOInputs inputs) {
-    if (!seeded && absoluteEncoder.isConnected()) {
-      turnSparkEncoder.setPosition(absoluteEncoder.get());
-      seeded = true;
+    if (!relativeEncoderSeeded && inputs.absoluteEncoderConnected) {
+      turnSparkEncoder.setPosition(absoluteEncoder.get() - mechanismOffset.getRadians());
+      relativeEncoderSeeded = true;
     }
-
-    // Run closed-loop control
-    if (closedLoop) {
-      appliedVolts = controller.calculate(turnSparkEncoder.getPosition()) + feedforwardVolts;
-    } else {
-      controller.reset();
-    }
-
-    // Update state
-    turnSpark.setVoltage(
-        MathUtil.clamp(
-            appliedVolts, -RobotConstants.kNominalVoltage, RobotConstants.kNominalVoltage));
 
     sparkStickyFault = false;
     ifOk(
@@ -113,28 +102,33 @@ public class TurretIOSpark implements TurretIO {
         new DoubleSupplier[] {turnSpark::getAppliedOutput, turnSpark::getBusVoltage},
         (values) -> inputs.appliedVolts = values[0] * values[1]);
     ifOk(turnSpark, turnSpark::getOutputCurrent, (value) -> inputs.currentAmps = value);
-    inputs.motorControllerConnected = turnConnectedDebounce.calculate(!sparkStickyFault);
+    inputs.motorControllerConnected = motorControllerConnectedDebounce.calculate(!sparkStickyFault);
 
-    inputs.absoluteEncoderConnected = absoluteEncoder.isConnected();
+    inputs.absoluteEncoderConnected =
+        absEncoderConnectedDebounce.calculate(absoluteEncoder.isConnected());
     inputs.absolutePosition = new Rotation2d(absoluteEncoder.get());
   }
 
   @Override
   public void setOpenLoop(double output) {
-    closedLoop = false;
-    appliedVolts = output;
+    controller.setSetpoint(output, ControlType.kDutyCycle);
   }
 
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
-    closedLoop = true;
     double setpoint =
         MathUtil.inputModulus(
             rotation.getRadians() - mechanismOffset.getRadians(), 0.0, 2 * Math.PI);
-    this.feedforwardVolts =
+    setpoint =
+        MathUtil.clamp(
+            setpoint,
+            Math.PI - rangeOfMotion.div(2).in(Radians),
+            Math.PI + rangeOfMotion.div(2).in(Radians));
+    var feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
-    controller.setSetpoint(setpoint);
+    controller.setSetpoint(
+        setpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
   }
 }
