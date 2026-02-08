@@ -20,7 +20,7 @@ import frc.lib.ControllerSelector;
 import frc.lib.ControllerSelector.ControllerConfig;
 import frc.lib.ControllerSelector.ControllerFunction;
 import frc.lib.ControllerSelector.ControllerType;
-import frc.robot.Constants.AutoConstants;
+import frc.robot.Constants.DIOPorts;
 import frc.robot.auto.B_MoveForward1M;
 import frc.robot.auto.B_Path;
 import frc.robot.auto.R_MoveAndRotate;
@@ -71,10 +71,9 @@ import org.littletonrobotics.junction.wpilog.WPILOGWriter;
  */
 public class Robot extends LoggedRobot {
   public static final AllianceSelector allianceSelector =
-      new AllianceSelector(AutoConstants.kAllianceColorSelectorPort);
+      new AllianceSelector(DIOPorts.allianceColorSelector);
   private final AutoSelector autoSelector =
-      new AutoSelector(
-          AutoConstants.kAutonomousModeSelectorPorts, allianceSelector::getAllianceColor);
+      new AutoSelector(DIOPorts.autonomousModeSelector, allianceSelector::getAllianceColor);
   public static final Field2d field = new Field2d();
 
   // Subsystems
