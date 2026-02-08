@@ -20,6 +20,8 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DutyCycleEncoder;
+import frc.robot.Constants.CANBusPorts.CAN2;
+import frc.robot.Constants.DIOPorts;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
 import frc.robot.Constants.RobotConstants;
 import java.util.function.DoubleSupplier;
@@ -39,12 +41,12 @@ public class TurretIOSpark implements TurretIO {
   private boolean seeded = false;
 
   public TurretIOSpark() {
-    turnSpark = new SparkMax(port, MotorType.kBrushless);
+    turnSpark = new SparkMax(CAN2.turret, MotorType.kBrushless);
     turnSparkEncoder = turnSpark.getEncoder();
     controller = new PIDController(kPReal, 0.0, 0.0);
     absoluteEncoder =
         new DutyCycleEncoder(
-            new DigitalInput(absEncoderPort),
+            new DigitalInput(DIOPorts.turretAbsEncoder),
             2 * Math.PI,
             absEncoderOffset.getRadians() + mechanismOffset.getRadians());
 

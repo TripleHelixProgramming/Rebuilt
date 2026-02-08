@@ -7,7 +7,6 @@
 
 package frc.robot.subsystems.drive;
 
-import static frc.robot.subsystems.drive.DriveConstants.*;
 import static frc.robot.util.PhoenixUtil.*;
 
 import com.ctre.phoenix6.BaseStatusSignal;
@@ -35,6 +34,7 @@ import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Voltage;
+import frc.robot.Constants.CANBusPorts.CANHD;
 import java.util.Queue;
 
 /**
@@ -96,9 +96,9 @@ public class ModuleIOTalonFX implements ModuleIO {
       SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
           constants) {
     this.constants = constants;
-    driveTalon = new TalonFX(constants.DriveMotorId, kCANBus);
-    turnTalon = new TalonFX(constants.SteerMotorId, kCANBus);
-    cancoder = new CANcoder(constants.EncoderId, kCANBus);
+    driveTalon = new TalonFX(constants.DriveMotorId, CANHD.bus);
+    turnTalon = new TalonFX(constants.SteerMotorId, CANHD.bus);
+    cancoder = new CANcoder(constants.EncoderId, CANHD.bus);
 
     // Configure drive motor
     var driveConfig = constants.DriveMotorInitialConfigs;

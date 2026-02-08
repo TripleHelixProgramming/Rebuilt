@@ -19,6 +19,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
+import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
@@ -32,7 +33,7 @@ public class HoodIOSim implements HoodIO {
   private final SparkMaxSim maxSim;
 
   public HoodIOSim() {
-    max = new SparkMax(port, MotorType.kBrushless);
+    max = new SparkMax(CAN2.hood, MotorType.kBrushless);
     controller = max.getClosedLoopController();
 
     var hoodConfig = new SparkMaxConfig();

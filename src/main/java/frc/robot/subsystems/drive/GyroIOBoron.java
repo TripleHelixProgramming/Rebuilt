@@ -13,11 +13,10 @@
 
 package frc.robot.subsystems.drive;
 
-import static frc.robot.subsystems.drive.DriveConstants.*;
-
 import com.reduxrobotics.sensors.canandgyro.Canandgyro;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
+import frc.robot.Constants.CANBusPorts.CAN2;
 import java.util.Queue;
 
 /** IO implementation for NavX. */
@@ -27,7 +26,7 @@ public class GyroIOBoron implements GyroIO {
   private final Queue<Double> yawPositionQueue;
 
   public GyroIOBoron() {
-    canandgyro = new Canandgyro(gyroCanId);
+    canandgyro = new Canandgyro(CAN2.gyro);
     yawTimestampQueue = PhoenixOdometryThread.getInstance().makeTimestampQueue();
     yawPositionQueue = PhoenixOdometryThread.getInstance().registerSignal(canandgyro::getYaw);
   }

@@ -3,7 +3,6 @@ package frc.robot.subsystems.intake;
 import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.MetersPerSecond;
 import static edu.wpi.first.units.Units.RadiansPerSecond;
-import static frc.robot.subsystems.drive.DriveConstants.kCANBus;
 import static frc.robot.subsystems.intake.IntakeConstants.IntakeRoller.*;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
@@ -19,6 +18,7 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
+import frc.robot.Constants.CANBusPorts.CAN2;
 
 public class IntakeRollerIOTalonFX implements IntakeRollerIO {
   private final TalonFX intakeMotor;
@@ -34,7 +34,7 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
   private final StatusSignal<Current> intakeCurrent;
 
   public IntakeRollerIOTalonFX() {
-    intakeMotor = new TalonFX(port, kCANBus);
+    intakeMotor = new TalonFX(CAN2.intakeRoller, CAN2.bus);
     config = new TalonFXConfiguration();
     config.MotorOutput.withInverted(InvertedValue.CounterClockwise_Positive)
         .withNeutralMode(NeutralModeValue.Brake);

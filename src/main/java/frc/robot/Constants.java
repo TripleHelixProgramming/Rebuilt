@@ -15,6 +15,7 @@ package frc.robot;
 
 import static edu.wpi.first.units.Units.*;
 
+import com.ctre.phoenix6.CANBus;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.RobotBase;
 
@@ -64,15 +65,62 @@ public final class Constants {
     }
   }
 
-  public static final class AutoConstants {
-    public static final int kAllianceColorSelectorPort = 3;
-
+  public static final class DIOPorts {
     // max length is 8
-    public static final int[] kAutonomousModeSelectorPorts = {0, 1, 2};
+    public static final int[] autonomousModeSelector = {0, 1, 2};
+
+    public static final int allianceColorSelector = 3;
+
+    public static final int turretAbsEncoder = 5;
   }
 
-  public static final class OIConstants {
-    public static final int kDefaultDriverPort = 0;
-    public static final int kDefaultOperatorPort = 1;
+  public static final class OIPorts {
+    public static final int defaultDriver = 0;
+    public static final int defaultOperator = 1;
+  }
+
+  public static final class CANBusPorts {
+
+    public static final class CAN2 {
+      public static final CANBus bus = CANBus.roboRIO();
+
+      // Drivetrain
+      public static final int gyro = 0;
+
+      // Launcher
+      public static final int turret = 12;
+      public static final int hood = 13;
+      public static final int flywheelLeader = 14;
+      public static final int flywheelFollower = 15;
+
+      // Feeder
+      public static final int spindexer = 16;
+      public static final int kicker = 17;
+
+      // Intake
+      public static final int intakeRoller = 22;
+    }
+
+    public static final class CANHD {
+      // CAN bus that the devices are located on;
+      // All swerve devices must share the same CAN bus
+      public static final CANBus bus = new CANBus("canivore", "./logs/example.hoot");
+
+      // Drivetrain
+      public static final int backLeftDrive = 10;
+      public static final int backRightDrive = 18;
+      public static final int frontRightDrive = 20;
+      public static final int frontLeftDrive = 28;
+
+      public static final int backLeftTurn = 11;
+      public static final int backRightTurn = 19;
+      public static final int frontRightTurn = 21;
+      public static final int frontLeftTurn = 29;
+
+      public static final int backRightTurnAbsEncoder = 31;
+      public static final int frontRightTurnAbsEncoder = 33;
+      public static final int frontLeftTurnAbsEncoder = 43;
+      public static final int backLeftTurnAbsEncoder = 45;
+    }
   }
 }

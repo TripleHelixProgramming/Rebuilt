@@ -34,7 +34,6 @@ public final class LauncherConstants {
     public static final Rotation2d mechanismOffset = Rotation2d.kCCW_Pi_2;
 
     // Absolute encoder
-    public static final int absEncoderPort = 5;
     public static final double encoderPositionFactor = (2 * Math.PI) / 5.0; // Radians
     public static final double encoderVelocityFactor = (2 * Math.PI) / (60.0 * 5.0); // Rad/sec
 
@@ -42,7 +41,6 @@ public final class LauncherConstants {
     public static final double kPReal = 0.5;
 
     // Motor controller
-    public static final int port = 12;
     public static final double motorReduction = 5.0;
     public static final AngularVelocity maxAngularVelocity =
         NEO550Constants.kFreeSpeed.div(motorReduction);
@@ -69,8 +67,6 @@ public final class LauncherConstants {
             .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign);
 
     // Motor controller
-    public static final int leaderPort = 2;
-    public static final int followerPort = 3;
     public static final double motorReduction = 1.0;
     public static final AngularVelocity maxAngularVelocity =
         KrakenX60Constants.kFreeSpeed.div(motorReduction);
@@ -91,7 +87,6 @@ public final class LauncherConstants {
     public static final double kPReal = 0.35;
 
     // Motor controller
-    public static final int port = 13;
     public static final double motorReduction = 2.75;
     public static final AngularVelocity maxAngularVelocity =
         NEO550Constants.kFreeSpeed.div(motorReduction);

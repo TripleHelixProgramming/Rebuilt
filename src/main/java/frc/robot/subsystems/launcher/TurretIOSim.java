@@ -17,6 +17,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
+import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
@@ -34,7 +35,7 @@ public class TurretIOSim implements TurretIO {
   private double feedforwardVolts = 0.0;
 
   public TurretIOSim() {
-    turnSpark = new SparkMax(port, MotorType.kBrushless);
+    turnSpark = new SparkMax(CAN2.turret, MotorType.kBrushless);
     controller = new PIDController(kPSim, 0.0, kDSim);
 
     var turnConfig = new SparkMaxConfig();
