@@ -156,7 +156,7 @@ public class Launcher extends SubsystemBase {
 
     // Spawn simulated fuel
     fuelSpawnTimer += Robot.defaultPeriodSecs;
-    if (fuelSpawnTimer >= fuelSpawnPeriod) {
+    if ((fuelSpawnTimer >= fuelSpawnPeriod) && (turretBasePose.getX() > 0)) {
       fuelSpawnTimer = 0.0;
 
       fuelNominal.add(
