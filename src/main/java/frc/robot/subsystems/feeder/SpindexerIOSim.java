@@ -18,6 +18,7 @@ import com.revrobotics.spark.config.SparkFlexConfig;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
+import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.NEOVortexConstants;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
@@ -31,7 +32,7 @@ public class SpindexerIOSim implements SpindexerIO {
   private final SparkFlexSim flexSim;
 
   public SpindexerIOSim() {
-    flex = new SparkFlex(port, MotorType.kBrushless);
+    flex = new SparkFlex(CAN2.spindexer, MotorType.kBrushless);
     controller = flex.getClosedLoopController();
 
     var config = new SparkFlexConfig();

@@ -16,7 +16,6 @@ public final class FeederConstants {
     public static final Distance radius = Inches.of(3.0);
 
     // Motor
-    public static final int port = 50;
     public static final double motorReduction = 1.0;
     public static final LinearVelocity maxTangentialVelocity =
         MetersPerSecond.of(
@@ -33,12 +32,11 @@ public final class FeederConstants {
     public static final DCMotor gearbox = DCMotor.getNeoVortex(1);
   }
 
-  public static final class KIckerConstants {
+  public static final class KickerConstants {
     // Geometry
     public static final Distance radius = Inches.of(1.5);
 
     // Motor
-    public static final int port = 51;
     public static final double motorReduction = 1.0;
     public static final LinearVelocity maxTangentialVelocity =
         MetersPerSecond.of(

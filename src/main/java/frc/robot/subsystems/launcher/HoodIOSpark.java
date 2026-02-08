@@ -2,7 +2,6 @@ package frc.robot.subsystems.launcher;
 
 import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.*;
-import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.port;
 import static frc.robot.util.SparkUtil.*;
 
 import com.revrobotics.AbsoluteEncoder;
@@ -21,6 +20,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.AngularVelocity;
+import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
 import frc.robot.Constants.RobotConstants;
 import java.util.function.DoubleSupplier;
@@ -34,7 +34,7 @@ public class HoodIOSpark implements HoodIO {
       new Debouncer(0.5, Debouncer.DebounceType.kFalling);
 
   public HoodIOSpark() {
-    hoodSpark = new SparkMax(port, MotorType.kBrushless);
+    hoodSpark = new SparkMax(CAN2.hood, MotorType.kBrushless);
     hoodEncoder = hoodSpark.getAbsoluteEncoder();
     hoodController = hoodSpark.getClosedLoopController();
 

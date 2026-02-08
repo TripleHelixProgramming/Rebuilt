@@ -2,7 +2,7 @@ package frc.robot.subsystems.feeder;
 
 import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.MetersPerSecond;
-import static frc.robot.subsystems.feeder.FeederConstants.KIckerConstants.*;
+import static frc.robot.subsystems.feeder.FeederConstants.KickerConstants.*;
 
 import com.revrobotics.PersistMode;
 import com.revrobotics.ResetMode;
@@ -18,6 +18,7 @@ import com.revrobotics.spark.config.SparkFlexConfig;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
+import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.NEOVortexConstants;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
@@ -31,7 +32,7 @@ public class KickerIOSim implements KickerIO {
   private final SparkFlexSim flexSim;
 
   public KickerIOSim() {
-    flex = new SparkFlex(port, MotorType.kBrushless);
+    flex = new SparkFlex(CAN2.kicker, MotorType.kBrushless);
     controller = flex.getClosedLoopController();
 
     var config = new SparkFlexConfig();

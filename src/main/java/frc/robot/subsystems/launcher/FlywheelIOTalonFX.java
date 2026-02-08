@@ -1,6 +1,5 @@
 package frc.robot.subsystems.launcher;
 
-import static frc.robot.subsystems.drive.DriveConstants.kCANBus;
 import static frc.robot.subsystems.launcher.LauncherConstants.FlywheelConstants.*;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
@@ -19,6 +18,7 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Voltage;
+import frc.robot.Constants.CANBusPorts.CAN2;
 
 public class FlywheelIOTalonFX implements FlywheelIO {
   private final TalonFX flywheelLeaderTalon;
@@ -42,8 +42,8 @@ public class FlywheelIOTalonFX implements FlywheelIO {
   private final StatusSignal<Current> flywheelCurrent;
 
   public FlywheelIOTalonFX() {
-    flywheelLeaderTalon = new TalonFX(leaderPort, kCANBus);
-    flywheelFollowerTalon = new TalonFX(followerPort, kCANBus);
+    flywheelLeaderTalon = new TalonFX(CAN2.flywheelLeader, CAN2.bus);
+    flywheelFollowerTalon = new TalonFX(CAN2.flywheelFollower, CAN2.bus);
     // Configuration
     config = new TalonFXConfiguration();
     config.MotorOutput.withInverted(InvertedValue.CounterClockwise_Positive)
@@ -65,7 +65,8 @@ public class FlywheelIOTalonFX implements FlywheelIO {
         flywheelAppliedVolts,
         flywheelCurrent);
 
-    flywheelFollowerTalon.setControl(new Follower(leaderPort, MotorAlignmentValue.Opposed));
+    flywheelFollowerTalon.setControl(
+        new Follower(CAN2.flywheelLeader, MotorAlignmentValue.Opposed));
   }
 
   @Override

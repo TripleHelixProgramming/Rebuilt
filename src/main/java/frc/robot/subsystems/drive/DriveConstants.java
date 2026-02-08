@@ -15,7 +15,6 @@ package frc.robot.subsystems.drive;
 
 import static edu.wpi.first.units.Units.*;
 
-import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
@@ -48,6 +47,7 @@ import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.units.measure.MomentOfInertia;
 import edu.wpi.first.units.measure.Voltage;
+import frc.robot.Constants.CANBusPorts.CANHD;
 import frc.robot.Constants.MotorConstants.KrakenX60Constants;
 
 public class DriveConstants {
@@ -82,24 +82,6 @@ public class DriveConstants {
           maxChassisAngularAcceleration.in(RadiansPerSecondPerSecond));
 
   public static final String zeroRotationKey = "ZeroRotation";
-
-  // Device CAN IDs
-  public static final int gyroCanId = 0;
-
-  public static final int backLeftDriveCanId = 10;
-  public static final int backRightDriveCanId = 18;
-  public static final int frontRightDriveCanId = 20;
-  public static final int frontLeftDriveCanId = 28;
-
-  public static final int backLeftTurnCanId = 11;
-  public static final int backRightTurnCanId = 19;
-  public static final int frontRightTurnCanId = 21;
-  public static final int frontLeftTurnCanId = 29;
-
-  public static final int backRightTurnAbsoluteEncoderCanId = 31;
-  public static final int frontRightTurnAbsoluteEncoderCanId = 33;
-  public static final int frontLeftTurnAbsoluteEncoderCanId = 43;
-  public static final int backLeftTurnAbsoluteEncoderCanId = 45;
 
   // Drive motor configuration
   public static final Distance wheelRadius = Inches.of(2);
@@ -192,10 +174,6 @@ public class DriveConstants {
                   .withStatorCurrentLimit(Amps.of(60))
                   .withStatorCurrentLimitEnable(true));
 
-  // CAN bus that the devices are located on;
-  // All swerve devices must share the same CAN bus
-  public static final CANBus kCANBus = new CANBus("canivore", "./logs/example.hoot");
-
   private static final boolean kInvertLeftSide = false;
   private static final boolean kInvertRightSide = false;
 
@@ -207,7 +185,7 @@ public class DriveConstants {
   private static final Voltage kDriveFrictionVoltage = Volts.of(0.2);
 
   public static final SwerveDrivetrainConstants DrivetrainConstants =
-      new SwerveDrivetrainConstants().withCANBusName(kCANBus.getName());
+      new SwerveDrivetrainConstants().withCANBusName(CANHD.bus.getName());
 
   private static final SwerveModuleConstantsFactory<
           TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
@@ -238,9 +216,9 @@ public class DriveConstants {
           TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
       FrontLeft =
           ConstantCreator.createModuleConstants(
-              frontLeftTurnCanId,
-              frontLeftDriveCanId,
-              frontLeftTurnAbsoluteEncoderCanId,
+              CANHD.frontLeftTurn,
+              CANHD.frontLeftDrive,
+              CANHD.frontLeftTurnAbsEncoder,
               Rotations.of(0),
               wheelBase.div(2.0),
               trackWidth.div(2.0),
@@ -251,9 +229,9 @@ public class DriveConstants {
           TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
       FrontRight =
           ConstantCreator.createModuleConstants(
-              frontRightTurnCanId,
-              frontRightDriveCanId,
-              frontRightTurnAbsoluteEncoderCanId,
+              CANHD.frontRightTurn,
+              CANHD.frontRightDrive,
+              CANHD.frontRightTurnAbsEncoder,
               Rotations.of(0),
               wheelBase.div(2.0),
               trackWidth.div(-2.0),
@@ -264,9 +242,9 @@ public class DriveConstants {
           TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
       BackLeft =
           ConstantCreator.createModuleConstants(
-              backLeftTurnCanId,
-              backLeftDriveCanId,
-              backLeftTurnAbsoluteEncoderCanId,
+              CANHD.backLeftTurn,
+              CANHD.backLeftDrive,
+              CANHD.backLeftTurnAbsEncoder,
               Rotations.of(0),
               wheelBase.div(-2.0),
               trackWidth.div(2.0),
@@ -277,9 +255,9 @@ public class DriveConstants {
           TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
       BackRight =
           ConstantCreator.createModuleConstants(
-              backRightTurnCanId,
-              backRightDriveCanId,
-              backRightTurnAbsoluteEncoderCanId,
+              CANHD.backRightTurn,
+              CANHD.backRightDrive,
+              CANHD.backRightTurnAbsEncoder,
               Rotations.of(0),
               wheelBase.div(-2.0),
               trackWidth.div(-2.0),
