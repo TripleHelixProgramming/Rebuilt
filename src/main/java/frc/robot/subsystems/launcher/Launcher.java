@@ -127,7 +127,7 @@ public class Launcher extends SubsystemBase {
 
     // Check if v0_flywheel has non-zero horizontal component
     double v0_horizontal = Math.hypot(v0_flywheel.getX(), v0_flywheel.getY());
-    if (v0_horizontal < 1e-6) {
+    if (!Double.isFinite(v0_horizontal) || v0_horizontal < 1e-6) {
       // Flywheel velocity is too low or target unreachable, stop mechanisms
       return;
     }
@@ -211,9 +211,17 @@ public class Launcher extends SubsystemBase {
 
   private Translation3d getV0(Translation3d d, Rotation2d impactAngle, String key) {
     double dr = Math.hypot(d.getX(), d.getY());
+    if (dr < 1e-6) {
+      return new Translation3d();
+    }
+
     double dz = d.getZ();
 
-    double v_0r = dr * Math.sqrt(g / (2 * (dz + dr * impactAngle.getTan())));
+    double denominator = 2 * (dz + dr * impactAngle.getTan());
+    if (denominator <= 0) {
+      return new Translation3d();
+    }
+    double v_0r = dr * Math.sqrt(g / denominator);
     double v_0z = (g * dr) / v_0r - v_0r * impactAngle.getTan();
 
     double v_0x = v_0r * d.toTranslation2d().getAngle().getCos();
@@ -228,6 +236,10 @@ public class Launcher extends SubsystemBase {
     // Geometry
     Translation2d dxy = d.toTranslation2d();
     double dr = dxy.getNorm();
+    if (dr < 1e-6) {
+      return new Translation3d();
+    }
+
     double dz = d.getZ();
 
     // Unit vector toward target in XY plane
