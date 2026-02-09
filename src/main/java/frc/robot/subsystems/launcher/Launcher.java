@@ -44,6 +44,7 @@ public class Launcher extends SubsystemBase {
   private Translation3d vectorTurretBaseToTarget = new Translation3d();
   private Pose3d turretBasePose = new Pose3d();
   // private Translation3d v0_nominal = new Translation3d();
+  private Translation3d v0last = new Translation3d();
 
   // Fuel ballistics simulation
   private final ArrayList<BallisticObject> fuelNominal = new ArrayList<>();
@@ -210,13 +211,11 @@ public class Launcher extends SubsystemBase {
   }
 
   private Translation3d getV0(Translation3d d, Rotation2d impactAngle, String key) {
-    var v0 = new Translation3d();
-
     double dr = Math.hypot(d.getX(), d.getY());
     if (dr < 1e-6) {
       Logger.recordOutput("Launcher/" + key + "/Reachable", false);
       // log(d, v0, key);
-      return v0;
+      return v0last;
     }
 
     double dz = d.getZ();
@@ -225,7 +224,7 @@ public class Launcher extends SubsystemBase {
     if (denominator <= 0) {
       Logger.recordOutput("Launcher/" + key + "/Reachable", false);
       // log(d, v0, key);
-      return v0;
+      return v0last;
     }
     double v_0r = dr * Math.sqrt(g / denominator);
     double v_0z = (g * dr) / v_0r - v_0r * impactAngle.getTan();
@@ -233,22 +232,20 @@ public class Launcher extends SubsystemBase {
     double v_0x = v_0r * d.toTranslation2d().getAngle().getCos();
     double v_0y = v_0r * d.toTranslation2d().getAngle().getSin();
 
-    v0 = new Translation3d(v_0x, v_0y, v_0z);
+    v0last = new Translation3d(v_0x, v_0y, v_0z);
     Logger.recordOutput("Launcher/" + key + "/Reachable", true);
-    log(d, v0, key);
-    return v0;
+    log(d, v0last, key);
+    return v0last;
   }
 
   private Translation3d getV0(Translation3d d, LinearVelocity shotSpeed, String key) {
-    var v0 = new Translation3d();
-
     // Geometry
     Translation2d dxy = d.toTranslation2d();
     double dr = dxy.getNorm();
     if (dr < 1e-6) {
       Logger.recordOutput("Launcher/" + key + "/Reachable", false);
       // log(d, v0, key);
-      return v0;
+      return v0last;
     }
 
     double dz = d.getZ();
@@ -265,7 +262,7 @@ public class Launcher extends SubsystemBase {
       // Unreachable target at this speed
       Logger.recordOutput("Launcher/" + key + "/Reachable", false);
       // log(d, v0, key);
-      return v0;
+      return v0last;
     }
 
     // High-arc solution
@@ -283,7 +280,7 @@ public class Launcher extends SubsystemBase {
     if (v_required < 1e-6) {
       Logger.recordOutput("Launcher/" + key + "/Reachable", false);
       // log(d, v0, key);
-      return v0;
+      return v0last;
     }
 
     // Scale to match actual flywheel speed
@@ -295,10 +292,10 @@ public class Launcher extends SubsystemBase {
     // Back to field frame
     Translation2d v_field_xy = r_hat.times(v_r);
 
-    v0 = new Translation3d(v_field_xy.getX(), v_field_xy.getY(), v_z);
+    v0last = new Translation3d(v_field_xy.getX(), v_field_xy.getY(), v_z);
     Logger.recordOutput("Launcher/" + key + "/Reachable", true);
-    log(d, v0, key);
-    return v0;
+    log(d, v0last, key);
+    return v0last;
   }
 
   private void log(Translation3d d, Translation3d v, String key) {
