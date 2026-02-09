@@ -156,7 +156,7 @@ public class Launcher extends SubsystemBase {
 
     // Spawn simulated fuel
     fuelSpawnTimer += Robot.defaultPeriodSecs;
-    if ((fuelSpawnTimer >= fuelSpawnPeriod) && (turretBasePose.getX() > 0)) {
+    if (fuelSpawnTimer >= fuelSpawnPeriod) {
       fuelSpawnTimer = 0.0;
 
       fuelNominal.add(
@@ -210,16 +210,22 @@ public class Launcher extends SubsystemBase {
   }
 
   private Translation3d getV0(Translation3d d, Rotation2d impactAngle, String key) {
+    var v0 = new Translation3d();
+
     double dr = Math.hypot(d.getX(), d.getY());
     if (dr < 1e-6) {
-      return new Translation3d();
+      Logger.recordOutput("Launcher/" + key + "/Reachable", false);
+      // log(d, v0, key);
+      return v0;
     }
 
     double dz = d.getZ();
 
     double denominator = 2 * (dz + dr * impactAngle.getTan());
     if (denominator <= 0) {
-      return new Translation3d();
+      Logger.recordOutput("Launcher/" + key + "/Reachable", false);
+      // log(d, v0, key);
+      return v0;
     }
     double v_0r = dr * Math.sqrt(g / denominator);
     double v_0z = (g * dr) / v_0r - v_0r * impactAngle.getTan();
@@ -227,17 +233,22 @@ public class Launcher extends SubsystemBase {
     double v_0x = v_0r * d.toTranslation2d().getAngle().getCos();
     double v_0y = v_0r * d.toTranslation2d().getAngle().getSin();
 
-    var v0 = new Translation3d(v_0x, v_0y, v_0z);
+    v0 = new Translation3d(v_0x, v_0y, v_0z);
+    Logger.recordOutput("Launcher/" + key + "/Reachable", true);
     log(d, v0, key);
     return v0;
   }
 
   private Translation3d getV0(Translation3d d, LinearVelocity shotSpeed, String key) {
+    var v0 = new Translation3d();
+
     // Geometry
     Translation2d dxy = d.toTranslation2d();
     double dr = dxy.getNorm();
     if (dr < 1e-6) {
-      return new Translation3d();
+      Logger.recordOutput("Launcher/" + key + "/Reachable", false);
+      // log(d, v0, key);
+      return v0;
     }
 
     double dz = d.getZ();
@@ -253,10 +264,9 @@ public class Launcher extends SubsystemBase {
     if (discriminant < 0) {
       // Unreachable target at this speed
       Logger.recordOutput("Launcher/" + key + "/Reachable", false);
-      return new Translation3d();
+      // log(d, v0, key);
+      return v0;
     }
-
-    Logger.recordOutput("Launcher/" + key + "/Reachable", true);
 
     // High-arc solution
     double tanTheta = (v_sq + Math.sqrt(discriminant)) / (g * dr);
@@ -272,7 +282,8 @@ public class Launcher extends SubsystemBase {
 
     if (v_required < 1e-6) {
       Logger.recordOutput("Launcher/" + key + "/Reachable", false);
-      return new Translation3d();
+      // log(d, v0, key);
+      return v0;
     }
 
     // Scale to match actual flywheel speed
@@ -284,7 +295,8 @@ public class Launcher extends SubsystemBase {
     // Back to field frame
     Translation2d v_field_xy = r_hat.times(v_r);
 
-    var v0 = new Translation3d(v_field_xy.getX(), v_field_xy.getY(), v_z);
+    v0 = new Translation3d(v_field_xy.getX(), v_field_xy.getY(), v_z);
+    Logger.recordOutput("Launcher/" + key + "/Reachable", true);
     log(d, v0, key);
     return v0;
   }
