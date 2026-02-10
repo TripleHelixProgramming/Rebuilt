@@ -53,12 +53,7 @@ public class HoodIOSpark implements HoodIO {
         .velocityConversionFactor(encoderVelocityFactor)
         .averageDepth(2);
 
-    hoodConfig
-        .closedLoop
-        .feedbackSensor(FeedbackSensor.kAbsoluteEncoder)
-        .positionWrappingEnabled(true)
-        .positionWrappingInputRange(minInput, maxInput)
-        .pid(kPReal, 0.0, 0.0);
+    hoodConfig.closedLoop.feedbackSensor(FeedbackSensor.kAbsoluteEncoder).pid(kPReal, 0.0, 0.0);
 
     hoodConfig
         .signals
@@ -98,7 +93,7 @@ public class HoodIOSpark implements HoodIO {
 
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
-    double setpoint = MathUtil.inputModulus(rotation.getRadians(), minInput, maxInput);
+    double setpoint = MathUtil.inputModulus(rotation.getRadians(), 0.0, 2.0 * Math.PI);
     double feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)

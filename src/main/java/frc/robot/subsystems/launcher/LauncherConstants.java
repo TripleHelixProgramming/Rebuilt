@@ -8,20 +8,59 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
+import frc.robot.Constants;
 import frc.robot.Constants.MotorConstants.KrakenX60Constants;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
 
 public final class LauncherConstants {
 
+  // Geometry
   public static final Rotation2d impactAngle = Rotation2d.fromDegrees(50);
   public static final Distance fuelRadius = Inches.of(3);
   public static final Distance ceilingHeight = Feet.of(11).plus(Inches.of(2));
   public static final double g = 9.81;
 
-  // For logging
-  public static final double fuelSpawnPeriod = 0.1; // seconds
+  // Logging / simulation periods
+  public static final boolean logFuelTrajectories;
+  public static final double fuelSpawnPeriod;
+  public static final double ballisticSimPeriod;
+  public static final double ballisticLogPeriod;
+
+  static {
+    switch (Constants.currentMode) {
+      case REAL -> {
+        logFuelTrajectories = true;
+        fuelSpawnPeriod = 0.2;
+        ballisticSimPeriod = 0.1;
+        ballisticLogPeriod = 0.25;
+      }
+
+      case SIM -> {
+        logFuelTrajectories = true;
+        fuelSpawnPeriod = 0.1;
+        ballisticSimPeriod = 0.05;
+        ballisticLogPeriod = 0.1;
+      }
+
+      case REPLAY -> {
+        logFuelTrajectories = false;
+        fuelSpawnPeriod = 0.0;
+        ballisticSimPeriod = 0.0;
+        ballisticLogPeriod = 0.0;
+      }
+
+      default -> {
+        logFuelTrajectories = true;
+        fuelSpawnPeriod = 0.1;
+        ballisticSimPeriod = 0.05;
+        ballisticLogPeriod = 0.1;
+      }
+    }
+  }
+
   public static final String nominalKey = "Nominal";
   public static final String replannedKey = "Replanned";
   public static final String actualKey = "Actual";
@@ -32,10 +71,7 @@ public final class LauncherConstants {
         new Transform3d(Inches.of(0), Inches.of(10), Inches.of(22), Rotation3d.kZero);
     public static final Rotation2d absEncoderOffset = new Rotation2d(0.5);
     public static final Rotation2d mechanismOffset = Rotation2d.kCCW_Pi_2;
-
-    // Absolute encoder
-    public static final double encoderPositionFactor = (2 * Math.PI) / 5.0; // Radians
-    public static final double encoderVelocityFactor = (2 * Math.PI) / (60.0 * 5.0); // Rad/sec
+    public static final Angle rangeOfMotion = Degrees.of(240);
 
     // Position controller
     public static final double kPReal = 0.5;
@@ -44,6 +80,9 @@ public final class LauncherConstants {
     public static final double motorReduction = 5.0;
     public static final AngularVelocity maxAngularVelocity =
         NEO550Constants.kFreeSpeed.div(motorReduction);
+    public static final double encoderPositionFactor = (2 * Math.PI) / motorReduction; // Radians
+    public static final double encoderVelocityFactor =
+        (2 * Math.PI) / (60.0 * motorReduction); // Rad/sec
 
     // Simulation
     public static final DCMotor gearbox = DCMotor.getNeo550(1);
@@ -82,8 +121,6 @@ public final class LauncherConstants {
     public static final double encoderVelocityFactor = (2 * Math.PI) / 60.0; // Rad/sec
 
     // Position controller
-    public static final double minInput = 0.0;
-    public static final double maxInput = 2 * Math.PI;
     public static final double kPReal = 0.35;
 
     // Motor controller

@@ -51,12 +51,7 @@ public class HoodIOSim implements HoodIO {
         .velocityConversionFactor(encoderVelocityFactor)
         .averageDepth(2);
 
-    hoodConfig
-        .closedLoop
-        .feedbackSensor(FeedbackSensor.kAbsoluteEncoder)
-        .positionWrappingEnabled(true)
-        .positionWrappingInputRange(minInput, maxInput)
-        .pid(kPSim, 0.0, kDSim);
+    hoodConfig.closedLoop.feedbackSensor(FeedbackSensor.kAbsoluteEncoder).pid(kPSim, 0.0, kDSim);
 
     hoodConfig
         .signals
@@ -100,7 +95,7 @@ public class HoodIOSim implements HoodIO {
 
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
-    double setpoint = MathUtil.inputModulus(rotation.getRadians(), minInput, maxInput);
+    double setpoint = MathUtil.inputModulus(rotation.getRadians(), 0.0, 2.0 * Math.PI);
     double feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)

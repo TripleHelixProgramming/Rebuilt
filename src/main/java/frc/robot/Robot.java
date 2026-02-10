@@ -42,7 +42,6 @@ import frc.robot.subsystems.feeder.SpindexerIOSim;
 import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.intake.IntakeRollerIO;
 import frc.robot.subsystems.intake.IntakeRollerIOSim;
-import frc.robot.subsystems.intake.IntakeRollerIOTalonFX;
 import frc.robot.subsystems.launcher.FlywheelIO;
 import frc.robot.subsystems.launcher.FlywheelIOSim;
 import frc.robot.subsystems.launcher.HoodIO;
@@ -132,7 +131,7 @@ public class Robot extends LoggedRobot {
                 new TurretIOSpark(),
                 new FlywheelIOSim(),
                 new HoodIOSimHardwareless());
-        intake = new Intake(new IntakeRollerIOTalonFX());
+        intake = new Intake(new IntakeRollerIO() {});
         feeder = new Feeder(new SpindexerIO() {}, new KickerIO() {});
         break;
 

@@ -13,7 +13,7 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.units.measure.AngularVelocity;
-import edu.wpi.first.units.measure.LinearVelocity;
+import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -39,16 +39,18 @@ public class Launcher extends SubsystemBase {
   private final Alert flywheelDisconnectedAlert;
   private final Alert hoodDisconnectedAlert;
 
-  private Translation3d target = new Translation3d();
   private Translation3d vectorTurretBaseToTarget = new Translation3d();
   private Pose3d turretBasePose = new Pose3d();
-  // private Translation3d v0_nominal = new Translation3d();
+  private Translation3d v0nominalLast = new Translation3d();
+  private Translation3d v0replannedLast = new Translation3d();
 
   // Fuel ballistics simulation
   private final ArrayList<BallisticObject> fuelNominal = new ArrayList<>();
   private final ArrayList<BallisticObject> fuelReplanned = new ArrayList<>();
   private final ArrayList<BallisticObject> fuelActual = new ArrayList<>();
   private double fuelSpawnTimer = 0.0;
+  private double ballisticSimTimer = 0.0;
+  private double ballisticLogTimer = 0.0;
 
   public Launcher(
       Supplier<Pose2d> chassisPoseSupplier,
@@ -83,9 +85,27 @@ public class Launcher extends SubsystemBase {
     hoodDisconnectedAlert.set(!hoodInputs.connected);
 
     // Update and plot ball trajectories
-    updateBallisticsSim(fuelNominal, nominalKey);
-    updateBallisticsSim(fuelReplanned, replannedKey);
-    updateBallisticsSim(fuelActual, actualKey);
+    if (logFuelTrajectories) {
+      double dt = Robot.defaultPeriodSecs;
+
+      ballisticSimTimer += dt;
+      ballisticLogTimer += dt;
+
+      boolean doSim = ballisticSimTimer >= ballisticSimPeriod;
+      boolean doLog = ballisticLogTimer >= ballisticLogPeriod;
+
+      if (doSim) {
+        ballisticSimTimer = 0.0;
+
+        updateBallisticsSim(fuelNominal, nominalKey, ballisticSimPeriod, doLog);
+        updateBallisticsSim(fuelReplanned, replannedKey, ballisticSimPeriod, doLog);
+        updateBallisticsSim(fuelActual, actualKey, ballisticSimPeriod, doLog);
+      }
+
+      if (doLog) {
+        ballisticLogTimer = 0.0;
+      }
+    }
   }
 
   public void stop() {
@@ -95,8 +115,6 @@ public class Launcher extends SubsystemBase {
   }
 
   public void aim(Translation3d target) {
-    this.target = target;
-
     // Get vector from static target to turret
     turretBasePose = new Pose3d(chassisPoseSupplier.get()).plus(chassisToTurretBase);
     vectorTurretBaseToTarget = target.minus(turretBasePose.getTranslation());
@@ -115,18 +133,17 @@ public class Launcher extends SubsystemBase {
     var v_base = getTurretBaseSpeeds(turretBasePose.toPose2d().getRotation(), fieldRelative);
 
     // Get actual flywheel speed
-    LinearVelocity flywheelSpeed =
-        MetersPerSecond.of(flywheelInputs.velocityRadPerSec * wheelRadius.in(Meters));
+    double flywheelSpeedMetersPerSec = flywheelInputs.velocityRadPerSec * wheelRadius.in(Meters);
 
     // Replan shot using actual flywheel speed
-    var v0_total = getV0(vectorTurretBaseToTarget, flywheelSpeed, replannedKey);
+    var v0_total = getV0(vectorTurretBaseToTarget, flywheelSpeedMetersPerSec, replannedKey);
 
     // Point turret to align velocity vectors
     var v0_flywheel = v0_total.minus(v_base);
 
     // Check if v0_flywheel has non-zero horizontal component
     double v0_horizontal = Math.hypot(v0_flywheel.getX(), v0_flywheel.getY());
-    if (v0_horizontal < 1e-6) {
+    if (!Double.isFinite(v0_horizontal) || v0_horizontal < 1e-6) {
       // Flywheel velocity is too low or target unreachable, stop mechanisms
       return;
     }
@@ -143,38 +160,30 @@ public class Launcher extends SubsystemBase {
     Rotation2d turretPosition =
         turretInputs.relativePosition.plus(turretBasePose.toPose2d().getRotation());
 
+    // Get mechanism angles
+    double hoodCos = hoodPosition.getCos();
+    double hoodSin = hoodPosition.getSin();
+    double turretCos = turretPosition.getCos();
+    double turretSin = turretPosition.getSin();
+
     // Build actual velocities
-    Translation3d v0_actual =
-        new Translation3d(
-                hoodPosition.getCos() * turretPosition.getCos(),
-                hoodPosition.getCos() * turretPosition.getSin(),
-                hoodPosition.getSin())
-            .times(flywheelSpeed.in(MetersPerSecond))
-            .plus(v_base);
+    double vx = hoodCos * turretCos * flywheelSpeedMetersPerSec + v_base.getX();
+    double vy = hoodCos * turretSin * flywheelSpeedMetersPerSec + v_base.getY();
+    double vz = hoodSin * flywheelSpeedMetersPerSec;
+    Translation3d v0_actual = new Translation3d(vx, vy, vz);
     log(vectorTurretBaseToTarget, v0_actual, actualKey);
 
     // Spawn simulated fuel
     fuelSpawnTimer += Robot.defaultPeriodSecs;
-    if (fuelSpawnTimer >= fuelSpawnPeriod) {
+    if (fuelSpawnTimer >= fuelSpawnPeriod && logFuelTrajectories) {
       fuelSpawnTimer = 0.0;
 
       fuelNominal.add(
-          new BallisticObject(
-              new Translation3d(
-                  turretBasePose.getX(), turretBasePose.getY(), turretBasePose.getZ()),
-              new Translation3d(v0_nominal.getX(), v0_nominal.getY(), v0_nominal.getZ())));
-
+          new BallisticObject(turretBasePose.getTranslation(), v0_nominal, target.getMeasureZ()));
       fuelReplanned.add(
-          new BallisticObject(
-              new Translation3d(
-                  turretBasePose.getX(), turretBasePose.getY(), turretBasePose.getZ()),
-              new Translation3d(v0_total.getX(), v0_total.getY(), v0_total.getZ())));
-
+          new BallisticObject(turretBasePose.getTranslation(), v0_total, target.getMeasureZ()));
       fuelActual.add(
-          new BallisticObject(
-              new Translation3d(
-                  turretBasePose.getX(), turretBasePose.getY(), turretBasePose.getZ()),
-              new Translation3d(v0_actual.getX(), v0_actual.getY(), v0_actual.getZ())));
+          new BallisticObject(turretBasePose.getTranslation(), v0_actual, target.getMeasureZ()));
     }
   }
 
@@ -195,52 +204,77 @@ public class Launcher extends SubsystemBase {
     double vy = chassisSpeeds.vyMetersPerSecond;
     double omega = chassisSpeeds.omegaRadiansPerSecond;
 
-    Translation2d r = new Translation2d(chassisToTurretBase.getX(), chassisToTurretBase.getY());
-    Translation2d v_offset = new Translation2d(-omega * r.getY(), omega * r.getX());
-    Translation2d v_base_field = new Translation2d(vx, vy).plus(v_offset.rotateBy(rotation));
+    double rx = chassisToTurretBase.getX();
+    double ry = chassisToTurretBase.getY();
 
-    Translation3d baseSpeeds = new Translation3d(v_base_field.getX(), v_base_field.getY(), 0);
+    double offX = -omega * ry;
+    double offY = omega * rx;
+
+    double cos = rotation.getCos();
+    double sin = rotation.getSin();
+
+    double baseVx = vx + offX * cos - offY * sin;
+    double baseVy = vy + offX * sin + offY * cos;
+
+    var baseSpeeds = new Translation3d(baseVx, baseVy, 0);
 
     Logger.recordOutput("Launcher/BaseSpeeds", baseSpeeds);
+
     return baseSpeeds;
   }
 
   private Translation3d getV0(Translation3d d, Rotation2d impactAngle, String key) {
     double dr = Math.hypot(d.getX(), d.getY());
+    if (dr < 1e-6) {
+      Logger.recordOutput("Launcher/" + key + "/Reachable", false);
+      // log(d, v0, key);
+      return v0nominalLast;
+    }
+
     double dz = d.getZ();
 
-    double v_0r = dr * Math.sqrt(g / (2 * (dz + dr * impactAngle.getTan())));
+    double denominator = 2 * (dz + dr * impactAngle.getTan());
+    if (denominator <= 0) {
+      Logger.recordOutput("Launcher/" + key + "/Reachable", false);
+      // log(d, v0, key);
+      return v0nominalLast;
+    }
+    double v_0r = dr * Math.sqrt(g / denominator);
     double v_0z = (g * dr) / v_0r - v_0r * impactAngle.getTan();
 
     double v_0x = v_0r * d.toTranslation2d().getAngle().getCos();
     double v_0y = v_0r * d.toTranslation2d().getAngle().getSin();
 
-    var v0 = new Translation3d(v_0x, v_0y, v_0z);
-    log(d, v0, key);
-    return v0;
+    v0nominalLast = new Translation3d(v_0x, v_0y, v_0z);
+    Logger.recordOutput("Launcher/" + key + "/Reachable", true);
+    log(d, v0nominalLast, key);
+    return v0nominalLast;
   }
 
-  private Translation3d getV0(Translation3d d, LinearVelocity shotSpeed, String key) {
+  private Translation3d getV0(Translation3d d, double v_flywheel, String key) {
     // Geometry
-    Translation2d dxy = d.toTranslation2d();
-    double dr = dxy.getNorm();
+    double dr = Math.hypot(d.getX(), d.getY());
+    if (dr < 1e-6) {
+      Logger.recordOutput("Launcher/" + key + "/Reachable", false);
+      // log(d, v0, key);
+      return v0replannedLast;
+    }
+
     double dz = d.getZ();
 
-    // Unit vector toward target in XY plane
-    Translation2d r_hat = dxy.div(dr);
+    // Unit vectors toward target in XY plane
+    double rHatX = d.getX() / dr;
+    double rHatY = d.getY() / dr;
 
-    double v_flywheel = shotSpeed.in(MetersPerSecond);
     double v_sq = v_flywheel * v_flywheel;
-
     double discriminant = v_sq * v_sq - g * (g * dr * dr + 2 * dz * v_sq);
 
     if (discriminant < 0) {
       // Unreachable target at this speed
       Logger.recordOutput("Launcher/" + key + "/Reachable", false);
-      return new Translation3d();
+      // log(d, v0, key);
+      return v0replannedLast;
     }
-
-    Logger.recordOutput("Launcher/" + key + "/Reachable", true);
 
     // High-arc solution
     double tanTheta = (v_sq + Math.sqrt(discriminant)) / (g * dr);
@@ -256,21 +290,21 @@ public class Launcher extends SubsystemBase {
 
     if (v_required < 1e-6) {
       Logger.recordOutput("Launcher/" + key + "/Reachable", false);
-      return new Translation3d();
+      // log(d, v0, key);
+      return v0replannedLast;
     }
 
     // Scale to match actual flywheel speed
-    double scale = shotSpeed.in(MetersPerSecond) / v_required;
+    double scale = v_flywheel / v_required;
 
     v_r *= scale;
     v_z *= scale;
 
     // Back to field frame
-    Translation2d v_field_xy = r_hat.times(v_r);
-
-    var v0 = new Translation3d(v_field_xy.getX(), v_field_xy.getY(), v_z);
-    log(d, v0, key);
-    return v0;
+    v0replannedLast = new Translation3d(rHatX * v_r, rHatY * v_r, v_z);
+    Logger.recordOutput("Launcher/" + key + "/Reachable", true);
+    log(d, v0replannedLast, key);
+    return v0replannedLast;
   }
 
   private void log(Translation3d d, Translation3d v, String key) {
@@ -297,38 +331,50 @@ public class Launcher extends SubsystemBase {
   }
 
   private static class BallisticObject {
-    Translation3d position;
-    Translation3d velocity;
+    double px, py, pz;
+    double vx, vy, vz;
+    double targetHeight;
 
-    BallisticObject(Translation3d position, Translation3d velocity) {
-      this.position = position;
-      this.velocity = velocity;
+    BallisticObject(Translation3d position, Translation3d velocity, Distance targetHeight) {
+      this.px = position.getX();
+      this.py = position.getY();
+      this.pz = position.getZ();
+      this.vx = velocity.getX();
+      this.vy = velocity.getY();
+      this.vz = velocity.getZ();
+      this.targetHeight = targetHeight.in(Meters);
+    }
+
+    private Translation3d getPosition() {
+      return new Translation3d(px, py, pz);
     }
   }
 
-  private void updateBallisticsSim(ArrayList<BallisticObject> traj, String key) {
-    double dt = Robot.defaultPeriodSecs;
-    double hubZ = 0;
+  private void updateBallisticsSim(
+      ArrayList<BallisticObject> traj, String key, double dt, boolean log) {
 
-    traj.removeIf(
-        o -> {
-          // Integrate velocity
-          o.velocity = o.velocity.plus(new Translation3d(0, 0, -g * dt));
+    for (int i = traj.size() - 1; i >= 0; i--) {
+      BallisticObject o = traj.get(i);
 
-          // Integrate position
-          o.position = o.position.plus(o.velocity.times(dt));
+      o.vz -= g * dt;
+      o.px += o.vx * dt;
+      o.py += o.vy * dt;
+      o.pz += o.vz * dt;
 
-          // Remove when below target height and falling
-          return o.position.getZ() < hubZ && o.velocity.getZ() < 0;
-        });
+      if (o.pz < o.targetHeight && o.vz < 0) {
+        traj.remove(i);
+      }
+    }
 
-    Logger.recordOutput("Launcher/" + key + "/FuelTrajectory", getBallTrajectory(traj));
+    if (log) {
+      Logger.recordOutput("Launcher/" + key + "/FuelTrajectory", getBallTrajectory(traj));
+    }
   }
 
   public Translation3d[] getBallTrajectory(ArrayList<BallisticObject> traj) {
     Translation3d[] t = new Translation3d[traj.size()];
     for (int i = 0; i < traj.size(); i++) {
-      t[i] = traj.get(i).position;
+      t[i] = traj.get(i).getPosition();
     }
     return t;
   }
