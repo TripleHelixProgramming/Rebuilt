@@ -183,13 +183,22 @@ public class Launcher extends SubsystemBase {
     double vy = chassisSpeeds.vyMetersPerSecond;
     double omega = chassisSpeeds.omegaRadiansPerSecond;
 
-    Translation2d r = new Translation2d(chassisToTurretBase.getX(), chassisToTurretBase.getY());
-    Translation2d v_offset = new Translation2d(-omega * r.getY(), omega * r.getX());
-    Translation2d v_base_field = new Translation2d(vx, vy).plus(v_offset.rotateBy(rotation));
+    double rx = chassisToTurretBase.getX();
+    double ry = chassisToTurretBase.getY();
 
-    Translation3d baseSpeeds = new Translation3d(v_base_field.getX(), v_base_field.getY(), 0);
+    double offX = -omega * ry;
+    double offY = omega * rx;
+
+    double cos = rotation.getCos();
+    double sin = rotation.getSin();
+
+    double baseVx = vx + offX * cos - offY * sin;
+    double baseVy = vy + offX * sin + offY * cos;
+
+    var baseSpeeds = new Translation3d(baseVx, baseVy, 0);
 
     Logger.recordOutput("Launcher/BaseSpeeds", baseSpeeds);
+
     return baseSpeeds;
   }
 
@@ -319,17 +328,16 @@ public class Launcher extends SubsystemBase {
   private void updateBallisticsSim(ArrayList<BallisticObject> traj, String key) {
     double dt = Robot.defaultPeriodSecs;
 
-    traj.removeIf(
-        o -> {
-          // Integrate velocity
-          o.velocity = o.velocity.plus(new Translation3d(0, 0, -g * dt));
+    for (int i = traj.size() - 1; i >= 0; i--) {
+      BallisticObject o = traj.get(i);
 
-          // Integrate position
-          o.position = o.position.plus(o.velocity.times(dt));
+      o.velocity = o.velocity.plus(new Translation3d(0, 0, -g * dt));
+      o.position = o.position.plus(o.velocity.times(dt));
 
-          // Remove when below target height and falling
-          return o.position.getMeasureZ().lt(o.targetHeight) && o.velocity.getZ() < 0;
-        });
+      if (o.position.getMeasureZ().lt(o.targetHeight) && o.velocity.getZ() < 0) {
+        traj.remove(i);
+      }
+    }
 
     Logger.recordOutput("Launcher/" + key + "/FuelTrajectory", getBallTrajectory(traj));
   }
