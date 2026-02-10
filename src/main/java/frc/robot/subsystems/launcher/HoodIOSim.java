@@ -102,7 +102,7 @@ public class HoodIOSim implements HoodIO {
 
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
-    double setpoint = MathUtil.inputModulus(rotation.getRadians(), 0.0, 2.0 * Math.PI);
+    double setpoint = MathUtil.clamp(rotation.getRadians(), minValue, maxValue);
     double feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)

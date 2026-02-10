@@ -117,7 +117,7 @@ public final class LauncherConstants {
   }
 
   public static final class HoodConstants {
-    // Absolute encoder
+    // Relative encoder
     public static final double encoderPositionFactor = 2 * Math.PI; // Radians
     public static final double encoderVelocityFactor = (2 * Math.PI) / 60.0; // Rad/sec
 

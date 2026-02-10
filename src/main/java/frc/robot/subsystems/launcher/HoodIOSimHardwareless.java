@@ -61,7 +61,7 @@ public class HoodIOSimHardwareless implements HoodIO {
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
     closedLoop = true;
-    var setpoint = MathUtil.clamp(rotation.getRadians(), minValue, maxValue);
+    double setpoint = MathUtil.clamp(rotation.getRadians(), minValue, maxValue);
     this.feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
