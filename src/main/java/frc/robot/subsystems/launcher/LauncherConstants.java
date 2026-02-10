@@ -11,13 +11,11 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
+import frc.robot.Constants;
 import frc.robot.Constants.MotorConstants.KrakenX60Constants;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
 
 public final class LauncherConstants {
-
-  // Feature flags
-  public static final Boolean logFuelTrajectories = true;
 
   // Geometry
   public static final Rotation2d impactAngle = Rotation2d.fromDegrees(50);
@@ -25,10 +23,44 @@ public final class LauncherConstants {
   public static final Distance ceilingHeight = Feet.of(11).plus(Inches.of(2));
   public static final double g = 9.81;
 
-  // For logging
-  public static final double fuelSpawnPeriod = 0.1; // seconds
-  public static final double ballisticSimPeriod = 0.05; // 20 Hz sim
-  public static final double ballisticLogPeriod = 0.10; // 10 Hz logging
+  // Logging / simulation periods
+  public static final boolean logFuelTrajectories;
+  public static final double fuelSpawnPeriod;
+  public static final double ballisticSimPeriod;
+  public static final double ballisticLogPeriod;
+
+  static {
+    switch (Constants.currentMode) {
+      case REAL -> {
+        logFuelTrajectories = true;
+        fuelSpawnPeriod = 0.2;
+        ballisticSimPeriod = 0.1;
+        ballisticLogPeriod = 0.25;
+      }
+
+      case SIM -> {
+        logFuelTrajectories = true;
+        fuelSpawnPeriod = 0.1;
+        ballisticSimPeriod = 0.05;
+        ballisticLogPeriod = 0.1;
+      }
+
+      case REPLAY -> {
+        logFuelTrajectories = false;
+        fuelSpawnPeriod = 0.0;
+        ballisticSimPeriod = 0.0;
+        ballisticLogPeriod = 0.0;
+      }
+
+      default -> {
+        logFuelTrajectories = true;
+        fuelSpawnPeriod = 0.1;
+        ballisticSimPeriod = 0.05;
+        ballisticLogPeriod = 0.1;
+      }
+    }
+  }
+
   public static final String nominalKey = "Nominal";
   public static final String replannedKey = "Replanned";
   public static final String actualKey = "Actual";

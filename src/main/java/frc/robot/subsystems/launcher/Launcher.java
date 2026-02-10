@@ -85,24 +85,26 @@ public class Launcher extends SubsystemBase {
     hoodDisconnectedAlert.set(!hoodInputs.connected);
 
     // Update and plot ball trajectories
-    double dt = Robot.defaultPeriodSecs;
+    if (logFuelTrajectories) {
+      double dt = Robot.defaultPeriodSecs;
 
-    ballisticSimTimer += dt;
-    ballisticLogTimer += dt;
+      ballisticSimTimer += dt;
+      ballisticLogTimer += dt;
 
-    boolean doSim = ballisticSimTimer >= ballisticSimPeriod;
-    boolean doLog = ballisticLogTimer >= ballisticLogPeriod;
+      boolean doSim = ballisticSimTimer >= ballisticSimPeriod;
+      boolean doLog = ballisticLogTimer >= ballisticLogPeriod;
 
-    if (doSim) {
-      ballisticSimTimer = 0.0;
+      if (doSim) {
+        ballisticSimTimer = 0.0;
 
-      updateBallisticsSim(fuelNominal, nominalKey, ballisticSimPeriod, doLog);
-      updateBallisticsSim(fuelReplanned, replannedKey, ballisticSimPeriod, doLog);
-      updateBallisticsSim(fuelActual, actualKey, ballisticSimPeriod, doLog);
-    }
+        updateBallisticsSim(fuelNominal, nominalKey, ballisticSimPeriod, doLog);
+        updateBallisticsSim(fuelReplanned, replannedKey, ballisticSimPeriod, doLog);
+        updateBallisticsSim(fuelActual, actualKey, ballisticSimPeriod, doLog);
+      }
 
-    if (doLog) {
-      ballisticLogTimer = 0.0;
+      if (doLog) {
+        ballisticLogTimer = 0.0;
+      }
     }
   }
 
