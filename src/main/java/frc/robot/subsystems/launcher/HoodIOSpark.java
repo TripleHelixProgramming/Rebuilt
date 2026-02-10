@@ -4,8 +4,8 @@ import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.*;
 import static frc.robot.util.SparkUtil.*;
 
-import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.PersistMode;
+import com.revrobotics.RelativeEncoder;
 import com.revrobotics.ResetMode;
 import com.revrobotics.spark.ClosedLoopSlot;
 import com.revrobotics.spark.FeedbackSensor;
@@ -28,14 +28,15 @@ import java.util.function.DoubleSupplier;
 public class HoodIOSpark implements HoodIO {
 
   private final SparkBase hoodSpark;
-  private final AbsoluteEncoder hoodEncoder;
+  private final RelativeEncoder encoderSpark;
   private final SparkClosedLoopController hoodController;
   private final Debouncer turnConnectedDebounce =
       new Debouncer(0.5, Debouncer.DebounceType.kFalling);
+  private boolean relatvieEncoderSeeded = false;
 
   public HoodIOSpark() {
     hoodSpark = new SparkMax(CAN2.hood, MotorType.kBrushless);
-    hoodEncoder = hoodSpark.getAbsoluteEncoder();
+    encoderSpark = hoodSpark.getEncoder();
     hoodController = hoodSpark.getClosedLoopController();
 
     var hoodConfig = new SparkMaxConfig();
@@ -47,13 +48,18 @@ public class HoodIOSpark implements HoodIO {
         .voltageCompensation(RobotConstants.kNominalVoltage);
 
     hoodConfig
-        .absoluteEncoder
-        .inverted(false)
+        .encoder
         .positionConversionFactor(encoderPositionFactor)
-        .velocityConversionFactor(encoderVelocityFactor)
-        .averageDepth(2);
+        .velocityConversionFactor(encoderVelocityFactor);
 
     hoodConfig.closedLoop.feedbackSensor(FeedbackSensor.kAbsoluteEncoder).pid(kPReal, 0.0, 0.0);
+
+    hoodConfig
+        .softLimit
+        .forwardSoftLimit(maxValue)
+        .forwardSoftLimitEnabled(true)
+        .reverseSoftLimit(minValue)
+        .reverseSoftLimitEnabled(true);
 
     hoodConfig
         .signals
@@ -75,9 +81,14 @@ public class HoodIOSpark implements HoodIO {
 
   @Override
   public void updateInputs(HoodIOInputs inputs) {
+    if (!relatvieEncoderSeeded) {
+      encoderSpark.setPosition(maxValue);
+      relatvieEncoderSeeded = true;
+    }
+
     sparkStickyFault = false;
-    ifOk(hoodSpark, hoodEncoder::getPosition, (value) -> inputs.position = new Rotation2d(value));
-    ifOk(hoodSpark, hoodEncoder::getVelocity, (value) -> inputs.velocityRadPerSec = value);
+    ifOk(hoodSpark, encoderSpark::getPosition, (value) -> inputs.position = new Rotation2d(value));
+    ifOk(hoodSpark, encoderSpark::getVelocity, (value) -> inputs.velocityRadPerSec = value);
     ifOk(
         hoodSpark,
         new DoubleSupplier[] {hoodSpark::getAppliedOutput, hoodSpark::getBusVoltage},

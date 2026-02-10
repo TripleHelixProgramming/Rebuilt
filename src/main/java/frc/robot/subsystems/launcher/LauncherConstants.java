@@ -8,6 +8,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
@@ -122,6 +123,8 @@ public final class LauncherConstants {
 
     // Position controller
     public static final double kPReal = 0.35;
+    public static final double minValue = Units.degreesToRadians(60);
+    public static final double maxValue = Units.degreesToRadians(80);
 
     // Motor controller
     public static final double motorReduction = 2.75;
