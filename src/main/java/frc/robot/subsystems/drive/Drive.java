@@ -83,6 +83,7 @@ public class Drive extends SubsystemBase {
   private final SwerveModuleState[] emptyModuleStates = new SwerveModuleState[] {};
   private SwerveModulePosition[] modulePositions = new SwerveModulePosition[4];
   private SwerveModulePosition[] moduleDeltas = new SwerveModulePosition[4];
+  private ChassisSpeeds chassisSpeeds;
 
   // PID controllers for following Choreo trajectories
   private final PIDController xController = new PIDController(5.0, 0.0, 0.0);
@@ -201,6 +202,8 @@ public class Drive extends SubsystemBase {
 
       // Apply update
       visionPose.updateWithTime(sampleTimestamps[i], rawGyroRotation, modulePositions);
+
+      chassisSpeeds = kinematics.toChassisSpeeds(getModuleStates());
     }
 
     // Update gyro alert
@@ -307,7 +310,7 @@ public class Drive extends SubsystemBase {
   /** Returns the measured chassis speeds of the robot. */
   @AutoLogOutput(key = "SwerveChassisSpeeds/Measured")
   public ChassisSpeeds getRobotRelativeChassisSpeeds() {
-    return kinematics.toChassisSpeeds(getModuleStates());
+    return chassisSpeeds;
   }
 
   /** Returns the position of each module in radians. */

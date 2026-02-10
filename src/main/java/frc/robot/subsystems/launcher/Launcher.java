@@ -143,10 +143,11 @@ public class Launcher extends SubsystemBase {
         turretInputs.relativePosition.plus(turretBasePose.toPose2d().getRotation());
 
     // Build actual velocities
+    double hoodCos = hoodPosition.getCos();
     Translation3d v0_actual =
         new Translation3d(
-                hoodPosition.getCos() * turretPosition.getCos(),
-                hoodPosition.getCos() * turretPosition.getSin(),
+                hoodCos * turretPosition.getCos(),
+                hoodCos * turretPosition.getSin(),
                 hoodPosition.getSin())
             .times(flywheelSpeed.in(MetersPerSecond))
             .plus(v_base);
