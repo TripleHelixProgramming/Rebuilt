@@ -27,6 +27,8 @@ public final class LauncherConstants {
 
   // For logging
   public static final double fuelSpawnPeriod = 0.1; // seconds
+  public static final double ballisticSimPeriod = 0.05; // 20 Hz sim
+  public static final double ballisticLogPeriod = 0.10; // 10 Hz logging
   public static final String nominalKey = "Nominal";
   public static final String replannedKey = "Replanned";
   public static final String actualKey = "Actual";

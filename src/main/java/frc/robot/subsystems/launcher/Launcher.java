@@ -49,6 +49,8 @@ public class Launcher extends SubsystemBase {
   private final ArrayList<BallisticObject> fuelReplanned = new ArrayList<>();
   private final ArrayList<BallisticObject> fuelActual = new ArrayList<>();
   private double fuelSpawnTimer = 0.0;
+  private double ballisticSimTimer = 0.0;
+  private double ballisticLogTimer = 0.0;
 
   public Launcher(
       Supplier<Pose2d> chassisPoseSupplier,
@@ -83,9 +85,25 @@ public class Launcher extends SubsystemBase {
     hoodDisconnectedAlert.set(!hoodInputs.connected);
 
     // Update and plot ball trajectories
-    updateBallisticsSim(fuelNominal, nominalKey);
-    updateBallisticsSim(fuelReplanned, replannedKey);
-    updateBallisticsSim(fuelActual, actualKey);
+    double dt = Robot.defaultPeriodSecs;
+
+    ballisticSimTimer += dt;
+    ballisticLogTimer += dt;
+
+    boolean doSim = ballisticSimTimer >= ballisticSimPeriod;
+    boolean doLog = ballisticLogTimer >= ballisticLogPeriod;
+
+    if (doSim) {
+      ballisticSimTimer = 0.0;
+
+      updateBallisticsSim(fuelNominal, nominalKey, ballisticSimPeriod, doLog);
+      updateBallisticsSim(fuelReplanned, replannedKey, ballisticSimPeriod, doLog);
+      updateBallisticsSim(fuelActual, actualKey, ballisticSimPeriod, doLog);
+    }
+
+    if (doLog) {
+      ballisticLogTimer = 0.0;
+    }
   }
 
   public void stop() {
@@ -330,8 +348,8 @@ public class Launcher extends SubsystemBase {
     }
   }
 
-  private void updateBallisticsSim(ArrayList<BallisticObject> traj, String key) {
-    double dt = Robot.defaultPeriodSecs;
+  private void updateBallisticsSim(
+      ArrayList<BallisticObject> traj, String key, double dt, boolean log) {
 
     for (int i = traj.size() - 1; i >= 0; i--) {
       BallisticObject o = traj.get(i);
@@ -346,7 +364,9 @@ public class Launcher extends SubsystemBase {
       }
     }
 
-    Logger.recordOutput("Launcher/" + key + "/FuelTrajectory", getBallTrajectory(traj));
+    if (log) {
+      Logger.recordOutput("Launcher/" + key + "/FuelTrajectory", getBallTrajectory(traj));
+    }
   }
 
   public Translation3d[] getBallTrajectory(ArrayList<BallisticObject> traj) {
