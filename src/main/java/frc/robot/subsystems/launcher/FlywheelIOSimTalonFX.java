@@ -17,7 +17,6 @@ import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.sim.ChassisReference;
 import com.ctre.phoenix6.sim.TalonFXSimState.MotorType;
-
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.math.util.Units;
@@ -67,7 +66,8 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
     flywheelMotorSim.Orientation = ChassisReference.Clockwise_Positive;
     flywheelMotorSim.setMotorType(MotorType.KrakenX60);
 
-    flywheelSim = new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
+    flywheelSim =
+        new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
 
     flywheelVelocity = flywheelLeaderTalon.getVelocity();
     flywheelAppliedVolts = flywheelLeaderTalon.getMotorVoltage();
