@@ -25,6 +25,8 @@ import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.subsystems.vision.VisionIO.PoseObservation;
+import frc.robot.util.VisionThread;
+import frc.robot.util.VisionThread.VisionInputs;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -46,6 +48,7 @@ public class Vision extends SubsystemBase {
   private final VisionConsumer consumer;
   private final Supplier<Pose2d> chassisPoseSupplier;
   private final VisionIO[] io;
+  private final VisionInputs[] visionInputs;
   private final VisionIOInputsAutoLogged[] inputs;
   private final Alert[] disconnectedAlerts;
 
@@ -79,7 +82,13 @@ public class Vision extends SubsystemBase {
     this.chassisPoseSupplier = chassisPoseSupplier;
     this.io = io;
 
-    // Initialize inputs
+    // Register each VisionIO with VisionThread for background polling
+    this.visionInputs = new VisionInputs[io.length];
+    for (int i = 0; i < io.length; i++) {
+      visionInputs[i] = VisionThread.getInstance().registerVisionIO(io[i]);
+    }
+
+    // Initialize inputs for AdvantageKit logging
     this.inputs = new VisionIOInputsAutoLogged[io.length];
     for (int i = 0; i < inputs.length; i++) {
       inputs[i] = new VisionIOInputsAutoLogged();
@@ -106,7 +115,8 @@ public class Vision extends SubsystemBase {
   @Override
   public void periodic() {
     for (int i = 0; i < io.length; i++) {
-      io[i].updateInputs(inputs[i]);
+      // Copy cached inputs from background thread to inputs for AdvantageKit logging
+      visionInputs[i].getSnapshot().copyTo(inputs[i]);
       Logger.processInputs("Vision/Camera" + Integer.toString(i), inputs[i]);
     }
 
@@ -241,11 +251,11 @@ public class Vision extends SubsystemBase {
       EnumMap<VisionTest, Double> testResults,
       double score) {}
 
-  // Caching for AprilTag layout
-  public static AprilTagFieldLayout cachedLayout = null;
+  // Caching for AprilTag layout (volatile for thread-safe lazy initialization)
+  private static volatile AprilTagFieldLayout cachedLayout = null;
 
-  /** Returns the AprilTag layout to use, loading it if necessary. */
-  public static AprilTagFieldLayout getAprilTagLayout() {
+  /** Returns the AprilTag layout to use, loading it if necessary. Thread-safe. */
+  public static synchronized AprilTagFieldLayout getAprilTagLayout() {
     if (cachedLayout == null) {
       // Try to load custom layout only if requested and not connected to FMS
       if (useCustomAprilTagLayout && !DriverStation.isFMSAttached()) {

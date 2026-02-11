@@ -56,6 +56,7 @@ import frc.robot.subsystems.vision.VisionIO;
 import frc.robot.subsystems.vision.VisionIOPhotonVision;
 import frc.robot.subsystems.vision.VisionIOPhotonVisionSim;
 import frc.robot.util.SparkOdometryThread;
+import frc.robot.util.VisionThread;
 import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
@@ -207,8 +208,9 @@ public class Robot extends LoggedRobot {
         break;
     }
 
-    // Start the SparkMax background thread (for non-blocking CAN reads)
+    // Start background threads (for non-blocking CAN/network reads)
     SparkOdometryThread.getInstance().start();
+    VisionThread.getInstance().start();
 
     // Start AdvantageKit logger
     Logger.start();
