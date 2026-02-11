@@ -32,24 +32,24 @@ import frc.robot.subsystems.drive.DriveConstants;
 import frc.robot.subsystems.drive.GyroIO;
 import frc.robot.subsystems.drive.GyroIOBoron;
 import frc.robot.subsystems.drive.ModuleIO;
-import frc.robot.subsystems.drive.ModuleIOSim;
+import frc.robot.subsystems.drive.ModuleIOSimWPI;
 import frc.robot.subsystems.drive.ModuleIOTalonFX;
 import frc.robot.subsystems.feeder.Feeder;
 import frc.robot.subsystems.feeder.KickerIO;
-import frc.robot.subsystems.feeder.KickerIOSim;
+import frc.robot.subsystems.feeder.KickerIOSimSpark;
 import frc.robot.subsystems.feeder.SpindexerIO;
-import frc.robot.subsystems.feeder.SpindexerIOSim;
+import frc.robot.subsystems.feeder.SpindexerIOSimSpark;
 import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.intake.IntakeRollerIO;
-import frc.robot.subsystems.intake.IntakeRollerIOSim;
+import frc.robot.subsystems.intake.IntakeRollerIOSimTalonFX;
 import frc.robot.subsystems.launcher.FlywheelIO;
-import frc.robot.subsystems.launcher.FlywheelIOSim;
+import frc.robot.subsystems.launcher.FlywheelIOSimWPI;
 import frc.robot.subsystems.launcher.HoodIO;
-import frc.robot.subsystems.launcher.HoodIOSim;
-import frc.robot.subsystems.launcher.HoodIOSimHardwareless;
+import frc.robot.subsystems.launcher.HoodIOSimSpark;
+import frc.robot.subsystems.launcher.HoodIOSimWPI;
 import frc.robot.subsystems.launcher.Launcher;
 import frc.robot.subsystems.launcher.TurretIO;
-import frc.robot.subsystems.launcher.TurretIOSim;
+import frc.robot.subsystems.launcher.TurretIOSimSpark;
 import frc.robot.subsystems.launcher.TurretIOSpark;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionIO;
@@ -129,8 +129,8 @@ public class Robot extends LoggedRobot {
                 drive::getPose,
                 drive::getRobotRelativeChassisSpeeds,
                 new TurretIOSpark(),
-                new FlywheelIOSim(),
-                new HoodIOSimHardwareless());
+                new FlywheelIOSimWPI(),
+                new HoodIOSimWPI());
         intake = new Intake(new IntakeRollerIO() {});
         feeder = new Feeder(new SpindexerIO() {}, new KickerIO() {});
         break;
@@ -143,10 +143,10 @@ public class Robot extends LoggedRobot {
         drive =
             new Drive(
                 new GyroIO() {},
-                new ModuleIOSim(DriveConstants.FrontLeft),
-                new ModuleIOSim(DriveConstants.FrontRight),
-                new ModuleIOSim(DriveConstants.BackLeft),
-                new ModuleIOSim(DriveConstants.BackRight));
+                new ModuleIOSimWPI(DriveConstants.FrontLeft),
+                new ModuleIOSimWPI(DriveConstants.FrontRight),
+                new ModuleIOSimWPI(DriveConstants.BackLeft),
+                new ModuleIOSimWPI(DriveConstants.BackRight));
         vision =
             new Vision(
                 drive::addVisionMeasurement,
@@ -163,11 +163,11 @@ public class Robot extends LoggedRobot {
             new Launcher(
                 drive::getPose,
                 drive::getRobotRelativeChassisSpeeds,
-                new TurretIOSim(),
-                new FlywheelIOSim(),
-                new HoodIOSim());
-        feeder = new Feeder(new SpindexerIOSim(), new KickerIOSim());
-        intake = new Intake(new IntakeRollerIOSim());
+                new TurretIOSimSpark(),
+                new FlywheelIOSimWPI(),
+                new HoodIOSimSpark());
+        feeder = new Feeder(new SpindexerIOSimSpark(), new KickerIOSimSpark());
+        intake = new Intake(new IntakeRollerIOSimTalonFX());
         break;
 
       case REPLAY: // Replaying a log
