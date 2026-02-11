@@ -141,11 +141,9 @@ public class SparkOdometryThread {
     notifier.setName("SparkOdometryThread");
   }
 
-  /** Starts the background thread. Call after all devices are registered. */
+  /** Starts the background thread. */
   public void start() {
-    if (!registeredInputs.isEmpty()) {
-      notifier.startPeriodic(1.0 / UPDATE_FREQUENCY_HZ);
-    }
+    notifier.startPeriodic(1.0 / UPDATE_FREQUENCY_HZ);
   }
 
   /**
