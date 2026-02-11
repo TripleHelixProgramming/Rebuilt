@@ -8,6 +8,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
@@ -116,12 +117,14 @@ public final class LauncherConstants {
   }
 
   public static final class HoodConstants {
-    // Absolute encoder
+    // Relative encoder
     public static final double encoderPositionFactor = 2 * Math.PI; // Radians
     public static final double encoderVelocityFactor = (2 * Math.PI) / 60.0; // Rad/sec
 
     // Position controller
     public static final double kPReal = 0.35;
+    public static final double minValue = Units.degreesToRadians(60);
+    public static final double maxValue = Units.degreesToRadians(80);
 
     // Motor controller
     public static final double motorReduction = 2.75;

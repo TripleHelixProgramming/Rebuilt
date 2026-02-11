@@ -24,6 +24,8 @@ public class HoodIOSimHardwareless implements HoodIO {
   public HoodIOSimHardwareless() {
     hoodSim =
         new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
+
+    hoodSim.setState(maxValue, 0.0);
   }
 
   @Override
@@ -59,10 +61,11 @@ public class HoodIOSimHardwareless implements HoodIO {
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
     closedLoop = true;
+    double setpoint = MathUtil.clamp(rotation.getRadians(), minValue, maxValue);
     this.feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
-    positionController.setSetpoint(rotation.getRadians());
+    positionController.setSetpoint(setpoint);
   }
 }

@@ -45,13 +45,18 @@ public class HoodIOSim implements HoodIO {
         .voltageCompensation(RobotConstants.kNominalVoltage);
 
     hoodConfig
-        .absoluteEncoder
-        .inverted(false)
+        .encoder
         .positionConversionFactor(encoderPositionFactor)
-        .velocityConversionFactor(encoderVelocityFactor)
-        .averageDepth(2);
+        .velocityConversionFactor(encoderVelocityFactor);
 
     hoodConfig.closedLoop.feedbackSensor(FeedbackSensor.kAbsoluteEncoder).pid(kPSim, 0.0, kDSim);
+
+    hoodConfig
+        .softLimit
+        .forwardSoftLimit(maxValue)
+        .forwardSoftLimitEnabled(true)
+        .reverseSoftLimit(minValue)
+        .reverseSoftLimitEnabled(true);
 
     hoodConfig
         .signals
@@ -68,6 +73,8 @@ public class HoodIOSim implements HoodIO {
 
     hoodSim =
         new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
+
+    hoodSim.setState(maxValue, 0);
   }
 
   @Override
@@ -95,7 +102,7 @@ public class HoodIOSim implements HoodIO {
 
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
-    double setpoint = MathUtil.inputModulus(rotation.getRadians(), 0.0, 2.0 * Math.PI);
+    double setpoint = MathUtil.clamp(rotation.getRadians(), minValue, maxValue);
     double feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
