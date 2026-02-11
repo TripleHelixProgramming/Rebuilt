@@ -13,7 +13,6 @@
 
 package frc.robot.subsystems.drive;
 
-import static edu.wpi.first.units.Units.Meters;
 import static frc.robot.subsystems.drive.DriveConstants.*;
 
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -61,7 +60,7 @@ public class Module {
     int sampleCount = inputs.odometryTimestamps.length; // All signals are sampled together
     odometryPositions = new SwerveModulePosition[sampleCount];
     for (int i = 0; i < sampleCount; i++) {
-      double positionMeters = inputs.odometryDrivePositionsRad[i] * wheelRadius.in(Meters);
+      double positionMeters = inputs.odometryDrivePositionsRad[i] * wheelRadiusMeters;
       Rotation2d angle = inputs.odometryTurnPositions[i];
       odometryPositions[i] = new SwerveModulePosition(positionMeters, angle);
     }
@@ -78,7 +77,7 @@ public class Module {
     state.cosineScale(inputs.turnPosition);
 
     // Apply setpoints
-    io.setDriveVelocity(state.speedMetersPerSecond / wheelRadius.in(Meters));
+    io.setDriveVelocity(state.speedMetersPerSecond / wheelRadiusMeters);
     io.setTurnPosition(state.angle);
   }
 
@@ -101,12 +100,12 @@ public class Module {
 
   /** Returns the current drive position of the module in meters. */
   public double getPositionMeters() {
-    return inputs.drivePositionRad * wheelRadius.in(Meters);
+    return inputs.drivePositionRad * wheelRadiusMeters;
   }
 
   /** Returns the current drive velocity of the module in meters per second. */
   public double getVelocityMetersPerSec() {
-    return inputs.driveVelocityRadPerSec * wheelRadius.in(Meters);
+    return inputs.driveVelocityRadPerSec * wheelRadiusMeters;
   }
 
   /** Returns the module position (turn angle and drive position). */
