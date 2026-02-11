@@ -15,6 +15,7 @@ package frc.robot.subsystems.drive;
 
 import static frc.robot.subsystems.drive.DriveConstants.*;
 
+import com.ctre.phoenix6.BaseStatusSignal;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
@@ -148,5 +149,10 @@ public class Module {
   /** Refreshes the status signals (if applicable) before updating inputs. */
   public void refreshSignals() {
     io.refreshSignals();
+  }
+
+  /** Returns the status signals for batched refresh. */
+  public BaseStatusSignal[] getStatusSignals() {
+    return io.getStatusSignals();
   }
 }
