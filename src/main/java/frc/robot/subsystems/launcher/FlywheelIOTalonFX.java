@@ -1,5 +1,6 @@
 package frc.robot.subsystems.launcher;
 
+import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static frc.robot.subsystems.launcher.LauncherConstants.FlywheelConstants.*;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
@@ -8,13 +9,13 @@ import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
+import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.math.filter.Debouncer;
-import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Voltage;
@@ -29,7 +30,7 @@ public class FlywheelIOTalonFX implements FlywheelIO {
 
   // Voltage control requests
   private final VoltageOut voltageRequest = new VoltageOut(0);
-  // private final VelocityVoltage velocityVoltageRequest = new VelocityVoltage(0.0);
+  private final VelocityVoltage velocityVoltageRequest = new VelocityVoltage(0.0);
 
   // Torque-current control requests
   //   private final TorqueCurrentFOC torqueCurrentRequest = new TorqueCurrentFOC(0);
@@ -71,24 +72,20 @@ public class FlywheelIOTalonFX implements FlywheelIO {
 
   @Override
   public void updateInputs(FlywheelIOInputs inputs) {
-    BaseStatusSignal.refreshAll(
-            flywheelVelocity,
-            flywheelAppliedVolts,
-            flywheelCurrent,
-            flywheelVelocity,
-            flywheelAppliedVolts,
-            flywheelCurrent)
-        .isOK();
-
-    inputs.appliedVolts = flywheelAppliedVolts.getValueAsDouble();
     inputs.connected =
         flywheelConnectedDebounce.calculate(
-            flywheelAppliedVolts.getStatus().isOK()
-                && flywheelCurrent.getStatus().isOK()
-                && flywheelVelocity.getStatus().isOK());
+            BaseStatusSignal.refreshAll(
+                    flywheelVelocity,
+                    flywheelAppliedVolts,
+                    flywheelCurrent,
+                    flywheelVelocity,
+                    flywheelAppliedVolts,
+                    flywheelCurrent)
+                .isOK());
+
+    inputs.appliedVolts = flywheelAppliedVolts.getValueAsDouble();
     inputs.currentAmps = flywheelCurrent.getValueAsDouble();
-    inputs.velocityRadPerSec =
-        Units.rotationsToRadians(flywheelVelocity.getValueAsDouble()) / gearboxRatio;
+    inputs.velocityRadPerSec = flywheelVelocity.getValue().in(RadiansPerSecond) / motorReduction;
   }
 
   @Override
@@ -98,6 +95,6 @@ public class FlywheelIOTalonFX implements FlywheelIO {
 
   @Override
   public void setVelocity(AngularVelocity angularVelocity) {
-    flywheelLeaderTalon.setControl(velocityTorqueCurrentRequest.withVelocity(angularVelocity));
+    flywheelLeaderTalon.setControl(velocityVoltageRequest.withVelocity(angularVelocity));
   }
 }

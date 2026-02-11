@@ -93,7 +93,6 @@ public final class LauncherConstants {
 
   public static final class FlywheelConstants {
     public static final Distance wheelRadius = Inches.of(1.5);
-    public static final double gearboxRatio = 1.0;
 
     // Velocity Controller
     public static final Slot0Configs flywheelGains =
