@@ -26,9 +26,9 @@ public class IntakeConstants {
             .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign);
 
     // motor controller
-    public static final double motorReudction = 1.0;
+    public static final double motorReduction = 1.0;
     public static final AngularVelocity maxAngularVelocity =
-        KrakenX60Constants.kFreeSpeed.div(motorReudction);
+        KrakenX60Constants.kFreeSpeed.div(motorReduction);
 
     // simulation
     public static final DCMotor gearbox = DCMotor.getKrakenX60(1);

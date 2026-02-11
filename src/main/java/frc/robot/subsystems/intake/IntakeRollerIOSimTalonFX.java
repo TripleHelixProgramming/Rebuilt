@@ -74,8 +74,8 @@ public class IntakeRollerIOSimTalonFX implements IntakeRollerIO {
     intakeRollerSim.setInput(intakeMotorSim.getMotorVoltageMeasure().in(Volts));
     intakeRollerSim.update(Robot.defaultPeriodSecs);
     intakeMotorSim.setRawRotorPosition(
-        intakeRollerSim.getAngularPositionRotations() * motorReudction);
-    intakeMotorSim.setRotorVelocity(intakeRollerSim.getAngularVelocityRPM() * motorReudction);
+        intakeRollerSim.getAngularPositionRotations() * motorReduction);
+    intakeMotorSim.setRotorVelocity(intakeRollerSim.getAngularVelocityRPM() * motorReduction);
 
     BaseStatusSignal.refreshAll(intakeVelocity, intakeAppliedVolts, intakeCurrent).isOK();
 
