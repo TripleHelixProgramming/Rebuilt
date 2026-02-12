@@ -20,9 +20,9 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
-import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants.CANBusPorts.CAN2;
+import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
 
 public class IntakeRollerIOSimTalonFX implements IntakeRollerIO {
@@ -75,7 +75,7 @@ public class IntakeRollerIOSimTalonFX implements IntakeRollerIO {
 
     // Update simulation state
     var intakeMotorSim = intakeMotor.getSimState();
-    intakeMotorSim.setSupplyVoltage(RobotController.getBatteryVoltage());
+    intakeMotorSim.setSupplyVoltage(RobotConstants.kNominalVoltage);
     intakeRollerSim.setInput(intakeMotorSim.getMotorVoltage());
     intakeRollerSim.update(Robot.defaultPeriodSecs);
     intakeMotorSim.setRawRotorPosition(

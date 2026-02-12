@@ -22,9 +22,9 @@ import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Voltage;
-import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants.CANBusPorts.CAN2;
+import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
 
 public class FlywheelIOSimTalonFX implements FlywheelIO {
@@ -94,7 +94,7 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
 
     // Update simulation state
     var flywheelMotorSim = flywheelLeaderTalon.getSimState();
-    flywheelMotorSim.setSupplyVoltage(RobotController.getBatteryVoltage());
+    flywheelMotorSim.setSupplyVoltage(RobotConstants.kNominalVoltage);
     flywheelSim.setInput(flywheelMotorSim.getMotorVoltage());
     flywheelSim.update(Robot.defaultPeriodSecs);
     flywheelMotorSim.setRawRotorPosition(

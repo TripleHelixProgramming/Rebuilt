@@ -43,7 +43,6 @@ import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.intake.IntakeRollerIO;
 import frc.robot.subsystems.intake.IntakeRollerIOSimTalonFX;
 import frc.robot.subsystems.launcher.FlywheelIO;
-import frc.robot.subsystems.launcher.FlywheelIOSimTalonFX;
 import frc.robot.subsystems.launcher.FlywheelIOSimWPI;
 import frc.robot.subsystems.launcher.HoodIO;
 import frc.robot.subsystems.launcher.HoodIOSimSpark;
@@ -165,7 +164,7 @@ public class Robot extends LoggedRobot {
                 drive::getPose,
                 drive::getRobotRelativeChassisSpeeds,
                 new TurretIOSimSpark(),
-                new FlywheelIOSimTalonFX(),
+                new FlywheelIOSimWPI(),
                 new HoodIOSimSpark());
         feeder = new Feeder(new SpindexerIOSimSpark(), new KickerIOSimSpark());
         intake = new Intake(new IntakeRollerIOSimTalonFX());

@@ -15,6 +15,7 @@ import edu.wpi.first.units.measure.Distance;
 import frc.robot.Constants;
 import frc.robot.Constants.MotorConstants.KrakenX60Constants;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
+import frc.robot.Constants.RobotConstants;
 
 public final class LauncherConstants {
 
@@ -95,20 +96,20 @@ public final class LauncherConstants {
     public static final Distance wheelRadius = Inches.of(1.5);
 
     // Velocity Controller
-    public static final Slot0Configs flywheelGains =
-        new Slot0Configs()
-            .withKP(1.0)
-            .withKI(0.0)
-            .withKD(1.0)
-            .withKS(0.0)
-            .withKV(0.0)
-            .withKA(0.0)
-            .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign);
 
     // Motor controller
     public static final double motorReduction = 1.0;
     public static final AngularVelocity maxAngularVelocity =
         KrakenX60Constants.kFreeSpeed.div(motorReduction);
+    public static final Slot0Configs flywheelGains =
+        new Slot0Configs()
+            .withKP(1.0)
+            .withKI(0.0)
+            .withKD(0.05)
+            .withKS(0.0)
+            .withKV(RobotConstants.kNominalVoltage / maxAngularVelocity.in(RotationsPerSecond))
+            .withKA(0.0)
+            .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign);
 
     // Simulation
     public static final double kPSim = 0.1;
