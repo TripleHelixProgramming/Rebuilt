@@ -9,7 +9,7 @@ import static frc.robot.util.PhoenixUtil.tryUntilOk;
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
+import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
@@ -25,8 +25,9 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
   private final TalonFXConfiguration config;
 
   private final VoltageOut voltageRequest = new VoltageOut(0);
-  private final VelocityTorqueCurrentFOC velocityTorqueCurrentRequest =
-      new VelocityTorqueCurrentFOC(0.0);
+  private final VelocityVoltage velocityVoltageRequest = new VelocityVoltage(0.0);
+  // private final VelocityTorqueCurrentFOC velocityTorqueCurrentRequest =
+  //     new VelocityTorqueCurrentFOC(0.0);
 
   // Inputs from intake motor
   private final StatusSignal<AngularVelocity> intakeVelocity;
@@ -69,8 +70,11 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
 
   @Override
   public void setVelocity(LinearVelocity tangentialVelocity) {
-    var angularVelocity =
-        RadiansPerSecond.of(tangentialVelocity.in(MetersPerSecond) / rollerRadius.in(Meters));
-    intakeMotor.setControl(velocityTorqueCurrentRequest.withVelocity(angularVelocity));
+    intakeMotor.setControl(
+        velocityVoltageRequest.withVelocity(
+            RadiansPerSecond.of(
+                tangentialVelocity.in(MetersPerSecond)
+                    * motorReduction
+                    / rollerRadius.in(Meters))));
   }
 }
