@@ -4,8 +4,8 @@ import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.*;
 import static frc.robot.util.SparkUtil.*;
 
-import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.PersistMode;
+import com.revrobotics.RelativeEncoder;
 import com.revrobotics.ResetMode;
 import com.revrobotics.spark.ClosedLoopSlot;
 import com.revrobotics.spark.FeedbackSensor;
@@ -29,15 +29,16 @@ import frc.robot.util.SparkOdometryThread.SparkInputs;
 public class HoodIOSpark implements HoodIO {
 
   private final SparkBase hoodSpark;
-  private final AbsoluteEncoder hoodEncoder;
+  private final RelativeEncoder encoderSpark;
   private final SparkClosedLoopController hoodController;
   private final SparkInputs sparkInputs;
 
   private final Debouncer connectedDebounce = new Debouncer(0.5, Debouncer.DebounceType.kFalling);
+  private boolean relatvieEncoderSeeded = false;
 
   public HoodIOSpark() {
     hoodSpark = new SparkMax(CAN2.hood, MotorType.kBrushless);
-    hoodEncoder = hoodSpark.getAbsoluteEncoder();
+    encoderSpark = hoodSpark.getEncoder();
     hoodController = hoodSpark.getClosedLoopController();
 
     var hoodConfig = new SparkMaxConfig();
@@ -49,13 +50,18 @@ public class HoodIOSpark implements HoodIO {
         .voltageCompensation(RobotConstants.kNominalVoltage);
 
     hoodConfig
-        .absoluteEncoder
-        .inverted(false)
+        .encoder
         .positionConversionFactor(encoderPositionFactor)
-        .velocityConversionFactor(encoderVelocityFactor)
-        .averageDepth(2);
+        .velocityConversionFactor(encoderVelocityFactor);
 
     hoodConfig.closedLoop.feedbackSensor(FeedbackSensor.kAbsoluteEncoder).pid(kPReal, 0.0, 0.0);
+
+    hoodConfig
+        .softLimit
+        .forwardSoftLimit(maxValue)
+        .forwardSoftLimitEnabled(true)
+        .reverseSoftLimit(minValue)
+        .reverseSoftLimitEnabled(true);
 
     hoodConfig
         .signals
@@ -80,6 +86,11 @@ public class HoodIOSpark implements HoodIO {
 
   @Override
   public void updateInputs(HoodIOInputs inputs) {
+    if (!relatvieEncoderSeeded) {
+      encoderSpark.setPosition(maxValue);
+      relatvieEncoderSeeded = true;
+    }
+
     // Read from cached values (non-blocking) - updated by SparkOdometryThread
     inputs.position = new Rotation2d(sparkInputs.getPosition());
     inputs.velocityRadPerSec = sparkInputs.getVelocity();
@@ -95,7 +106,7 @@ public class HoodIOSpark implements HoodIO {
 
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
-    double setpoint = MathUtil.inputModulus(rotation.getRadians(), 0.0, 2.0 * Math.PI);
+    double setpoint = MathUtil.clamp(rotation.getRadians(), minValue, maxValue);
     double feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
