@@ -55,7 +55,6 @@ import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionIO;
 import frc.robot.subsystems.vision.VisionIOPhotonVision;
 import frc.robot.subsystems.vision.VisionIOPhotonVisionSim;
-
 import frc.robot.util.CanandgyroThread;
 import frc.robot.util.SparkOdometryThread;
 import frc.robot.util.VisionThread;
