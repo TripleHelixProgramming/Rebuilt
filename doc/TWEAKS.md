@@ -13,6 +13,7 @@ This document describes all changes made on the `performance-tweaks` branch. The
 7. [Pre-computed wheelRadiusMeters](#7-pre-computed-wheelradiusmeters-in-driveconstants)
 8. [IntakeRollerIOTalonFX Fix](#8-intakerolleriotalonfx-fix)
 9. [SmartDashboard.putData Optimization](#9-smartdashboardputdata-moved-to-robot-constructor)
+10. [Gotchas and Considerations](#gotchas-and-considerations)
 
 ---
 
@@ -336,3 +337,146 @@ All changes fall into these categories:
 | **Bug fix** | IntakeRollerIOTalonFX | Replace incorrect `setUpdateFrequencyForAll` with correct `refreshAll`. |
 
 None of these changes alter the logical behavior of the robot code - they all produce identical values through more efficient means.
+
+---
+
+## Gotchas and Considerations
+
+This section describes potential issues to be aware of when working with the background-threaded I/O system.
+
+### 1. Data Latency (Up to 10-20ms Stale)
+
+| Thread | Update Rate | Max Staleness |
+|--------|-------------|---------------|
+| SparkOdometryThread | 100Hz | 10ms |
+| CanandgyroThread | 100Hz | 10ms |
+| VisionThread | 50Hz | 20ms |
+
+**Impact:** Control loops reading from cached values may be working with slightly old data. For the **hood and turret** (slow-moving mechanisms), 10ms latency is negligible. For **vision pose estimation**, the timestamps are already used to account for latency, so this shouldn't cause issues.
+
+**No changes needed** for typical FRC control loops.
+
+---
+
+### 2. First-Loop Initialization Race
+
+The background threads start **after** subsystem construction but the first `update()` hasn't run yet. Initial cached values are:
+
+```java
+private volatile double position = 0.0;
+private volatile double velocity = 0.0;
+private volatile boolean connected = true;  // Optimistically true!
+```
+
+**Impact:** For the first ~10-20ms after boot, subsystems will read zero position/velocity while `isConnected()` returns `true`.
+
+**Mitigation:** The Debouncer in HoodIOSpark/TurretIOSpark (0.5s falling edge) prevents spurious disconnection alerts. Position/velocity at zero for one loop iteration is unlikely to cause control issues since mechanisms start at rest anyway.
+
+**Consider:** If you add a new Spark-based subsystem that needs accurate initial readings (e.g., for homing), you may need to add explicit "first reading received" logic.
+
+---
+
+### 3. Non-Atomic Multi-Field Reads
+
+Each field is `volatile`, but reading multiple fields is **not atomic**:
+
+```java
+// These could be from different update cycles!
+inputs.position = new Rotation2d(sparkInputs.getPosition());
+inputs.velocityRadPerSec = sparkInputs.getVelocity();
+```
+
+**Impact:** Position might be from cycle N while velocity is from cycle N+1. At 100Hz updates, this represents a ~10ms inconsistency in the worst case.
+
+**In practice:** For hood/turret control, this is negligible. The position and velocity of these mechanisms don't change drastically in 10ms.
+
+**If you need atomicity:** You would need to add a snapshot pattern (like VisionThread uses) or a lock around reads. Currently not needed for hood/turret.
+
+---
+
+### 4. Persistent CAN Errors = Stale Data
+
+In `SparkInputs.update()`:
+
+```java
+if (ok) {
+  position = pos;
+  // ... update values
+}
+connected = ok;  // Always updated
+```
+
+**Impact:** If CAN communication fails persistently, `isConnected()` becomes `false`, but `getPosition()` returns the **last good value**. The Debouncer delays marking disconnected by 0.5s.
+
+**This is acceptable behavior** - returning stale data is better than returning garbage or crashing. The `connected` flag lets you detect and handle this.
+
+**Be aware:** Don't assume position is valid just because it's non-zero. Check `isConnected()` if you need to know data freshness.
+
+---
+
+### 5. Lock Held During I/O (VisionThread)
+
+```java
+private void periodic() {
+  lock.lock();
+  try {
+    for (VisionInputs inputs : registeredInputs) {
+      inputs.update();  // <-- This does network I/O while holding lock!
+    }
+  } finally {
+    lock.unlock();
+  }
+}
+```
+
+**Impact:** If you call `registerVisionIO()` at runtime (unlikely), it will block until all cameras finish their network calls.
+
+**In practice:** Registration only happens during construction, before the thread starts. No issue for normal use.
+
+---
+
+### 6. Simulation Mode Works Differently
+
+In simulation:
+- `HoodIOSim`, `TurretIOSim` are used instead of `HoodIOSpark`, `TurretIOSpark`
+- The Sim classes **do not register** with SparkOdometryThread
+- They read directly from physics simulation, no caching
+
+**This is correct behavior** - simulation doesn't need background threading since there's no real CAN latency.
+
+**Be aware:** If you test threading logic, you must test on real hardware or mock the threading behavior explicitly.
+
+---
+
+### 7. High-Frequency Odometry Unaffected
+
+The swerve drive odometry uses `PhoenixOdometryThread` (250Hz) for TalonFX motors, which is **unchanged**. The `GyroIOBoron` still registers yaw samples with `PhoenixOdometryThread` for high-frequency odometry:
+
+```java
+yawPositionQueue = PhoenixOdometryThread.getInstance().makeTimestampQueue();
+yawPositionQueue = PhoenixOdometryThread.getInstance().registerSignal(canandgyro::getYaw);
+```
+
+The new `CanandgyroThread` only caches the periodic `updateInputs()` values (connected, calibrating, etc.), **not** the odometry samples.
+
+**No impact on pose estimation accuracy.**
+
+---
+
+### Summary: Do You Need to Change Anything?
+
+**For typical robot operation: No.**
+
+The changes are designed to be transparent. Subsystems read the same values through a different mechanism.
+
+**Situations where you might need changes:**
+
+| Scenario | Consideration |
+|----------|---------------|
+| Adding a new Spark subsystem | Register with `SparkOdometryThread.getInstance().registerSpark()` in the IO constructor |
+| Need immediate accurate readings at boot | Add explicit "initialized" flag and wait for first update |
+| Debugging timing issues | Log `sparkInputs.getTimestamp()` to see data age |
+| Very fast control loops (>100Hz) | Spark data updates at 100Hz max - may need to increase `UPDATE_FREQUENCY_HZ` |
+| AdvantageKit log replay | Background threads still run but IO implementations are replaced - should work fine |
+
+The main conceptual shift is: **CAN/network reads are now asynchronous.** You're always reading "recent" data rather than "current" data. For FRC applications with 20ms loop periods, this distinction is rarely meaningful.
