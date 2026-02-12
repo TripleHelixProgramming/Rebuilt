@@ -89,13 +89,7 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
   public void updateInputs(FlywheelIOInputs inputs) {
     inputs.connected =
         flywheelConnectedDebounce.calculate(
-            BaseStatusSignal.refreshAll(
-                    flywheelVelocity,
-                    flywheelAppliedVolts,
-                    flywheelCurrent,
-                    flywheelVelocity,
-                    flywheelAppliedVolts,
-                    flywheelCurrent)
+            BaseStatusSignal.refreshAll(flywheelVelocity, flywheelAppliedVolts, flywheelCurrent)
                 .isOK());
 
     // Update simulation state

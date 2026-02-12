@@ -74,13 +74,7 @@ public class FlywheelIOTalonFX implements FlywheelIO {
   public void updateInputs(FlywheelIOInputs inputs) {
     inputs.connected =
         flywheelConnectedDebounce.calculate(
-            BaseStatusSignal.refreshAll(
-                    flywheelVelocity,
-                    flywheelAppliedVolts,
-                    flywheelCurrent,
-                    flywheelVelocity,
-                    flywheelAppliedVolts,
-                    flywheelCurrent)
+            BaseStatusSignal.refreshAll(flywheelVelocity, flywheelAppliedVolts, flywheelCurrent)
                 .isOK());
 
     inputs.appliedVolts = flywheelAppliedVolts.getValueAsDouble();

@@ -225,8 +225,7 @@ public class Robot extends LoggedRobot {
             .withName("Aim at hub"));
 
     feeder.setDefaultCommand(Commands.run(feeder::spinForward, feeder).withName("Spin forward"));
-
-    intake.setDefaultCommand(Commands.run(intake::intake, intake).withName("Intake Command"));
+    intake.setDefaultCommand(Commands.run(intake::intakeFuel, intake).withName("Intake fuel"));
 
     SmartDashboard.putData(CommandScheduler.getInstance());
     SmartDashboard.putData(drive);

@@ -11,15 +11,14 @@ import frc.robot.Constants.MotorConstants.KrakenX60Constants;
 
 public class IntakeConstants {
   public class IntakeRoller {
-    public static final double gearboxRatio = 1.0;
-    public static final Distance rollerRadius = Inches.of(3.0);
+    public static final Distance rollerRadius = Inches.of(0.75);
 
     // gains
     public static final Slot0Configs intakeGains =
         new Slot0Configs()
-            .withKP(1.0)
+            .withKP(0.1)
             .withKI(0.0)
-            .withKD(1.0)
+            .withKD(0.05)
             .withKS(0.0)
             .withKV(0.0)
             .withKA(0.0)
