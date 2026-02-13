@@ -2,7 +2,7 @@ package frc.robot.subsystems.feeder;
 
 import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.MetersPerSecond;
-import static frc.robot.subsystems.feeder.FeederConstants.KickerConstants.*;
+import static frc.robot.subsystems.feeder.FeederConstants.SpindexerConstants.*;
 
 import com.revrobotics.PersistMode;
 import com.revrobotics.ResetMode;
@@ -23,16 +23,16 @@ import frc.robot.Constants.MotorConstants.NEOVortexConstants;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
 
-public class KickerIOSim implements KickerIO {
+public class SpindexerIOSimSpark implements SpindexerIO {
 
-  private final DCMotorSim kickerSim;
+  private final DCMotorSim spindexerSim;
 
   private final SparkFlex flex;
   private final SparkClosedLoopController controller;
   private final SparkFlexSim flexSim;
 
-  public KickerIOSim() {
-    flex = new SparkFlex(CAN2.kicker, MotorType.kBrushless);
+  public SpindexerIOSimSpark() {
+    flex = new SparkFlex(CAN2.spindexer, MotorType.kBrushless);
     controller = flex.getClosedLoopController();
 
     var config = new SparkFlexConfig();
@@ -52,17 +52,17 @@ public class KickerIOSim implements KickerIO {
     flex.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     flexSim = new SparkFlexSim(flex, gearbox);
 
-    kickerSim =
+    spindexerSim =
         new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
   }
 
   @Override
-  public void updateInputs(KickerIOInputs inputs) {
+  public void updateInputs(SpindexerIOInputs inputs) {
     // Update simulation state
-    kickerSim.setInput(flexSim.getAppliedOutput() * RobotConstants.kNominalVoltage);
-    kickerSim.update(Robot.defaultPeriodSecs);
+    spindexerSim.setInput(flexSim.getAppliedOutput() * RobotConstants.kNominalVoltage);
+    spindexerSim.update(Robot.defaultPeriodSecs);
     flexSim.iterate(
-        kickerSim.getAngularVelocityRadPerSec(),
+        spindexerSim.getAngularVelocityRadPerSec(),
         RobotConstants.kNominalVoltage,
         Robot.defaultPeriodSecs);
 

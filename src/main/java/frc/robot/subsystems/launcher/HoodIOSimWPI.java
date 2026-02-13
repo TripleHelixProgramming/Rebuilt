@@ -12,7 +12,7 @@ import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
 
-public class HoodIOSimHardwareless implements HoodIO {
+public class HoodIOSimWPI implements HoodIO {
 
   private final DCMotorSim hoodSim;
 
@@ -21,7 +21,7 @@ public class HoodIOSimHardwareless implements HoodIO {
   private double appliedVolts = 0.0;
   private double feedforwardVolts = 0.0;
 
-  public HoodIOSimHardwareless() {
+  public HoodIOSimWPI() {
     hoodSim =
         new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
 

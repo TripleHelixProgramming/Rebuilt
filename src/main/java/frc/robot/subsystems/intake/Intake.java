@@ -33,7 +33,7 @@ public class Intake extends SubsystemBase {
     io.setOpenLoop(0.0);
   }
 
-  public void intake() {
+  public void intakeFuel() {
     io.setVelocity(MetersPerSecond.of(1.0));
   }
 }

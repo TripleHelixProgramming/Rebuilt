@@ -2,7 +2,7 @@ package frc.robot.subsystems.feeder;
 
 import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.MetersPerSecond;
-import static frc.robot.subsystems.feeder.FeederConstants.SpindexerConstants.*;
+import static frc.robot.subsystems.feeder.FeederConstants.KickerConstants.*;
 
 import com.revrobotics.PersistMode;
 import com.revrobotics.ResetMode;
@@ -23,16 +23,16 @@ import frc.robot.Constants.MotorConstants.NEOVortexConstants;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
 
-public class SpindexerIOSim implements SpindexerIO {
+public class KickerIOSimSpark implements KickerIO {
 
-  private final DCMotorSim spindexerSim;
+  private final DCMotorSim kickerSim;
 
   private final SparkFlex flex;
   private final SparkClosedLoopController controller;
   private final SparkFlexSim flexSim;
 
-  public SpindexerIOSim() {
-    flex = new SparkFlex(CAN2.spindexer, MotorType.kBrushless);
+  public KickerIOSimSpark() {
+    flex = new SparkFlex(CAN2.kicker, MotorType.kBrushless);
     controller = flex.getClosedLoopController();
 
     var config = new SparkFlexConfig();
@@ -52,17 +52,17 @@ public class SpindexerIOSim implements SpindexerIO {
     flex.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     flexSim = new SparkFlexSim(flex, gearbox);
 
-    spindexerSim =
+    kickerSim =
         new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
   }
 
   @Override
-  public void updateInputs(SpindexerIOInputs inputs) {
+  public void updateInputs(KickerIOInputs inputs) {
     // Update simulation state
-    spindexerSim.setInput(flexSim.getAppliedOutput() * RobotConstants.kNominalVoltage);
-    spindexerSim.update(Robot.defaultPeriodSecs);
+    kickerSim.setInput(flexSim.getAppliedOutput() * RobotConstants.kNominalVoltage);
+    kickerSim.update(Robot.defaultPeriodSecs);
     flexSim.iterate(
-        spindexerSim.getAngularVelocityRadPerSec(),
+        kickerSim.getAngularVelocityRadPerSec(),
         RobotConstants.kNominalVoltage,
         Robot.defaultPeriodSecs);
 

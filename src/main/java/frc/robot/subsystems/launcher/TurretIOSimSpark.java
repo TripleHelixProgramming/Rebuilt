@@ -25,7 +25,7 @@ import frc.robot.Constants.MotorConstants.NEO550Constants;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
 
-public class TurretIOSim implements TurretIO {
+public class TurretIOSimSpark implements TurretIO {
 
   private final DCMotorSim turnSim;
 
@@ -33,7 +33,7 @@ public class TurretIOSim implements TurretIO {
   private final SparkClosedLoopController controller;
   private final SparkMaxSim turnSparkSim;
 
-  public TurretIOSim() {
+  public TurretIOSimSpark() {
     turnSpark = new SparkMax(CAN2.turret, MotorType.kBrushless);
     controller = turnSpark.getClosedLoopController();
 

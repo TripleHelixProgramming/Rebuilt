@@ -9,11 +9,12 @@ import static frc.robot.util.PhoenixUtil.tryUntilOk;
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
+import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
+import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.LinearVelocity;
@@ -23,10 +24,12 @@ import frc.robot.Constants.CANBusPorts.CAN2;
 public class IntakeRollerIOTalonFX implements IntakeRollerIO {
   private final TalonFX intakeMotor;
   private final TalonFXConfiguration config;
+  private final Debouncer connectedDebounce = new Debouncer(0.5, Debouncer.DebounceType.kFalling);
 
   private final VoltageOut voltageRequest = new VoltageOut(0);
-  private final VelocityTorqueCurrentFOC velocityTorqueCurrentRequest =
-      new VelocityTorqueCurrentFOC(0.0);
+  private final VelocityVoltage velocityVoltageRequest = new VelocityVoltage(0.0);
+  // private final VelocityTorqueCurrentFOC velocityTorqueCurrentRequest =
+  //     new VelocityTorqueCurrentFOC(0.0);
 
   // Inputs from intake motor
   private final StatusSignal<AngularVelocity> intakeVelocity;
@@ -51,15 +54,14 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
 
   @Override
   public void updateInputs(IntakeRollerIOInputs inputs) {
-    var status = BaseStatusSignal.refreshAll(intakeVelocity, intakeAppliedVolts, intakeCurrent);
-    if (!status.isOK()) {
-      return;
-    }
+    inputs.connected =
+        connectedDebounce.calculate(
+            BaseStatusSignal.refreshAll(intakeVelocity, intakeAppliedVolts, intakeCurrent).isOK());
+
     inputs.appliedVolts = intakeAppliedVolts.getValueAsDouble();
-    inputs.connected = intakeMotor.isConnected();
     inputs.currentAmps = intakeCurrent.getValueAsDouble();
     inputs.velocityMetersPerSec =
-        intakeVelocity.getValueAsDouble() * rollerRadius.in(Meters) * (2 * Math.PI);
+        intakeVelocity.getValue().in(RadiansPerSecond) * rollerRadius.in(Meters) / motorReduction;
   }
 
   @Override
@@ -69,8 +71,11 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
 
   @Override
   public void setVelocity(LinearVelocity tangentialVelocity) {
-    var angularVelocity =
-        RadiansPerSecond.of(tangentialVelocity.in(MetersPerSecond) / rollerRadius.in(Meters));
-    intakeMotor.setControl(velocityTorqueCurrentRequest.withVelocity(angularVelocity));
+    intakeMotor.setControl(
+        velocityVoltageRequest.withVelocity(
+            RadiansPerSecond.of(
+                tangentialVelocity.in(MetersPerSecond)
+                    * motorReduction
+                    / rollerRadius.in(Meters))));
   }
 }
