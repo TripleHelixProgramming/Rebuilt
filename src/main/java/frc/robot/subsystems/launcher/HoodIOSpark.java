@@ -58,9 +58,9 @@ public class HoodIOSpark implements HoodIO {
 
     hoodConfig
         .softLimit
-        .forwardSoftLimit(maxValue)
+        .forwardSoftLimit(maxPosRad)
         .forwardSoftLimitEnabled(true)
-        .reverseSoftLimit(minValue)
+        .reverseSoftLimit(minPosRad)
         .reverseSoftLimitEnabled(true);
 
     hoodConfig
@@ -87,7 +87,7 @@ public class HoodIOSpark implements HoodIO {
   @Override
   public void updateInputs(HoodIOInputs inputs) {
     if (!relatvieEncoderSeeded) {
-      encoderSpark.setPosition(maxValue);
+      encoderSpark.setPosition(maxPosRad);
       relatvieEncoderSeeded = true;
     }
 
@@ -106,7 +106,7 @@ public class HoodIOSpark implements HoodIO {
 
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
-    double setpoint = MathUtil.clamp(rotation.getRadians(), minValue, maxValue);
+    double setpoint = MathUtil.clamp(rotation.getRadians(), minPosRad, maxPosRad);
     double feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
