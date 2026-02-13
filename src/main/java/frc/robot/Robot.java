@@ -33,7 +33,6 @@ import frc.robot.subsystems.drive.GyroIO;
 import frc.robot.subsystems.drive.GyroIOBoron;
 import frc.robot.subsystems.drive.ModuleIO;
 import frc.robot.subsystems.drive.ModuleIOSimWPI;
-import frc.robot.subsystems.drive.ModuleIOTalonFX;
 import frc.robot.subsystems.feeder.Feeder;
 import frc.robot.subsystems.feeder.KickerIO;
 import frc.robot.subsystems.feeder.KickerIOSimSpark;
@@ -54,7 +53,6 @@ import frc.robot.subsystems.launcher.TurretIOSimSpark;
 import frc.robot.subsystems.launcher.TurretIOSpark;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionIO;
-import frc.robot.subsystems.vision.VisionIOPhotonVision;
 import frc.robot.subsystems.vision.VisionIOPhotonVisionSim;
 import frc.robot.util.CanandgyroThread;
 import frc.robot.util.SparkOdometryThread;
@@ -116,18 +114,22 @@ public class Robot extends LoggedRobot {
         drive =
             new Drive(
                 new GyroIOBoron(),
-                new ModuleIOTalonFX(DriveConstants.FrontLeft),
-                new ModuleIOTalonFX(DriveConstants.FrontRight),
-                new ModuleIOTalonFX(DriveConstants.BackLeft),
-                new ModuleIOTalonFX(DriveConstants.BackRight));
+                new ModuleIOSimWPI(DriveConstants.FrontLeft),
+                new ModuleIOSimWPI(DriveConstants.FrontRight),
+                new ModuleIOSimWPI(DriveConstants.BackLeft),
+                new ModuleIOSimWPI(DriveConstants.BackRight));
         vision =
             new Vision(
                 drive::addVisionMeasurement,
                 drive::getPose,
-                new VisionIOPhotonVision(cameraFrontRightName, robotToFrontRightCamera),
-                new VisionIOPhotonVision(cameraFrontLeftName, robotToFrontLeftCamera),
-                new VisionIOPhotonVision(cameraBackRightName, robotToBackRightCamera),
-                new VisionIOPhotonVision(cameraBackLeftName, robotToBackLeftCamera));
+                new VisionIOPhotonVisionSim(
+                    cameraFrontRightName, robotToFrontRightCamera, drive::getPose),
+                new VisionIOPhotonVisionSim(
+                    cameraFrontLeftName, robotToFrontLeftCamera, drive::getPose),
+                new VisionIOPhotonVisionSim(
+                    cameraBackRightName, robotToBackRightCamera, drive::getPose),
+                new VisionIOPhotonVisionSim(
+                    cameraBackLeftName, robotToBackLeftCamera, drive::getPose));
         launcher =
             new Launcher(
                 drive::getPose,
