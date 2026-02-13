@@ -25,7 +25,7 @@ public class HoodIOSimWPI implements HoodIO {
     hoodSim =
         new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
 
-    hoodSim.setState(maxValue, 0.0);
+    hoodSim.setState(maxPosRad, 0.0);
   }
 
   @Override
@@ -61,7 +61,7 @@ public class HoodIOSimWPI implements HoodIO {
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
     closedLoop = true;
-    double setpoint = MathUtil.clamp(rotation.getRadians(), minValue, maxValue);
+    double setpoint = MathUtil.clamp(rotation.getRadians(), minPosRad, maxPosRad);
     this.feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)

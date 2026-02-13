@@ -8,7 +8,6 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
@@ -117,22 +116,23 @@ public final class LauncherConstants {
   }
 
   public static final class HoodConstants {
-    // Relative encoder
-    public static final double encoderPositionFactor = 2 * Math.PI; // Radians
-    public static final double encoderVelocityFactor = (2 * Math.PI) / 60.0; // Rad/sec
-
     // Position controller
     public static final double kPReal = 0.35;
-    public static final double minValue = Units.degreesToRadians(60);
-    public static final double maxValue = Units.degreesToRadians(80);
+    public static final Angle minPosition = Degrees.of(60);
+    public static final Angle maxPosition = Degrees.of(80);
+    public static final double minPosRad = minPosition.in(Radians);
+    public static final double maxPosRad = maxPosition.in(Radians);
 
     // Motor controller
-    public static final double motorReduction = 2.75;
+    public static final double motorReduction = 5.0 * 256.0 / 16.0;
     public static final AngularVelocity maxAngularVelocity =
         NEO550Constants.kFreeSpeed.div(motorReduction);
+    public static final double encoderPositionFactor = 2 * Math.PI / motorReduction; // Radians
+    public static final double encoderVelocityFactor =
+        (2 * Math.PI) / (60.0 * motorReduction); // Rad/sec
 
     // Simulation
-    public static final double kPSim = 0.2;
+    public static final double kPSim = 1.5;
     public static final double kDSim = 0.05;
     public static final DCMotor gearbox = DCMotor.getNeo550(1);
   }
