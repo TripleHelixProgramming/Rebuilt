@@ -7,7 +7,6 @@ import static frc.robot.subsystems.feeder.FeederConstants.KickerConstants.*;
 import com.revrobotics.PersistMode;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.ResetMode;
-import com.revrobotics.sim.SparkFlexSim;
 import com.revrobotics.spark.ClosedLoopSlot;
 import com.revrobotics.spark.FeedbackSensor;
 import com.revrobotics.spark.SparkBase.ControlType;
@@ -16,15 +15,12 @@ import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkFlexConfig;
-import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.LinearVelocity;
-import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.NEOVortexConstants;
+import frc.robot.Constants.RobotConstants;
 import frc.robot.util.SparkOdometryThread;
 import frc.robot.util.SparkOdometryThread.SparkInputs;
-import frc.robot.Constants.RobotConstants;
-import frc.robot.Robot;
 
 public class KickerIOSpark implements KickerIO {
 
@@ -68,7 +64,8 @@ public class KickerIOSpark implements KickerIO {
 
   @Override
   public void setOpenLoop(double output) {
-    flex.setVoltage(output);;
+    flex.setVoltage(output);
+    ;
   }
 
   @Override

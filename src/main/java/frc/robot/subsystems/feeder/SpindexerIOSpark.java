@@ -18,9 +18,9 @@ import com.revrobotics.spark.config.SparkFlexConfig;
 import edu.wpi.first.units.measure.LinearVelocity;
 import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.NEOVortexConstants;
+import frc.robot.Constants.RobotConstants;
 import frc.robot.util.SparkOdometryThread;
 import frc.robot.util.SparkOdometryThread.SparkInputs;
-import frc.robot.Constants.RobotConstants;
 
 public class SpindexerIOSpark implements SpindexerIO {
 
@@ -65,7 +65,8 @@ public class SpindexerIOSpark implements SpindexerIO {
 
   @Override
   public void setOpenLoop(double output) {
-    flex.setVoltage(output);;
+    flex.setVoltage(output);
+    ;
   }
 
   @Override
