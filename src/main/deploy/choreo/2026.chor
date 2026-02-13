@@ -1,5 +1,5 @@
 {
- "name":"offseason-2025",
+ "name":"2026",
  "version":2,
  "type":"Swerve",
  "variables":{
@@ -9,22 +9,22 @@
  "config":{
   "frontLeft":{
    "x":{
-    "exp":"13.5 in",
-    "val":0.3429
+    "exp":"11.25 in",
+    "val":0.28575
    },
    "y":{
-    "exp":"10.5 in",
-    "val":0.2667
+    "exp":"9.75 in",
+    "val":0.24765
    }
   },
   "backLeft":{
    "x":{
-    "exp":"-13.5 in",
-    "val":-0.3429
+    "exp":"-11.25 in",
+    "val":-0.28575
    },
    "y":{
-    "exp":"10.5 in",
-    "val":0.2667
+    "exp":"9.75 in",
+    "val":0.24765
    }
   },
   "mass":{
@@ -57,16 +57,16 @@
   },
   "bumper":{
    "front":{
-    "exp":"20.25 in",
-    "val":0.51435
+    "exp":"17.938 in",
+    "val":0.4556251999999999
    },
    "side":{
-    "exp":"17 in",
-    "val":0.4318
+    "exp":"16.438 in",
+    "val":0.41752519999999993
    },
    "back":{
-    "exp":"20.25 in",
-    "val":0.51435
+    "exp":"17.938 in",
+    "val":0.4556251999999999
    }
   },
   "differentialTrackWidth":{

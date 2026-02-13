@@ -53,8 +53,8 @@ import frc.robot.Constants.MotorConstants.KrakenX60Constants;
 public class DriveConstants {
 
   // Robot physical dimensions
-  public static final Distance wheelBase = Inches.of(27);
-  public static final Distance trackWidth = Inches.of(21);
+  public static final Distance wheelBase = Inches.of(22.5);
+  public static final Distance trackWidth = Inches.of(19.5);
   public static final Translation2d[] moduleTranslations =
       new Translation2d[] {
         new Translation2d(wheelBase.div(2.0), trackWidth.div(2.0)),
