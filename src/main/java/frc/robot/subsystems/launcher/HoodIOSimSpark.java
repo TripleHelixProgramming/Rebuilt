@@ -53,9 +53,9 @@ public class HoodIOSimSpark implements HoodIO {
 
     hoodConfig
         .softLimit
-        .forwardSoftLimit(maxValue)
+        .forwardSoftLimit(maxPosRad)
         .forwardSoftLimitEnabled(true)
-        .reverseSoftLimit(minValue)
+        .reverseSoftLimit(minPosRad)
         .reverseSoftLimitEnabled(true);
 
     hoodConfig
@@ -74,7 +74,8 @@ public class HoodIOSimSpark implements HoodIO {
     hoodSim =
         new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
 
-    hoodSim.setState(maxValue, 0);
+    hoodSim.setState(maxPosRad, 0);
+    maxSim.setPosition(maxPosRad);
   }
 
   @Override
@@ -102,7 +103,7 @@ public class HoodIOSimSpark implements HoodIO {
 
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
-    double setpoint = MathUtil.clamp(rotation.getRadians(), minValue, maxValue);
+    double setpoint = MathUtil.clamp(rotation.getRadians(), minPosRad, maxPosRad);
     double feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
