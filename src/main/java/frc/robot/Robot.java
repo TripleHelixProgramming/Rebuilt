@@ -56,6 +56,9 @@ import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionIO;
 import frc.robot.subsystems.vision.VisionIOPhotonVision;
 import frc.robot.subsystems.vision.VisionIOPhotonVisionSim;
+import frc.robot.util.CanandgyroThread;
+import frc.robot.util.SparkOdometryThread;
+import frc.robot.util.VisionThread;
 import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
@@ -207,6 +210,11 @@ public class Robot extends LoggedRobot {
         break;
     }
 
+    // Start background threads (for non-blocking CAN/network reads)
+    SparkOdometryThread.getInstance().start();
+    VisionThread.getInstance().start();
+    CanandgyroThread.getInstance().start();
+
     // Start AdvantageKit logger
     Logger.start();
 
@@ -216,6 +224,12 @@ public class Robot extends LoggedRobot {
     SmartDashboard.putData(
         "Align Encoders",
         new InstantCommand(() -> drive.zeroAbsoluteEncoders()).ignoringDisable(true));
+    SmartDashboard.putData(CommandScheduler.getInstance());
+    SmartDashboard.putData(drive);
+    SmartDashboard.putData(vision);
+    SmartDashboard.putData(launcher);
+    SmartDashboard.putData(feeder);
+    SmartDashboard.putData(intake);
     SmartDashboard.putData("Field", field);
     Field.plotRegions();
 
@@ -223,16 +237,8 @@ public class Robot extends LoggedRobot {
         Commands.run(
                 () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()), launcher)
             .withName("Aim at hub"));
-
     feeder.setDefaultCommand(Commands.run(feeder::spinForward, feeder).withName("Spin forward"));
     intake.setDefaultCommand(Commands.run(intake::intakeFuel, intake).withName("Intake fuel"));
-
-    SmartDashboard.putData(CommandScheduler.getInstance());
-    SmartDashboard.putData(drive);
-    SmartDashboard.putData(vision);
-    SmartDashboard.putData(launcher);
-    SmartDashboard.putData(feeder);
-    SmartDashboard.putData(intake);
   }
 
   /** This function is called periodically during all modes. */

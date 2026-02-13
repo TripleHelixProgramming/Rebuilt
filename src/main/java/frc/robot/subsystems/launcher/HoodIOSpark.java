@@ -23,15 +23,17 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
 import frc.robot.Constants.RobotConstants;
-import java.util.function.DoubleSupplier;
+import frc.robot.util.SparkOdometryThread;
+import frc.robot.util.SparkOdometryThread.SparkInputs;
 
 public class HoodIOSpark implements HoodIO {
 
   private final SparkBase hoodSpark;
   private final RelativeEncoder encoderSpark;
   private final SparkClosedLoopController hoodController;
-  private final Debouncer turnConnectedDebounce =
-      new Debouncer(0.5, Debouncer.DebounceType.kFalling);
+  private final SparkInputs sparkInputs;
+
+  private final Debouncer connectedDebounce = new Debouncer(0.5, Debouncer.DebounceType.kFalling);
   private boolean relatvieEncoderSeeded = false;
 
   public HoodIOSpark() {
@@ -77,6 +79,9 @@ public class HoodIOSpark implements HoodIO {
         () ->
             hoodSpark.configure(
                 hoodConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters));
+
+    // Register with background thread for non-blocking CAN reads
+    sparkInputs = SparkOdometryThread.getInstance().registerSpark(hoodSpark, encoderSpark);
   }
 
   @Override
@@ -86,15 +91,12 @@ public class HoodIOSpark implements HoodIO {
       relatvieEncoderSeeded = true;
     }
 
-    sparkStickyFault = false;
-    ifOk(hoodSpark, encoderSpark::getPosition, (value) -> inputs.position = new Rotation2d(value));
-    ifOk(hoodSpark, encoderSpark::getVelocity, (value) -> inputs.velocityRadPerSec = value);
-    ifOk(
-        hoodSpark,
-        new DoubleSupplier[] {hoodSpark::getAppliedOutput, hoodSpark::getBusVoltage},
-        (values) -> inputs.appliedVolts = values[0] * values[1]);
-    ifOk(hoodSpark, hoodSpark::getOutputCurrent, (value) -> inputs.currentAmps = value);
-    inputs.connected = turnConnectedDebounce.calculate(!sparkStickyFault);
+    // Read from cached values (non-blocking) - updated by SparkOdometryThread
+    inputs.position = new Rotation2d(sparkInputs.getPosition());
+    inputs.velocityRadPerSec = sparkInputs.getVelocity();
+    inputs.appliedVolts = sparkInputs.getAppliedVolts();
+    inputs.currentAmps = sparkInputs.getOutputCurrent();
+    inputs.connected = connectedDebounce.calculate(sparkInputs.isConnected());
   }
 
   @Override

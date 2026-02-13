@@ -7,7 +7,6 @@
 
 package frc.robot.subsystems.vision;
 
-import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.vision.VisionConstants.*;
 
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
@@ -25,8 +24,9 @@ import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.game.Field;
 import frc.robot.subsystems.vision.VisionIO.PoseObservation;
+import frc.robot.util.VisionThread;
+import frc.robot.util.VisionThread.VisionInputs;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -34,9 +34,21 @@ import java.util.function.Supplier;
 import org.littletonrobotics.junction.Logger;
 
 public class Vision extends SubsystemBase {
+  // Cached arena boundary for withinBoundaries test (avoids allocations per observation)
+  private static final Rectangle2d arenaRectangle;
+
+  static {
+    double halfWidth = minRobotWidthHalfMeters;
+    Translation2d cornerA = new Translation2d(halfWidth, halfWidth);
+    Translation2d cornerB =
+        new Translation2d(fieldXLenMeters - halfWidth, fieldYLenMeters - halfWidth);
+    arenaRectangle = new Rectangle2d(cornerA, cornerB);
+  }
+
   private final VisionConsumer consumer;
   private final Supplier<Pose2d> chassisPoseSupplier;
   private final VisionIO[] io;
+  private final VisionInputs[] visionInputs;
   private final VisionIOInputsAutoLogged[] inputs;
   private final Alert[] disconnectedAlerts;
 
@@ -70,7 +82,13 @@ public class Vision extends SubsystemBase {
     this.chassisPoseSupplier = chassisPoseSupplier;
     this.io = io;
 
-    // Initialize inputs
+    // Register each VisionIO with VisionThread for background polling
+    this.visionInputs = new VisionInputs[io.length];
+    for (int i = 0; i < io.length; i++) {
+      visionInputs[i] = VisionThread.getInstance().registerVisionIO(io[i]);
+    }
+
+    // Initialize inputs for AdvantageKit logging
     this.inputs = new VisionIOInputsAutoLogged[io.length];
     for (int i = 0; i < inputs.length; i++) {
       inputs[i] = new VisionIOInputsAutoLogged();
@@ -97,7 +115,8 @@ public class Vision extends SubsystemBase {
   @Override
   public void periodic() {
     for (int i = 0; i < io.length; i++) {
-      io[i].updateInputs(inputs[i]);
+      // Copy cached inputs from background thread to inputs for AdvantageKit logging
+      visionInputs[i].getSnapshot().copyTo(inputs[i]);
       Logger.processInputs("Vision/Camera" + Integer.toString(i), inputs[i]);
     }
 
@@ -232,11 +251,11 @@ public class Vision extends SubsystemBase {
       EnumMap<VisionTest, Double> testResults,
       double score) {}
 
-  // Caching for AprilTag layout
-  public static AprilTagFieldLayout cachedLayout = null;
+  // Caching for AprilTag layout (volatile for thread-safe lazy initialization)
+  private static volatile AprilTagFieldLayout cachedLayout = null;
 
-  /** Returns the AprilTag layout to use, loading it if necessary. */
-  public static AprilTagFieldLayout getAprilTagLayout() {
+  /** Returns the AprilTag layout to use, loading it if necessary. Thread-safe. */
+  public static synchronized AprilTagFieldLayout getAprilTagLayout() {
     if (cachedLayout == null) {
       // Try to load custom layout only if requested and not connected to FMS
       if (useCustomAprilTagLayout && !DriverStation.isFMSAttached()) {
@@ -286,7 +305,7 @@ public class Vision extends SubsystemBase {
       public double test(PoseObservation observation) {
         return 1.0
             - normalizedSigmoid(
-                Math.abs(observation.pose().getRotation().getY()), pitchTolerance.in(Radians), 1.0);
+                Math.abs(observation.pose().getRotation().getY()), pitchToleranceRadians, 1.0);
       }
     },
     rollError {
@@ -301,7 +320,7 @@ public class Vision extends SubsystemBase {
       public double test(PoseObservation observation) {
         return 1.0
             - normalizedSigmoid(
-                Math.abs(observation.pose().getRotation().getX()), rollTolerance.in(Radians), 1.0);
+                Math.abs(observation.pose().getRotation().getX()), rollToleranceRadians, 1.0);
       }
     },
     heightError {
@@ -315,8 +334,7 @@ public class Vision extends SubsystemBase {
       @Override
       public double test(PoseObservation observation) {
         return 1.0
-            - normalizedSigmoid(
-                Math.abs(observation.pose().getZ()), elevationTolerance.in(Meters), 1.0);
+            - normalizedSigmoid(Math.abs(observation.pose().getZ()), elevationToleranceMeters, 1.0);
       }
     },
     withinBoundaries {
@@ -328,11 +346,7 @@ public class Vision extends SubsystemBase {
        */
       @Override
       public double test(PoseObservation observation) {
-        var cornerA = new Translation2d(minRobotWidth.div(2.0), minRobotWidth.div(2.0));
-        var cornerB = new Translation2d(Field.field_x_len, Field.field_y_len).minus(cornerA);
-        var arena = new Rectangle2d(cornerA, cornerB);
-        boolean pass = arena.contains(observation.pose().toPose2d().getTranslation());
-
+        boolean pass = arenaRectangle.contains(observation.pose().toPose2d().getTranslation());
         return (pass ? 1.0 : 0.0);
       }
     },
@@ -358,8 +372,7 @@ public class Vision extends SubsystemBase {
       @Override
       public double test(PoseObservation observation) {
         return 1.0
-            - normalizedSigmoid(
-                observation.averageTagDistance(), tagDistanceTolerance.in(Meters), 1.0);
+            - normalizedSigmoid(observation.averageTagDistance(), tagDistanceToleranceMeters, 1.0);
       }
     };
 
