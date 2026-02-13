@@ -10,8 +10,8 @@ package frc.robot.subsystems.vision;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform3d;
+import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import org.photonvision.PhotonCamera;
@@ -20,6 +20,10 @@ import org.photonvision.PhotonCamera;
 public class VisionIOPhotonVision implements VisionIO {
   protected final PhotonCamera camera;
   protected final Transform3d robotToCamera;
+
+  // Reusable collections to avoid allocations per loop
+  private final Set<Short> tagIds = new HashSet<>();
+  private final List<PoseObservation> poseObservations = new ArrayList<>();
 
   /**
    * Creates a new VisionIOPhotonVision.
@@ -36,9 +40,9 @@ public class VisionIOPhotonVision implements VisionIO {
   public void updateInputs(VisionIOInputs inputs) {
     inputs.connected = camera.isConnected();
 
-    // Read new camera observations
-    Set<Short> tagIds = new HashSet<>();
-    List<PoseObservation> poseObservations = new LinkedList<>();
+    // Clear reusable collections
+    tagIds.clear();
+    poseObservations.clear();
 
     for (var result : camera.getAllUnreadResults()) {
       // Update latest target observation

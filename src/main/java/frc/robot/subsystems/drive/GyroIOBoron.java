@@ -17,27 +17,31 @@ import com.reduxrobotics.sensors.canandgyro.Canandgyro;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
 import frc.robot.Constants.CANBusPorts.CAN2;
+import frc.robot.util.CanandgyroThread;
+import frc.robot.util.CanandgyroThread.GyroInputs;
 import java.util.Queue;
 
-/** IO implementation for NavX. */
+/** IO implementation for Redux Canandgyro. */
 public class GyroIOBoron implements GyroIO {
-  private Canandgyro canandgyro;
+  private final Canandgyro canandgyro;
+  private final GyroInputs gyroInputs;
   private final Queue<Double> yawTimestampQueue;
   private final Queue<Double> yawPositionQueue;
 
   public GyroIOBoron() {
     canandgyro = new Canandgyro(CAN2.gyro);
+    gyroInputs = CanandgyroThread.getInstance().registerCanandgyro(canandgyro);
     yawTimestampQueue = PhoenixOdometryThread.getInstance().makeTimestampQueue();
     yawPositionQueue = PhoenixOdometryThread.getInstance().registerSignal(canandgyro::getYaw);
   }
 
-  // Check if gyro is calibrated
   @Override
   public void updateInputs(GyroIOInputs inputs) {
-    inputs.connected = canandgyro.isConnected();
-    inputs.calibrated = !canandgyro.isCalibrating();
-    inputs.yawPosition = Rotation2d.fromRotations(canandgyro.getYaw());
-    inputs.yawVelocityRadPerSec = Units.rotationsToRadians(canandgyro.getAngularVelocityYaw());
+    // Read from cached values (non-blocking) - updated by CanandgyroThread
+    inputs.connected = gyroInputs.isConnected();
+    inputs.calibrated = !gyroInputs.isCalibrating();
+    inputs.yawPosition = Rotation2d.fromRotations(gyroInputs.getYaw());
+    inputs.yawVelocityRadPerSec = Units.rotationsToRadians(gyroInputs.getAngularVelocityYaw());
 
     inputs.odometryYawTimestamps = new double[yawTimestampQueue.size()];
     for (int i = 0; i < inputs.odometryYawTimestamps.length; i++) {

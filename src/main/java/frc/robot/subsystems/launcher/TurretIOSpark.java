@@ -27,7 +27,8 @@ import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.DIOPorts;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
 import frc.robot.Constants.RobotConstants;
-import java.util.function.DoubleSupplier;
+import frc.robot.util.SparkOdometryThread;
+import frc.robot.util.SparkOdometryThread.SparkInputs;
 
 public class TurretIOSpark implements TurretIO {
 
@@ -35,6 +36,7 @@ public class TurretIOSpark implements TurretIO {
   private final RelativeEncoder turnSparkEncoder;
   private final SparkClosedLoopController controller;
   private final DutyCycleEncoder absoluteEncoder;
+  private final SparkInputs sparkInputs;
 
   private final Debouncer motorControllerConnectedDebounce =
       new Debouncer(0.5, Debouncer.DebounceType.kFalling);
@@ -82,6 +84,9 @@ public class TurretIOSpark implements TurretIO {
         () ->
             turnSpark.configure(
                 turnConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters));
+
+    // Register with background thread for non-blocking CAN reads
+    sparkInputs = SparkOdometryThread.getInstance().registerSpark(turnSpark, turnSparkEncoder);
   }
 
   @Override
@@ -91,19 +96,15 @@ public class TurretIOSpark implements TurretIO {
       relativeEncoderSeeded = true;
     }
 
-    sparkStickyFault = false;
-    ifOk(
-        turnSpark,
-        turnSparkEncoder::getPosition,
-        (value) -> inputs.relativePosition = new Rotation2d(value).plus(mechanismOffset));
-    ifOk(turnSpark, turnSparkEncoder::getVelocity, (value) -> inputs.velocityRadPerSec = value);
-    ifOk(
-        turnSpark,
-        new DoubleSupplier[] {turnSpark::getAppliedOutput, turnSpark::getBusVoltage},
-        (values) -> inputs.appliedVolts = values[0] * values[1]);
-    ifOk(turnSpark, turnSpark::getOutputCurrent, (value) -> inputs.currentAmps = value);
-    inputs.motorControllerConnected = motorControllerConnectedDebounce.calculate(!sparkStickyFault);
+    // Read from cached values (non-blocking) - updated by SparkOdometryThread
+    inputs.relativePosition = new Rotation2d(sparkInputs.getPosition()).plus(mechanismOffset);
+    inputs.velocityRadPerSec = sparkInputs.getVelocity();
+    inputs.appliedVolts = sparkInputs.getAppliedVolts();
+    inputs.currentAmps = sparkInputs.getOutputCurrent();
+    inputs.motorControllerConnected =
+        motorControllerConnectedDebounce.calculate(sparkInputs.isConnected());
 
+    // Absolute encoder is read directly (DIO, not CAN - already fast)
     inputs.absoluteEncoderConnected =
         absEncoderConnectedDebounce.calculate(absoluteEncoder.isConnected());
     inputs.absolutePosition = new Rotation2d(absoluteEncoder.get());
