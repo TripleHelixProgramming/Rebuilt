@@ -71,15 +71,15 @@ public final class LauncherConstants {
     // Geometry
     public static final Transform3d chassisToTurretBase =
         new Transform3d(Inches.of(0), Inches.of(10), Inches.of(22), Rotation3d.kZero);
-    public static final Rotation2d absEncoderOffset = new Rotation2d(0.5);
-    public static final Rotation2d mechanismOffset = Rotation2d.kCCW_Pi_2;
+    public static final Rotation2d absEncoderOffset = new Rotation2d(5.3);
+    public static final Rotation2d mechanismOffset = Rotation2d.k180deg;
     public static final Angle rangeOfMotion = Degrees.of(240);
 
     // Position controller
     public static final double kPReal = 0.5;
 
     // Motor controller
-    public static final double motorReduction = 5.0;
+    public static final double motorReduction = 9.0 * 72.0 / 12.0;
     public static final AngularVelocity maxAngularVelocity =
         NEO550Constants.kFreeSpeed.div(motorReduction);
     public static final double encoderPositionFactor = (2 * Math.PI) / motorReduction; // Radians
