@@ -81,7 +81,7 @@ public class HoodIOSpark implements HoodIO {
                 hoodConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters));
 
     // Register with background thread for non-blocking CAN reads
-    sparkInputs = SparkOdometryThread.getInstance().registerSpark(hoodSpark, hoodEncoder);
+    sparkInputs = SparkOdometryThread.getInstance().registerSpark(hoodSpark, encoderSpark);
   }
 
   @Override
