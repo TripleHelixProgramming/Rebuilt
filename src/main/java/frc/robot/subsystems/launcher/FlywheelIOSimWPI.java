@@ -11,7 +11,7 @@ import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
 
-public class FlywheelIOSim implements FlywheelIO {
+public class FlywheelIOSimWPI implements FlywheelIO {
   private final DCMotorSim flywheelSim;
 
   private boolean closedLoop = false;
@@ -19,7 +19,7 @@ public class FlywheelIOSim implements FlywheelIO {
   private double appliedVolts = 0.0;
   private double feedforwardVolts = 0.0;
 
-  public FlywheelIOSim() {
+  public FlywheelIOSimWPI() {
     flywheelSim =
         new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
   }

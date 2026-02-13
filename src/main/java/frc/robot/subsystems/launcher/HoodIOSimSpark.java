@@ -24,7 +24,7 @@ import frc.robot.Constants.MotorConstants.NEO550Constants;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
 
-public class HoodIOSim implements HoodIO {
+public class HoodIOSimSpark implements HoodIO {
 
   private final DCMotorSim hoodSim;
 
@@ -32,7 +32,7 @@ public class HoodIOSim implements HoodIO {
   private final SparkClosedLoopController controller;
   private final SparkMaxSim maxSim;
 
-  public HoodIOSim() {
+  public HoodIOSimSpark() {
     max = new SparkMax(CAN2.hood, MotorType.kBrushless);
     controller = max.getClosedLoopController();
 
