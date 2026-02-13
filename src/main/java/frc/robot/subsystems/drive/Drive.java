@@ -17,6 +17,7 @@ import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.drive.DriveConstants.*;
 
 import choreo.trajectory.SwerveSample;
+import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.CANBus;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
@@ -85,6 +86,9 @@ public class Drive extends SubsystemBase {
   private SwerveModulePosition[] moduleDeltas = new SwerveModulePosition[4];
   private ChassisSpeeds chassisSpeeds;
 
+  // Cached array of all module signals for batched refresh
+  private BaseStatusSignal[] allModuleSignals;
+
   // PID controllers for following Choreo trajectories
   private final PIDController xController = new PIDController(5.0, 0.0, 0.0);
   private final PIDController yController = new PIDController(5.0, 0.0, 0.0);
@@ -142,14 +146,28 @@ public class Drive extends SubsystemBase {
                 (voltage) -> runCharacterization(voltage.in(Volts)), null, this));
 
     headingController.enableContinuousInput(-Math.PI, Math.PI);
+
+    // Collect all module signals for batched refresh
+    int totalSignals = 0;
+    for (var module : modules) {
+      totalSignals += module.getStatusSignals().length;
+    }
+    allModuleSignals = new BaseStatusSignal[totalSignals];
+    int signalIndex = 0;
+    for (var module : modules) {
+      for (var signal : module.getStatusSignals()) {
+        allModuleSignals[signalIndex++] = signal;
+      }
+    }
   }
 
   @Override
   public void periodic() {
     long startNanos = System.nanoTime();
 
-    for (var module : modules) {
-      module.refreshSignals();
+    // Refresh all module signals in a single batched CAN call
+    if (allModuleSignals.length > 0) {
+      BaseStatusSignal.refreshAll(allModuleSignals);
     }
 
     odometryLock.lock(); // Prevents odometry updates while reading data

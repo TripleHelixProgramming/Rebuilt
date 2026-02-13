@@ -46,10 +46,19 @@ public class VisionConstants {
   // Pose filtering thresholds
   public static double ambiguityTolerance = 0.15;
   public static Distance tagDistanceTolerance = Meters.of(4.0);
+  public static final double tagDistanceToleranceMeters = tagDistanceTolerance.in(Meters);
 
   public static Distance elevationTolerance = Meters.of(0.25);
+  public static final double elevationToleranceMeters = elevationTolerance.in(Meters);
   public static Angle rollTolerance = Degrees.of(5);
+  public static final double rollToleranceRadians = rollTolerance.in(Radians);
   public static Angle pitchTolerance = Degrees.of(5);
+  public static final double pitchToleranceRadians = pitchTolerance.in(Radians);
+
+  // Cached values for arena boundary calculations
+  public static final double minRobotWidthHalfMeters = minRobotWidth.div(2.0).in(Meters);
+  public static final double fieldXLenMeters = frc.game.Field.field_x_len.in(Meters);
+  public static final double fieldYLenMeters = frc.game.Field.field_y_len.in(Meters);
   public static Distance maxTravelDistance =
       DriveConstants.maxDriveSpeed.times(Seconds.of(Robot.defaultPeriodSecs));
 

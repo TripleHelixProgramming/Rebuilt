@@ -55,6 +55,9 @@ import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionIO;
 import frc.robot.subsystems.vision.VisionIOPhotonVision;
 import frc.robot.subsystems.vision.VisionIOPhotonVisionSim;
+import frc.robot.util.CanandgyroThread;
+import frc.robot.util.SparkOdometryThread;
+import frc.robot.util.VisionThread;
 import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
@@ -206,6 +209,11 @@ public class Robot extends LoggedRobot {
         break;
     }
 
+    // Start background threads (for non-blocking CAN/network reads)
+    SparkOdometryThread.getInstance().start();
+    VisionThread.getInstance().start();
+    CanandgyroThread.getInstance().start();
+
     // Start AdvantageKit logger
     Logger.start();
 
@@ -226,6 +234,12 @@ public class Robot extends LoggedRobot {
     feeder.setDefaultCommand(Commands.run(feeder::spinForward, feeder).withName("Spin forward"));
 
     intake.setDefaultCommand(Commands.run(intake::intake, intake).withName("Intake Command"));
+    SmartDashboard.putData(CommandScheduler.getInstance());
+    SmartDashboard.putData(drive);
+    SmartDashboard.putData(vision);
+    SmartDashboard.putData(launcher);
+    SmartDashboard.putData(feeder);
+    SmartDashboard.putData(intake);
   }
 
   /** This function is called periodically during all modes. */
@@ -241,12 +255,6 @@ public class Robot extends LoggedRobot {
     // This must be called from the robot's periodic block in order for anything in
     // the Command-based framework to work.
     CommandScheduler.getInstance().run();
-    SmartDashboard.putData(CommandScheduler.getInstance());
-    SmartDashboard.putData(drive);
-    SmartDashboard.putData(vision);
-    SmartDashboard.putData(launcher);
-    SmartDashboard.putData(feeder);
-    SmartDashboard.putData(intake);
 
     GameState.logValues();
 
