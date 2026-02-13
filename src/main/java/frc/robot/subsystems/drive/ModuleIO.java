@@ -13,7 +13,6 @@
 
 package frc.robot.subsystems.drive;
 
-import com.ctre.phoenix6.BaseStatusSignal;
 import edu.wpi.first.math.geometry.Rotation2d;
 import org.littletonrobotics.junction.AutoLog;
 
@@ -57,14 +56,4 @@ public interface ModuleIO {
 
   /** Update the turn zero position of the turn absolute encoder */
   public default void setTurnZero(Rotation2d rotation) {}
-
-  /** Refreshes the status signals (if applicable) before updating inputs. */
-  public default void refreshSignals() {}
-
-  /**
-   * Returns the status signals for batched refresh. Override in implementations that use Phoenix.
-   */
-  public default BaseStatusSignal[] getStatusSignals() {
-    return new BaseStatusSignal[0];
-  }
 }

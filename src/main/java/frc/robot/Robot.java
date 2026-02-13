@@ -244,6 +244,8 @@ public class Robot extends LoggedRobot {
   /** This function is called periodically during all modes. */
   @Override
   public void robotPeriodic() {
+    long loopStart = System.nanoTime();
+
     // Optionally switch the thread to high priority to improve loop
     // timing (see the template project documentation for details)
     // Threads.setCurrentThreadPriority(true, 99);
@@ -254,8 +256,25 @@ public class Robot extends LoggedRobot {
     // This must be called from the robot's periodic block in order for anything in
     // the Command-based framework to work.
     CommandScheduler.getInstance().run();
+    long t1 = System.nanoTime();
 
     GameState.logValues();
+    long t2 = System.nanoTime();
+
+    // Profiling output
+    long schedulerMs = (t1 - loopStart) / 1_000_000;
+    long gameStateMs = (t2 - t1) / 1_000_000;
+    long totalMs = (t2 - loopStart) / 1_000_000;
+    if (totalMs > 20) {
+      System.out.println(
+          "[Robot] scheduler="
+              + schedulerMs
+              + "ms gameState="
+              + gameStateMs
+              + "ms total="
+              + totalMs
+              + "ms");
+    }
 
     // Return to non-RT thread priority (do not modify the first argument)
     // Threads.setCurrentThreadPriority(false, 10);
