@@ -76,8 +76,8 @@ public class HoodIOSimSpark implements HoodIO {
     hoodSim =
         new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
 
-    hoodSim.setState(0, 0);
-    maxSim.setPosition(0);
+    hoodSim.setState(minPosRad, 0);
+    maxSim.setPosition(minPosRad);
   }
 
   @Override
