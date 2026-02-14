@@ -126,6 +126,8 @@ public class HoodIOSpark implements HoodIO {
   public void configureSoftLimits(boolean enable) {
     hoodConfig.softLimit.forwardSoftLimitEnabled(enable);
     hoodConfig.softLimit.reverseSoftLimitEnabled(enable);
+    hoodSpark.configure(
+        hoodConfig, ResetMode.kNoResetSafeParameters, PersistMode.kNoPersistParameters);
   }
 
   @Override

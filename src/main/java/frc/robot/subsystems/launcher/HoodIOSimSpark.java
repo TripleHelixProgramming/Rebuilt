@@ -89,6 +89,9 @@ public class HoodIOSimSpark implements HoodIO {
     if (maxSim.getPosition() > maxPosRad) {
       hoodSim.setState(maxPosRad, 0);
       maxSim.setPosition(maxPosRad);
+    } else if (maxSim.getPosition() < minPosRad) {
+      hoodSim.setState(minPosRad, 0);
+      maxSim.setPosition(minPosRad);
     }
 
     maxSim.iterate(
@@ -106,7 +109,7 @@ public class HoodIOSimSpark implements HoodIO {
 
   @Override
   public void setOpenLoop(double output) {
-    maxSim.setAppliedOutput(output);
+    max.setVoltage(output);
   }
 
   @Override
@@ -135,10 +138,12 @@ public class HoodIOSimSpark implements HoodIO {
   public void configureSoftLimits(boolean enable) {
     hoodConfig.softLimit.forwardSoftLimitEnabled(enable);
     hoodConfig.softLimit.reverseSoftLimitEnabled(enable);
+    max.configure(hoodConfig, ResetMode.kNoResetSafeParameters, PersistMode.kNoPersistParameters);
   }
 
   @Override
   public void resetEncoder() {
+    hoodSim.setState(maxPosRad, 0);
     maxSim.setPosition(maxPosRad);
   }
 }
