@@ -243,6 +243,7 @@ public class Robot extends LoggedRobot {
     launcher.setDefaultCommand(
         Commands.run(
                 () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()), launcher)
+            .beforeStarting(launcher.initializeHoodCommand())
             .withName("Aim at hub"));
     feeder.setDefaultCommand(Commands.run(feeder::spinForward, feeder).withName("Spin forward"));
     intake.setDefaultCommand(Commands.run(intake::intakeFuel, intake).withName("Intake fuel"));

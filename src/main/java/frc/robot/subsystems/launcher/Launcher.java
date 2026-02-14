@@ -16,6 +16,8 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.FunctionalCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Robot;
 import java.util.ArrayList;
@@ -377,5 +379,26 @@ public class Launcher extends SubsystemBase {
       t[i] = traj.get(i).getPosition();
     }
     return t;
+  }
+
+  public Command initializeHoodCommand() {
+    return new FunctionalCommand(
+            // initialize
+            () -> {
+              hoodIO.configureSoftLimits(false);
+              hoodIO.setVelocity(RotationsPerSecond.of(1.0));
+            },
+            // execute
+            () -> {},
+            // end
+            interrupted -> {
+              hoodIO.configureSoftLimits(true);
+              hoodIO.resetEncoder();
+            },
+            // isFinished
+            () -> hoodInputs.currentAmps > 5 && Math.abs(hoodInputs.velocityRadPerSec) < 0.5,
+            // requirements
+            this)
+        .withName("Initialize hood");
   }
 }
