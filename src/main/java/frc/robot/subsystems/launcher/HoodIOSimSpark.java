@@ -32,11 +32,13 @@ public class HoodIOSimSpark implements HoodIO {
   private final SparkClosedLoopController controller;
   private final SparkMaxSim maxSim;
 
+  private final SparkMaxConfig hoodConfig;
+
   public HoodIOSimSpark() {
     max = new SparkMax(CAN2.hood, MotorType.kBrushless);
     controller = max.getClosedLoopController();
 
-    var hoodConfig = new SparkMaxConfig();
+    hoodConfig = new SparkMaxConfig();
 
     hoodConfig
         .inverted(false)
@@ -74,8 +76,7 @@ public class HoodIOSimSpark implements HoodIO {
     hoodSim =
         new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
 
-    hoodSim.setState(maxPosRad, 0);
-    maxSim.setPosition(maxPosRad);
+    hoodSim.setState(0, 0);
   }
 
   @Override
@@ -94,6 +95,10 @@ public class HoodIOSimSpark implements HoodIO {
     inputs.velocityRadPerSec = maxSim.getVelocity();
     inputs.appliedVolts = maxSim.getAppliedOutput() * maxSim.getBusVoltage();
     inputs.currentAmps = Math.abs(maxSim.getMotorCurrent());
+
+    if (maxSim.getPosition() > maxPosRad) {
+      hoodSim.setState(maxPosRad, 0);
+    }
   }
 
   @Override
@@ -110,5 +115,26 @@ public class HoodIOSimSpark implements HoodIO {
             / maxAngularVelocity.in(RadiansPerSecond);
     controller.setSetpoint(
         setpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
+  }
+
+  @Override
+  public void setVelocity(AngularVelocity angularVelocity) {
+    double setpoint = angularVelocity.in(RadiansPerSecond);
+    double feedforwardVolts =
+        RobotConstants.kNominalVoltage
+            * angularVelocity.in(RadiansPerSecond)
+            / maxAngularVelocity.in(RadiansPerSecond);
+    controller.setSetpoint(setpoint, ControlType.kVelocity, ClosedLoopSlot.kSlot0, feedforwardVolts);
+  }
+
+  @Override
+  public void configureSoftLimits(boolean enable) {
+    hoodConfig.softLimit.forwardSoftLimitEnabled(enable);
+    hoodConfig.softLimit.reverseSoftLimitEnabled(enable);
+  }
+
+  @Override
+  public void resetEncoder() {
+    maxSim.setPosition(maxPosRad);
   }
 }

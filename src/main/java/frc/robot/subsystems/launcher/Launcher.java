@@ -16,8 +16,12 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.FunctionalCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Robot;
+import frc.robot.subsystems.launcher.HoodIO.HoodIOInputs;
+
 import java.util.ArrayList;
 import java.util.function.Supplier;
 import org.littletonrobotics.junction.AutoLogOutput;
@@ -377,5 +381,22 @@ public class Launcher extends SubsystemBase {
       t[i] = traj.get(i).getPosition();
     }
     return t;
+  }
+
+  public Command InitializeHoodCommand() {
+    return new FunctionalCommand(
+      // initialize
+      () -> hoodIO.configureSoftLimits(false),
+      // execute
+      () -> hoodIO.setVelocity(RotationsPerSecond.of(1.0)),
+      // end
+      interrupted -> {
+        hoodIO.configureSoftLimits(true);
+        hoodIO.resetEncoder();
+      },
+      // isFinished
+      () -> hoodInputs.currentAmps > 5 && Math.abs(hoodInputs.velocityRadPerSec) < 0.5,
+      // requirements
+      this);
   }
 }
