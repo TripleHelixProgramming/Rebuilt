@@ -98,7 +98,8 @@ public final class Constants {
       public static final int kicker = 17;
 
       // Intake
-      public static final int intakeRoller = 22;
+      public static final int intakeRollerLeader = 22;
+      public static final int intakeRollerFollower = 23;
     }
 
     public static final class CANHD {

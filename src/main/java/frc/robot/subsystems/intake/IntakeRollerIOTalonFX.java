@@ -9,10 +9,12 @@ import static frc.robot.util.PhoenixUtil.tryUntilOk;
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
+import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.units.measure.AngularVelocity;
@@ -22,7 +24,8 @@ import edu.wpi.first.units.measure.Voltage;
 import frc.robot.Constants.CANBusPorts.CAN2;
 
 public class IntakeRollerIOTalonFX implements IntakeRollerIO {
-  private final TalonFX intakeMotor;
+  private final TalonFX intakeMotorLeader;
+  private final TalonFX intakeMotorFollower;
   private final TalonFXConfiguration config;
   private final Debouncer connectedDebounce = new Debouncer(0.5, Debouncer.DebounceType.kFalling);
 
@@ -37,19 +40,24 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
   private final StatusSignal<Current> intakeCurrent;
 
   public IntakeRollerIOTalonFX() {
-    intakeMotor = new TalonFX(CAN2.intakeRoller, CAN2.bus);
+    intakeMotorLeader = new TalonFX(CAN2.intakeRollerLeader, CAN2.bus);
+    intakeMotorFollower = new TalonFX(CAN2.intakeRollerFollower, CAN2.bus);
     config = new TalonFXConfiguration();
     config.MotorOutput.withInverted(InvertedValue.CounterClockwise_Positive)
         .withNeutralMode(NeutralModeValue.Brake);
     config.Slot0 = intakeGains;
-    tryUntilOk(5, () -> intakeMotor.getConfigurator().apply(config, 0.25));
+    tryUntilOk(5, () -> intakeMotorLeader.getConfigurator().apply(config, 0.25));
+    tryUntilOk(5, () -> intakeMotorFollower.getConfigurator().apply(config, 0.25));
 
-    intakeVelocity = intakeMotor.getVelocity();
-    intakeAppliedVolts = intakeMotor.getMotorVoltage();
-    intakeCurrent = intakeMotor.getStatorCurrent();
+    intakeVelocity = intakeMotorLeader.getVelocity();
+    intakeAppliedVolts = intakeMotorLeader.getMotorVoltage();
+    intakeCurrent = intakeMotorLeader.getStatorCurrent();
 
     BaseStatusSignal.setUpdateFrequencyForAll(
         50.0, intakeVelocity, intakeAppliedVolts, intakeCurrent);
+
+    intakeMotorFollower.setControl(
+        new Follower(CAN2.intakeRollerLeader, MotorAlignmentValue.Opposed));
   }
 
   @Override
@@ -66,12 +74,12 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
 
   @Override
   public void setOpenLoop(double output) {
-    intakeMotor.setControl(voltageRequest.withOutput(output));
+    intakeMotorLeader.setControl(voltageRequest.withOutput(output));
   }
 
   @Override
   public void setVelocity(LinearVelocity tangentialVelocity) {
-    intakeMotor.setControl(
+    intakeMotorLeader.setControl(
         velocityVoltageRequest.withVelocity(
             RadiansPerSecond.of(
                 tangentialVelocity.in(MetersPerSecond)
