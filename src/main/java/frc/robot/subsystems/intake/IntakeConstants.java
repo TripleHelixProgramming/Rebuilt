@@ -32,4 +32,14 @@ public class IntakeConstants {
     // simulation
     public static final DCMotor gearbox = DCMotor.getKrakenX60(1);
   }
+
+  public class PneumaticConstants {
+    // hopper
+    public static final int hopperForwardChannel = 0;
+    public static final int hopperReverseChannel = 1;
+
+    // intake arm
+    public static final int intakeArmForwardChannel = 3;
+    public static final int intakeArmReverseChannel = 4;
+  }
 }
