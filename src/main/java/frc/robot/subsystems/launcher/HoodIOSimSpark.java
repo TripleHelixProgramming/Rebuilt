@@ -82,8 +82,17 @@ public class HoodIOSimSpark implements HoodIO {
 
   @Override
   public void updateInputs(HoodIOInputs inputs) {
-    // Update simulation state
-    hoodSim.setInput(maxSim.getAppliedOutput() * RobotConstants.kNominalVoltage);
+    // Update simulation state with current limiting
+    double voltage = maxSim.getAppliedOutput() * RobotConstants.kNominalVoltage;
+    double current = Math.abs(maxSim.getMotorCurrent());
+    double currentLimit = NEO550Constants.kDefaultSupplyCurrentLimit;
+
+    // Scale voltage down if current exceeds limit (simulates smart current limiting)
+    if (current > currentLimit && current > 0) {
+      voltage *= currentLimit / current;
+    }
+
+    hoodSim.setInput(voltage);
     hoodSim.update(Robot.defaultPeriodSecs);
 
     if (maxSim.getPosition() > maxPosRad) {
