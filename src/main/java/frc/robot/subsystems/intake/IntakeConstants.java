@@ -30,7 +30,7 @@ public class IntakeConstants {
             .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign);
 
     // simulation
-    public static final DCMotor gearbox = DCMotor.getKrakenX60(1);
+    public static final DCMotor gearbox = DCMotor.getKrakenX60(2);
   }
 
   public class PneumaticConstants {
