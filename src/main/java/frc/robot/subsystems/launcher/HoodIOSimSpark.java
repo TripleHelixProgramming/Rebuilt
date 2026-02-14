@@ -77,6 +77,7 @@ public class HoodIOSimSpark implements HoodIO {
         new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
 
     hoodSim.setState(0, 0);
+    maxSim.setPosition(0);
   }
 
   @Override
@@ -84,6 +85,12 @@ public class HoodIOSimSpark implements HoodIO {
     // Update simulation state
     hoodSim.setInput(maxSim.getAppliedOutput() * RobotConstants.kNominalVoltage);
     hoodSim.update(Robot.defaultPeriodSecs);
+
+    if (maxSim.getPosition() > maxPosRad) {
+      hoodSim.setState(maxPosRad, 0);
+      maxSim.setPosition(maxPosRad);
+    }
+
     maxSim.iterate(
         hoodSim.getAngularVelocityRadPerSec(),
         RobotConstants.kNominalVoltage,
@@ -95,10 +102,6 @@ public class HoodIOSimSpark implements HoodIO {
     inputs.velocityRadPerSec = maxSim.getVelocity();
     inputs.appliedVolts = maxSim.getAppliedOutput() * maxSim.getBusVoltage();
     inputs.currentAmps = Math.abs(maxSim.getMotorCurrent());
-
-    if (maxSim.getPosition() > maxPosRad) {
-      hoodSim.setState(maxPosRad, 0);
-    }
   }
 
   @Override
