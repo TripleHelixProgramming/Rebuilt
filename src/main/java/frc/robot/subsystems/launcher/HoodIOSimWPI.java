@@ -2,7 +2,6 @@ package frc.robot.subsystems.launcher;
 
 import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.*;
-import static frc.robot.subsystems.vision.VisionConstants.angularStdDevBaseline;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;

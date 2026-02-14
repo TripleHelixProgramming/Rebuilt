@@ -20,8 +20,6 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.FunctionalCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Robot;
-import frc.robot.subsystems.launcher.HoodIO.HoodIOInputs;
-
 import java.util.ArrayList;
 import java.util.function.Supplier;
 import org.littletonrobotics.junction.AutoLogOutput;
@@ -383,20 +381,21 @@ public class Launcher extends SubsystemBase {
     return t;
   }
 
-  public Command InitializeHoodCommand() {
+  public Command initializeHoodCommand() {
     return new FunctionalCommand(
-      // initialize
-      () -> hoodIO.configureSoftLimits(false),
-      // execute
-      () -> hoodIO.setVelocity(RotationsPerSecond.of(1.0)),
-      // end
-      interrupted -> {
-        hoodIO.configureSoftLimits(true);
-        hoodIO.resetEncoder();
-      },
-      // isFinished
-      () -> hoodInputs.currentAmps > 5 && Math.abs(hoodInputs.velocityRadPerSec) < 0.5,
-      // requirements
-      this);
+            // initialize
+            () -> hoodIO.configureSoftLimits(false),
+            // execute
+            () -> hoodIO.setVelocity(RotationsPerSecond.of(1.0)),
+            // end
+            interrupted -> {
+              hoodIO.configureSoftLimits(true);
+              hoodIO.resetEncoder();
+            },
+            // isFinished
+            () -> hoodInputs.currentAmps > 5 && Math.abs(hoodInputs.velocityRadPerSec) < 0.5,
+            // requirements
+            this)
+        .withName("Initialize hood");
   }
 }

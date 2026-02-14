@@ -124,7 +124,8 @@ public class HoodIOSimSpark implements HoodIO {
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
-    controller.setSetpoint(setpoint, ControlType.kVelocity, ClosedLoopSlot.kSlot0, feedforwardVolts);
+    controller.setSetpoint(
+        setpoint, ControlType.kVelocity, ClosedLoopSlot.kSlot0, feedforwardVolts);
   }
 
   @Override
