@@ -25,7 +25,7 @@ public class HoodIOSimWPI implements HoodIO {
     hoodSim =
         new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
 
-    hoodSim.setState(maxPosRad, 0.0);
+    hoodSim.setState(0, 0.0);
   }
 
   @Override
@@ -50,6 +50,10 @@ public class HoodIOSimWPI implements HoodIO {
     inputs.velocityRadPerSec = hoodSim.getAngularVelocityRadPerSec();
     inputs.appliedVolts = appliedVolts;
     inputs.currentAmps = Math.abs(hoodSim.getCurrentDrawAmps());
+
+    if (hoodSim.getAngularPositionRad() > maxPosRad) {
+      hoodSim.setState(maxPosRad, 0);
+    }
   }
 
   @Override
@@ -67,5 +71,20 @@ public class HoodIOSimWPI implements HoodIO {
             * angularVelocity.in(RadiansPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
     positionController.setSetpoint(setpoint);
+  }
+
+  @Override
+  public void setVelocity(AngularVelocity angularVelocity) {
+    closedLoop = true;
+    double setpoint = angularVelocity.in(RadiansPerSecond);
+    hoodSim.setAngularVelocity(setpoint);
+  }
+
+  @Override
+  public void configureSoftLimits(boolean enable) {}
+
+  @Override
+  public void resetEncoder() {
+    hoodSim.setAngle(maxPosRad);
   }
 }

@@ -33,15 +33,16 @@ public class HoodIOSpark implements HoodIO {
   private final SparkClosedLoopController hoodController;
   private final SparkInputs sparkInputs;
 
+  private final SparkMaxConfig hoodConfig;
+
   private final Debouncer connectedDebounce = new Debouncer(0.5, Debouncer.DebounceType.kFalling);
-  private boolean relatvieEncoderSeeded = false;
 
   public HoodIOSpark() {
     hoodSpark = new SparkMax(CAN2.hood, MotorType.kBrushless);
     encoderSpark = hoodSpark.getEncoder();
     hoodController = hoodSpark.getClosedLoopController();
 
-    var hoodConfig = new SparkMaxConfig();
+    hoodConfig = new SparkMaxConfig();
 
     hoodConfig
         .inverted(false)
@@ -54,7 +55,7 @@ public class HoodIOSpark implements HoodIO {
         .positionConversionFactor(encoderPositionFactor)
         .velocityConversionFactor(encoderVelocityFactor);
 
-    hoodConfig.closedLoop.feedbackSensor(FeedbackSensor.kAbsoluteEncoder).pid(kPReal, 0.0, 0.0);
+    hoodConfig.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kPReal, 0.0, 0.0);
 
     hoodConfig
         .softLimit
@@ -86,11 +87,6 @@ public class HoodIOSpark implements HoodIO {
 
   @Override
   public void updateInputs(HoodIOInputs inputs) {
-    if (!relatvieEncoderSeeded) {
-      encoderSpark.setPosition(maxPosRad);
-      relatvieEncoderSeeded = true;
-    }
-
     // Read from cached values (non-blocking) - updated by SparkOdometryThread
     inputs.position = new Rotation2d(sparkInputs.getPosition());
     inputs.velocityRadPerSec = sparkInputs.getVelocity();
@@ -113,5 +109,27 @@ public class HoodIOSpark implements HoodIO {
             / maxAngularVelocity.in(RadiansPerSecond);
     hoodController.setSetpoint(
         setpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
+  }
+
+  @Override
+  public void setVelocity(AngularVelocity angularVelocity) {
+    double setpoint = angularVelocity.in(RadiansPerSecond);
+    double feedforwardVolts =
+        RobotConstants.kNominalVoltage
+            * angularVelocity.in(RadiansPerSecond)
+            / maxAngularVelocity.in(RadiansPerSecond);
+    hoodController.setSetpoint(
+        setpoint, ControlType.kVelocity, ClosedLoopSlot.kSlot0, feedforwardVolts);
+  }
+
+  @Override
+  public void configureSoftLimits(boolean enable) {
+    hoodConfig.softLimit.forwardSoftLimitEnabled(enable);
+    hoodConfig.softLimit.reverseSoftLimitEnabled(enable);
+  }
+
+  @Override
+  public void resetEncoder() {
+    encoderSpark.setPosition(maxPosRad);
   }
 }

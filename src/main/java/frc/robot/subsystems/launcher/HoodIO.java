@@ -19,4 +19,10 @@ public interface HoodIO {
   public default void setOpenLoop(double output) {}
 
   public default void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {}
+
+  public default void setVelocity(AngularVelocity angularVelocity) {}
+
+  public default void configureSoftLimits(boolean enable) {}
+
+  public default void resetEncoder() {}
 }

@@ -32,11 +32,13 @@ public class HoodIOSimSpark implements HoodIO {
   private final SparkClosedLoopController controller;
   private final SparkMaxSim maxSim;
 
+  private final SparkMaxConfig hoodConfig;
+
   public HoodIOSimSpark() {
     max = new SparkMax(CAN2.hood, MotorType.kBrushless);
     controller = max.getClosedLoopController();
 
-    var hoodConfig = new SparkMaxConfig();
+    hoodConfig = new SparkMaxConfig();
 
     hoodConfig
         .inverted(false)
@@ -49,7 +51,7 @@ public class HoodIOSimSpark implements HoodIO {
         .positionConversionFactor(encoderPositionFactor)
         .velocityConversionFactor(encoderVelocityFactor);
 
-    hoodConfig.closedLoop.feedbackSensor(FeedbackSensor.kAbsoluteEncoder).pid(kPSim, 0.0, kDSim);
+    hoodConfig.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kPSim, 0.0, kDSim);
 
     hoodConfig
         .softLimit
@@ -74,8 +76,8 @@ public class HoodIOSimSpark implements HoodIO {
     hoodSim =
         new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
 
-    hoodSim.setState(maxPosRad, 0);
-    maxSim.setPosition(maxPosRad);
+    hoodSim.setState(minPosRad, 0);
+    maxSim.setPosition(minPosRad);
   }
 
   @Override
@@ -83,6 +85,12 @@ public class HoodIOSimSpark implements HoodIO {
     // Update simulation state
     hoodSim.setInput(maxSim.getAppliedOutput() * RobotConstants.kNominalVoltage);
     hoodSim.update(Robot.defaultPeriodSecs);
+
+    if (maxSim.getPosition() > maxPosRad) {
+      hoodSim.setState(maxPosRad, 0);
+      maxSim.setPosition(maxPosRad);
+    }
+
     maxSim.iterate(
         hoodSim.getAngularVelocityRadPerSec(),
         RobotConstants.kNominalVoltage,
@@ -110,5 +118,27 @@ public class HoodIOSimSpark implements HoodIO {
             / maxAngularVelocity.in(RadiansPerSecond);
     controller.setSetpoint(
         setpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
+  }
+
+  @Override
+  public void setVelocity(AngularVelocity angularVelocity) {
+    double setpoint = angularVelocity.in(RadiansPerSecond);
+    double feedforwardVolts =
+        RobotConstants.kNominalVoltage
+            * angularVelocity.in(RadiansPerSecond)
+            / maxAngularVelocity.in(RadiansPerSecond);
+    controller.setSetpoint(
+        setpoint, ControlType.kVelocity, ClosedLoopSlot.kSlot0, feedforwardVolts);
+  }
+
+  @Override
+  public void configureSoftLimits(boolean enable) {
+    hoodConfig.softLimit.forwardSoftLimitEnabled(enable);
+    hoodConfig.softLimit.reverseSoftLimitEnabled(enable);
+  }
+
+  @Override
+  public void resetEncoder() {
+    maxSim.setPosition(maxPosRad);
   }
 }
