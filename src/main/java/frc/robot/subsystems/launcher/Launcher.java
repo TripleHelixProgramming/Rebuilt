@@ -384,9 +384,12 @@ public class Launcher extends SubsystemBase {
   public Command initializeHoodCommand() {
     return new FunctionalCommand(
             // initialize
-            () -> hoodIO.configureSoftLimits(false),
+            () -> {
+              hoodIO.configureSoftLimits(false);
+              hoodIO.setVelocity(RotationsPerSecond.of(1.0));
+            },
             // execute
-            () -> hoodIO.setVelocity(RotationsPerSecond.of(1.0)),
+            () -> {},
             // end
             interrupted -> {
               hoodIO.configureSoftLimits(true);
