@@ -114,11 +114,14 @@ public class Vision extends SubsystemBase {
 
   @Override
   public void periodic() {
+    long visionStart = System.nanoTime();
+
     for (int i = 0; i < io.length; i++) {
       // Copy cached inputs from background thread to inputs for AdvantageKit logging
       visionInputs[i].getSnapshot().copyTo(inputs[i]);
       Logger.processInputs("Vision/Camera" + Integer.toString(i), inputs[i]);
     }
+    long t1 = System.nanoTime();
 
     // Initialize logging values
     allTagPoses.clear();
@@ -200,6 +203,8 @@ public class Vision extends SubsystemBase {
       allRobotPosesRejected.addAll(robotPosesRejected);
     }
 
+    long t2 = System.nanoTime();
+
     // Remove unacceptable observations
     observations.removeIf(o -> o.score < minScore);
 
@@ -220,6 +225,7 @@ public class Vision extends SubsystemBase {
 
       Logger.recordOutput("Vision/Summary/ObservationScore", o.score);
     }
+    long t3 = System.nanoTime();
 
     // Log summary data
     if (kLogSummaryPoses) {
@@ -233,6 +239,24 @@ public class Vision extends SubsystemBase {
     if (kLogRejectedPoses) {
       Logger.recordOutput(
           "Vision/Summary/RobotPosesRejected", allRobotPosesRejected.toArray(Pose3d[]::new));
+    }
+    long t4 = System.nanoTime();
+
+    // Profiling output
+    long totalMs = (t4 - visionStart) / 1_000_000;
+    if (totalMs > 5) {
+      System.out.println(
+          "[Vision] copyInputs="
+              + (t1 - visionStart) / 1_000_000
+              + "ms cameraLoop="
+              + (t2 - t1) / 1_000_000
+              + "ms consumer="
+              + (t3 - t2) / 1_000_000
+              + "ms summaryLog="
+              + (t4 - t3) / 1_000_000
+              + "ms total="
+              + totalMs
+              + "ms");
     }
   }
 

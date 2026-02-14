@@ -22,11 +22,27 @@ public class Intake extends SubsystemBase {
 
   @Override
   public void periodic() {
+    long t0 = System.nanoTime();
     io.updateInputs(inputs);
+    long t1 = System.nanoTime();
 
     Logger.processInputs("IntakeRoller", inputs);
+    long t2 = System.nanoTime();
 
     disconnectedAlert.set(!inputs.connected);
+
+    // Profiling output
+    long totalMs = (t2 - t0) / 1_000_000;
+    if (totalMs > 2) {
+      System.out.println(
+          "[Intake] update="
+              + (t1 - t0) / 1_000_000
+              + "ms log="
+              + (t2 - t1) / 1_000_000
+              + "ms total="
+              + totalMs
+              + "ms");
+    }
   }
 
   public void stop() {
