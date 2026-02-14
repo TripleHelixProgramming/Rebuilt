@@ -8,32 +8,43 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import org.littletonrobotics.junction.Logger;
 
 public class Intake extends SubsystemBase {
-  private final IntakeRollerIO io;
+  private final IntakeRollerIO intakeRollerIO;
+  private final IntakeArmIO intakeArmIO;
+  private final HopperIO hopperIO;
 
-  private final IntakeRollerIOInputsAutoLogged inputs = new IntakeRollerIOInputsAutoLogged();
+  private final IntakeRollerIOInputsAutoLogged intakeRollerInputs =
+      new IntakeRollerIOInputsAutoLogged();
+  private final IntakeArmIOInputsAutoLogged intakeArmInputs = new IntakeArmIOInputsAutoLogged();
+  private final HopperIOInputsAutoLogged hopperInputs = new HopperIOInputsAutoLogged();
 
   private final Alert disconnectedAlert;
 
-  public Intake(IntakeRollerIO io) {
-    this.io = io;
+  public Intake(IntakeRollerIO intakeRollerIO, IntakeArmIO intakeArmIO, HopperIO hopperIO) {
+    this.intakeRollerIO = intakeRollerIO;
+    this.intakeArmIO = intakeArmIO;
+    this.hopperIO = hopperIO;
 
     disconnectedAlert = new Alert("Disconnected intake motor", AlertType.kError);
   }
 
   @Override
   public void periodic() {
-    io.updateInputs(inputs);
+    intakeRollerIO.updateInputs(intakeRollerInputs);
+    intakeArmIO.updateInputs(intakeArmInputs);
+    hopperIO.updateInputs(hopperInputs);
 
-    Logger.processInputs("IntakeRoller", inputs);
+    Logger.processInputs("IntakeRoller", intakeRollerInputs);
+    Logger.processInputs("IntakeArm", intakeArmInputs);
+    Logger.processInputs("Hopper", hopperInputs);
 
-    disconnectedAlert.set(!inputs.connected);
+    disconnectedAlert.set(!intakeRollerInputs.connected);
   }
 
   public void stop() {
-    io.setOpenLoop(0.0);
+    intakeRollerIO.setOpenLoop(0.0);
   }
 
   public void intakeFuel() {
-    io.setVelocity(MetersPerSecond.of(1.0));
+    intakeRollerIO.setVelocity(MetersPerSecond.of(1.0));
   }
 }
