@@ -37,29 +37,25 @@ import frc.robot.subsystems.drive.ModuleIOTalonFX;
 import frc.robot.subsystems.feeder.Feeder;
 import frc.robot.subsystems.feeder.KickerIO;
 import frc.robot.subsystems.feeder.KickerIOSimSpark;
-import frc.robot.subsystems.feeder.KickerIOSpark;
 import frc.robot.subsystems.feeder.SpindexerIO;
 import frc.robot.subsystems.feeder.SpindexerIOSimSpark;
-import frc.robot.subsystems.feeder.SpindexerIOSpark;
 import frc.robot.subsystems.intake.HopperIO;
-import frc.robot.subsystems.intake.HopperIOReal;
 import frc.robot.subsystems.intake.HopperIOSim;
 import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.intake.IntakeArmIO;
-import frc.robot.subsystems.intake.IntakeArmIOReal;
 import frc.robot.subsystems.intake.IntakeArmIOSim;
 import frc.robot.subsystems.intake.IntakeRollerIO;
 import frc.robot.subsystems.intake.IntakeRollerIOSimTalonFX;
-import frc.robot.subsystems.intake.IntakeRollerIOTalonFX;
 import frc.robot.subsystems.launcher.FlywheelIO;
 import frc.robot.subsystems.launcher.FlywheelIOSimTalonFX;
-import frc.robot.subsystems.launcher.FlywheelIOTalonFX;
+import frc.robot.subsystems.launcher.FlywheelIOSimWPI;
 import frc.robot.subsystems.launcher.HoodIO;
 import frc.robot.subsystems.launcher.HoodIOSimSpark;
-import frc.robot.subsystems.launcher.HoodIOSpark;
+import frc.robot.subsystems.launcher.HoodIOSimWPI;
 import frc.robot.subsystems.launcher.Launcher;
 import frc.robot.subsystems.launcher.TurretIO;
 import frc.robot.subsystems.launcher.TurretIOSimSpark;
+import frc.robot.subsystems.launcher.TurretIOSpark;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionIO;
 import frc.robot.subsystems.vision.VisionIOPhotonVisionSim;
@@ -143,11 +139,12 @@ public class Robot extends LoggedRobot {
             new Launcher(
                 drive::getPose,
                 drive::getRobotRelativeChassisSpeeds,
-                new TurretIOSimSpark(),
-                new FlywheelIOTalonFX(),
-                new HoodIOSpark());
-        intake = new Intake(new IntakeRollerIOTalonFX(), new IntakeArmIOReal(), new HopperIOReal());
-        feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
+                new TurretIOSpark(),
+                new FlywheelIOSimWPI(),
+                new HoodIOSimWPI());
+        intake =
+            new Intake(new IntakeRollerIOSimTalonFX(), new IntakeArmIOSim(), new HopperIOSim());
+        // feeder = new Feeder(new SpindexerIOSimSpark(), new KickerIOSimSpark());
         break;
 
       case SIM: // Running a physics simulator
@@ -252,7 +249,7 @@ public class Robot extends LoggedRobot {
     //         .beforeStarting(launcher.initializeHoodCommand())
     //         .withName("Aim at hub"));
     // feeder.setDefaultCommand(Commands.run(feeder::spinForward, feeder).withName("Spin forward"));
-    feeder.setDefaultCommand(Commands.run(feeder::stop).withName("Stop feeder"));
+    // feeder.setDefaultCommand(Commands.run(feeder::stop, feeder).withName("Stop feeder"));
     // intake.setDefaultCommand(Commands.run(intake::intakeFuel, intake).withName("Intake fuel"));
     intake.setDefaultCommand(Commands.run(intake::stop, intake).withName("Stop intake"));
   }
@@ -399,7 +396,7 @@ public class Robot extends LoggedRobot {
     //             allianceSelector::fieldRotated));
 
     // Index
-    zorroDriver.AIn().whileTrue(Commands.run(feeder::spinForward).withName("Indexing"));
+    // zorroDriver.AIn().whileTrue(Commands.run(feeder::spinForward, feeder).withName("Indexing"));
 
     // Switch to X pattern when button D is pressed
     zorroDriver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
@@ -501,11 +498,13 @@ public class Robot extends LoggedRobot {
   public void bindXboxOperator(int port) {
     var xboxOperator = new CommandXboxController(port);
 
-    xboxOperator.rightBumper().whileTrue(Commands.run(intake::intakeFuel).withName("Intaking"));
+    xboxOperator
+        .rightBumper()
+        .whileTrue(Commands.run(intake::intakeFuel, intake).withName("Intaking"));
 
-    xboxOperator.y().onTrue(Commands.run(intake::deploy).withName("Deploy intake"));
+    xboxOperator.y().onTrue(Commands.run(intake::deploy, intake).withName("Deploy intake"));
 
-    xboxOperator.a().onTrue(Commands.run(intake::retract).withName("Retract intake"));
+    xboxOperator.a().onTrue(Commands.run(intake::retract, intake).withName("Retract intake"));
   }
 
   public void configureAutoOptions() {
