@@ -505,7 +505,7 @@ public class Robot extends LoggedRobot {
     // intake
     xboxOperator
         .rightBumper()
-        .whileTrue(Commands.run(intake::intakeFuel, intake).withName("Intaking"));
+        .whileTrue(Commands.startEnd(intake::intakeFuel, () -> {}, intake).withName("Intaking"));
   }
 
   public void configureAutoOptions() {
