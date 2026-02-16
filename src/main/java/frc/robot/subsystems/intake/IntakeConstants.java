@@ -35,11 +35,11 @@ public class IntakeConstants {
 
   public class PneumaticConstants {
     // hopper
-    public static final int hopperForwardChannel = 0;
-    public static final int hopperReverseChannel = 1;
+    public static final int hopperForwardChannel = 2;
+    public static final int hopperReverseChannel = 3;
 
     // intake arm
-    public static final int intakeArmForwardChannel = 3;
-    public static final int intakeArmReverseChannel = 4;
+    public static final int intakeArmForwardChannel = 0;
+    public static final int intakeArmReverseChannel = 1;
   }
 }

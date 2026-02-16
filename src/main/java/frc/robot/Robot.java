@@ -4,6 +4,8 @@ import static frc.robot.subsystems.vision.VisionConstants.*;
 
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.PowerDistribution;
+import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -40,12 +42,15 @@ import frc.robot.subsystems.feeder.KickerIOSimSpark;
 import frc.robot.subsystems.feeder.SpindexerIO;
 import frc.robot.subsystems.feeder.SpindexerIOSimSpark;
 import frc.robot.subsystems.intake.HopperIO;
+import frc.robot.subsystems.intake.HopperIOReal;
 import frc.robot.subsystems.intake.HopperIOSim;
 import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.intake.IntakeArmIO;
+import frc.robot.subsystems.intake.IntakeArmIOReal;
 import frc.robot.subsystems.intake.IntakeArmIOSim;
 import frc.robot.subsystems.intake.IntakeRollerIO;
 import frc.robot.subsystems.intake.IntakeRollerIOSimTalonFX;
+import frc.robot.subsystems.intake.IntakeRollerIOTalonFX;
 import frc.robot.subsystems.launcher.FlywheelIO;
 import frc.robot.subsystems.launcher.FlywheelIOSimTalonFX;
 import frc.robot.subsystems.launcher.FlywheelIOSimWPI;
@@ -81,6 +86,8 @@ public class Robot extends LoggedRobot {
   private final AutoSelector autoSelector =
       new AutoSelector(DIOPorts.autonomousModeSelector, allianceSelector::getAllianceColor);
   public static final Field2d field = new Field2d();
+
+  public final PowerDistribution powerDistribution = new PowerDistribution(1, ModuleType.kRev);
 
   // Subsystems
   private Drive drive;
@@ -142,8 +149,7 @@ public class Robot extends LoggedRobot {
                 new TurretIOSpark(),
                 new FlywheelIOSimWPI(),
                 new HoodIOSimWPI());
-        // intake =
-        //     new Intake(new IntakeRollerIOSimTalonFX(), new IntakeArmIOSim(), new HopperIOSim());
+        intake = new Intake(new IntakeRollerIOTalonFX(), new IntakeArmIOReal(), new HopperIOReal());
         // feeder = new Feeder(new SpindexerIOSimSpark(), new KickerIOSimSpark());
         break;
 
@@ -238,7 +244,7 @@ public class Robot extends LoggedRobot {
     SmartDashboard.putData(vision);
     SmartDashboard.putData(launcher);
     // SmartDashboard.putData(feeder);
-    // SmartDashboard.putData(intake);
+    SmartDashboard.putData(intake);
     SmartDashboard.putData("Field", field);
     Field.plotRegions();
 
@@ -249,7 +255,7 @@ public class Robot extends LoggedRobot {
     //         .beforeStarting(launcher.initializeHoodCommand())
     //         .withName("Aim at hub"));
     // feeder.setDefaultCommand(Commands.run(feeder::stop, feeder).withName("Stop feeder"));
-    // intake.setDefaultCommand(Commands.run(intake::stop, intake).withName("Stop intake"));
+    intake.setDefaultCommand(Commands.run(intake::stop, intake).withName("Stop intake"));
   }
 
   /** This function is called periodically during all modes. */
@@ -497,8 +503,9 @@ public class Robot extends LoggedRobot {
     var xboxOperator = new CommandXboxController(port);
 
     // intake
-    // xboxOperator.rightBumper().whileTrue(Commands.startEnd(intake::intakeFuel, null,
-    // intake).withName("Intaking"));
+    xboxOperator
+        .rightBumper()
+        .whileTrue(Commands.run(intake::intakeFuel, intake).withName("Intaking"));
   }
 
   public void configureAutoOptions() {
