@@ -142,8 +142,8 @@ public class Robot extends LoggedRobot {
                 new TurretIOSpark(),
                 new FlywheelIOSimWPI(),
                 new HoodIOSimWPI());
-        intake =
-            new Intake(new IntakeRollerIOSimTalonFX(), new IntakeArmIOSim(), new HopperIOSim());
+        // intake =
+        //     new Intake(new IntakeRollerIOSimTalonFX(), new IntakeArmIOSim(), new HopperIOSim());
         // feeder = new Feeder(new SpindexerIOSimSpark(), new KickerIOSimSpark());
         break;
 
@@ -237,8 +237,8 @@ public class Robot extends LoggedRobot {
     SmartDashboard.putData(drive);
     SmartDashboard.putData(vision);
     SmartDashboard.putData(launcher);
-    SmartDashboard.putData(feeder);
-    SmartDashboard.putData(intake);
+    // SmartDashboard.putData(feeder);
+    // SmartDashboard.putData(intake);
     SmartDashboard.putData("Field", field);
     Field.plotRegions();
 
@@ -248,10 +248,8 @@ public class Robot extends LoggedRobot {
     // launcher)
     //         .beforeStarting(launcher.initializeHoodCommand())
     //         .withName("Aim at hub"));
-    // feeder.setDefaultCommand(Commands.run(feeder::spinForward, feeder).withName("Spin forward"));
     // feeder.setDefaultCommand(Commands.run(feeder::stop, feeder).withName("Stop feeder"));
-    // intake.setDefaultCommand(Commands.run(intake::intakeFuel, intake).withName("Intake fuel"));
-    intake.setDefaultCommand(Commands.run(intake::stop, intake).withName("Stop intake"));
+    // intake.setDefaultCommand(Commands.run(intake::stop, intake).withName("Stop intake"));
   }
 
   /** This function is called periodically during all modes. */
@@ -498,13 +496,9 @@ public class Robot extends LoggedRobot {
   public void bindXboxOperator(int port) {
     var xboxOperator = new CommandXboxController(port);
 
-    xboxOperator
-        .rightBumper()
-        .whileTrue(Commands.run(intake::intakeFuel, intake).withName("Intaking"));
-
-    xboxOperator.y().onTrue(Commands.run(intake::deploy, intake).withName("Deploy intake"));
-
-    xboxOperator.a().onTrue(Commands.run(intake::retract, intake).withName("Retract intake"));
+    // intake
+    // xboxOperator.rightBumper().whileTrue(Commands.startEnd(intake::intakeFuel, null,
+    // intake).withName("Intaking"));
   }
 
   public void configureAutoOptions() {
