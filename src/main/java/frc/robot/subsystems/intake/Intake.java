@@ -47,4 +47,14 @@ public class Intake extends SubsystemBase {
   public void intakeFuel() {
     intakeRollerIO.setVelocity(MetersPerSecond.of(1.0));
   }
+
+  public void deploy() {
+    hopperIO.deploy();
+    intakeArmIO.deploy();
+  }
+
+  public void retract() {
+    intakeArmIO.retract();
+    hopperIO.retract();
+  }
 }
