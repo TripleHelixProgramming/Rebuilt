@@ -53,16 +53,13 @@ import frc.robot.subsystems.intake.IntakeRollerIOSimTalonFX;
 import frc.robot.subsystems.intake.IntakeRollerIOTalonFX;
 import frc.robot.subsystems.launcher.FlywheelIO;
 import frc.robot.subsystems.launcher.FlywheelIOSimTalonFX;
-import frc.robot.subsystems.launcher.FlywheelIOSimWPI;
 import frc.robot.subsystems.launcher.FlywheelIOTalonFX;
 import frc.robot.subsystems.launcher.HoodIO;
 import frc.robot.subsystems.launcher.HoodIOSimSpark;
-import frc.robot.subsystems.launcher.HoodIOSimWPI;
 import frc.robot.subsystems.launcher.HoodIOSpark;
 import frc.robot.subsystems.launcher.Launcher;
 import frc.robot.subsystems.launcher.TurretIO;
 import frc.robot.subsystems.launcher.TurretIOSimSpark;
-import frc.robot.subsystems.launcher.TurretIOSpark;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionIO;
 import frc.robot.subsystems.vision.VisionIOPhotonVisionSim;
@@ -250,7 +247,8 @@ public class Robot extends LoggedRobot {
 
     // launcher.setDefaultCommand(
     //     Commands.run(
-    //             () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()), launcher)
+    //             () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()),
+    // launcher)
     //         .beforeStarting(launcher.initializeHoodCommand())
     //         .withName("Aim at hub"));
     // feeder.setDefaultCommand(Commands.run(feeder::spinForward, feeder).withName("Spin forward"));
