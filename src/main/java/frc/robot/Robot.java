@@ -255,7 +255,8 @@ public class Robot extends LoggedRobot {
     //         .beforeStarting(launcher.initializeHoodCommand())
     //         .withName("Aim at hub"));
     // feeder.setDefaultCommand(Commands.run(feeder::stop, feeder).withName("Stop feeder"));
-    intake.setDefaultCommand(Commands.run(intake::stop, intake).withName("Stop intake"));
+    intake.setDefaultCommand(
+        Commands.startEnd(intake::stop, () -> {}, intake).withName("Stop intake"));
   }
 
   /** This function is called periodically during all modes. */
