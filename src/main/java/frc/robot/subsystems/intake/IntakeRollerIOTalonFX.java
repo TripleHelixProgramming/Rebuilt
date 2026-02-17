@@ -10,7 +10,6 @@ import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.units.measure.AngularVelocity;
@@ -18,6 +17,8 @@ import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.Constants.CANBusPorts.CAN2;
+import frc.robot.Constants.RobotConstants;
+import org.littletonrobotics.junction.Logger;
 
 public class IntakeRollerIOTalonFX implements IntakeRollerIO {
   private final TalonFX intakeMotorLeader;
@@ -32,25 +33,31 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
 
   // Inputs from intake motor
   private final StatusSignal<AngularVelocity> intakeVelocity;
-  private final StatusSignal<Voltage> intakeAppliedVolts;
-  private final StatusSignal<Current> intakeCurrent;
+  private final StatusSignal<Voltage> intakeAppliedVolts, followerAppliedVolts;
+  private final StatusSignal<Current> intakeCurrent, followerCurrent;
 
   public IntakeRollerIOTalonFX() {
     intakeMotorLeader = new TalonFX(CAN2.intakeRollerLeader, CAN2.bus);
     intakeMotorFollower = new TalonFX(CAN2.intakeRollerFollower, CAN2.bus);
     config = new TalonFXConfiguration();
-    config.MotorOutput.withInverted(InvertedValue.CounterClockwise_Positive)
-        .withNeutralMode(NeutralModeValue.Brake);
+    config.MotorOutput.withNeutralMode(NeutralModeValue.Brake);
     config.Slot0 = intakeGains;
     tryUntilOk(5, () -> intakeMotorLeader.getConfigurator().apply(config, 0.25));
     tryUntilOk(5, () -> intakeMotorFollower.getConfigurator().apply(config, 0.25));
 
     intakeVelocity = intakeMotorLeader.getVelocity();
     intakeAppliedVolts = intakeMotorLeader.getMotorVoltage();
-    intakeCurrent = intakeMotorLeader.getStatorCurrent();
+    intakeCurrent = intakeMotorLeader.getSupplyCurrent();
+    followerAppliedVolts = intakeMotorFollower.getMotorVoltage();
+    followerCurrent = intakeMotorFollower.getSupplyCurrent();
 
     BaseStatusSignal.setUpdateFrequencyForAll(
-        50.0, intakeVelocity, intakeAppliedVolts, intakeCurrent);
+        50.0,
+        intakeVelocity,
+        intakeAppliedVolts,
+        intakeCurrent,
+        followerAppliedVolts,
+        followerCurrent);
 
     // intakeMotorFollower.setControl(
     //     new Follower(CAN2.intakeRollerLeader, MotorAlignmentValue.Opposed));
@@ -66,6 +73,10 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
     inputs.currentAmps = intakeCurrent.getValueAsDouble();
     inputs.velocityMetersPerSec =
         intakeVelocity.getValue().in(RadiansPerSecond) * rollerRadius.in(Meters) / motorReduction;
+
+    BaseStatusSignal.refreshAll(followerCurrent, followerAppliedVolts);
+    Logger.recordOutput("Intake/Follower/Current", followerCurrent.getValue());
+    Logger.recordOutput("Intake/Follower/Volts", followerAppliedVolts.getValue());
   }
 
   @Override
@@ -75,11 +86,16 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
 
   @Override
   public void setVelocity(LinearVelocity tangentialVelocity) {
+    var angularVelocity =
+        RadiansPerSecond.of(
+            tangentialVelocity.in(MetersPerSecond) * motorReduction / rollerRadius.in(Meters));
     intakeMotorLeader.setControl(
-        velocityVoltageRequest.withVelocity(
-            RadiansPerSecond.of(
-                tangentialVelocity.in(MetersPerSecond)
-                    * motorReduction
-                    / rollerRadius.in(Meters))));
+        velocityVoltageRequest
+            .withVelocity(angularVelocity)
+            .withFeedForward(
+                RobotConstants.kNominalVoltage
+                    * angularVelocity.in(RadiansPerSecond)
+                    / maxAngularVelocity.in(RadiansPerSecond)));
+    // intakeMotorLeader.setControl(new DutyCycleOut(0.1));
   }
 }

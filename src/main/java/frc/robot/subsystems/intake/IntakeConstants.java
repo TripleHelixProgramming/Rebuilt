@@ -1,15 +1,14 @@
 package frc.robot.subsystems.intake;
 
-import static edu.wpi.first.units.Units.Inches;
-import static edu.wpi.first.units.Units.RotationsPerSecond;
+import static edu.wpi.first.units.Units.*;
 
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
-import frc.robot.Constants.MotorConstants.KrakenX60Constants;
 import frc.robot.Constants.RobotConstants;
+import frc.robot.Constants.MotorConstants.KrakenX60Constants;
 
 public class IntakeConstants {
   public class IntakeRoller {
@@ -21,11 +20,13 @@ public class IntakeConstants {
         KrakenX60Constants.kFreeSpeed.div(motorReduction);
     public static final Slot0Configs intakeGains =
         new Slot0Configs()
-            .withKP(0.1)
+            .withKP(0.5)
             .withKI(0.0)
-            .withKD(0.05)
+            .withKD(0.0)
             .withKS(0.0)
-            .withKV(RobotConstants.kNominalVoltage / maxAngularVelocity.in(RotationsPerSecond))
+            .withKV(
+                RobotConstants.kNominalVoltage
+                    / KrakenX60Constants.kFreeSpeed.in(RotationsPerSecond))
             .withKA(0.0)
             .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign);
 
