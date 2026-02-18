@@ -7,12 +7,13 @@ import static frc.robot.util.PhoenixUtil.tryUntilOk;
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.controls.DutyCycleOut;
+import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.NeutralOut;
 import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.units.measure.AngularVelocity;
@@ -63,8 +64,8 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
         followerAppliedVolts,
         followerCurrent);
 
-    // intakeMotorFollower.setControl(
-    //     new Follower(CAN2.intakeRollerLeader, MotorAlignmentValue.Opposed));
+    intakeMotorFollower.setControl(
+        new Follower(CAN2.intakeRollerLeader, MotorAlignmentValue.Opposed));
   }
 
   @Override
@@ -104,6 +105,7 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
     //                 * angularVelocity.in(RadiansPerSecond)
     //                 / maxAngularVelocity.in(RadiansPerSecond)));
     // intakeMotorLeader.setControl(velocityTorqueCurrentRequest.withVelocity(angularVelocity));
-    intakeMotorLeader.setControl(new DutyCycleOut(0.5));
+    // intakeMotorLeader.setControl(new DutyCycleOut(1.0));
+    intakeMotorLeader.setControl(voltageRequest.withOutput(4));
   }
 }
