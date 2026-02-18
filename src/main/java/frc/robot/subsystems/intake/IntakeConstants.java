@@ -19,9 +19,6 @@ public class IntakeConstants {
         KrakenX60Constants.kFreeSpeed.div(motorReduction);
     public static final Slot0Configs velocityVoltageGains =
         new Slot0Configs().withKP(0.11).withKI(0.0).withKD(0.0).withKS(0.1).withKV(0.12);
-    // .withKV(
-    //     RobotConstants.kNominalVoltage
-    //         / KrakenX60Constants.kFreeSpeed.in(RotationsPerSecond))
     public static final Slot1Configs velocityTorqueCurrentGains =
         new Slot1Configs().withKP(5).withKI(0.0).withKD(0.0).withKS(2.5);
 
