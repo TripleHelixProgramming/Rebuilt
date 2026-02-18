@@ -4,6 +4,8 @@ import static frc.robot.subsystems.vision.VisionConstants.*;
 
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.PowerDistribution;
+import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -33,18 +35,22 @@ import frc.robot.subsystems.drive.GyroIO;
 import frc.robot.subsystems.drive.GyroIOBoron;
 import frc.robot.subsystems.drive.ModuleIO;
 import frc.robot.subsystems.drive.ModuleIOSimWPI;
+import frc.robot.subsystems.drive.ModuleIOTalonFX;
 import frc.robot.subsystems.feeder.Feeder;
 import frc.robot.subsystems.feeder.KickerIO;
 import frc.robot.subsystems.feeder.KickerIOSimSpark;
 import frc.robot.subsystems.feeder.SpindexerIO;
 import frc.robot.subsystems.feeder.SpindexerIOSimSpark;
 import frc.robot.subsystems.intake.HopperIO;
+import frc.robot.subsystems.intake.HopperIOReal;
 import frc.robot.subsystems.intake.HopperIOSim;
 import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.intake.IntakeArmIO;
+import frc.robot.subsystems.intake.IntakeArmIOReal;
 import frc.robot.subsystems.intake.IntakeArmIOSim;
 import frc.robot.subsystems.intake.IntakeRollerIO;
 import frc.robot.subsystems.intake.IntakeRollerIOSimTalonFX;
+import frc.robot.subsystems.intake.IntakeRollerIOTalonFX;
 import frc.robot.subsystems.launcher.FlywheelIO;
 import frc.robot.subsystems.launcher.FlywheelIOSimTalonFX;
 import frc.robot.subsystems.launcher.FlywheelIOSimWPI;
@@ -80,6 +86,8 @@ public class Robot extends LoggedRobot {
   private final AutoSelector autoSelector =
       new AutoSelector(DIOPorts.autonomousModeSelector, allianceSelector::getAllianceColor);
   public static final Field2d field = new Field2d();
+
+  public final PowerDistribution powerDistribution = new PowerDistribution(1, ModuleType.kRev);
 
   // Subsystems
   private Drive drive;
@@ -118,10 +126,10 @@ public class Robot extends LoggedRobot {
         drive =
             new Drive(
                 new GyroIOBoron(),
-                new ModuleIOSimWPI(DriveConstants.FrontLeft),
-                new ModuleIOSimWPI(DriveConstants.FrontRight),
-                new ModuleIOSimWPI(DriveConstants.BackLeft),
-                new ModuleIOSimWPI(DriveConstants.BackRight));
+                new ModuleIOTalonFX(DriveConstants.FrontLeft),
+                new ModuleIOTalonFX(DriveConstants.FrontRight),
+                new ModuleIOTalonFX(DriveConstants.BackLeft),
+                new ModuleIOTalonFX(DriveConstants.BackRight));
         vision =
             new Vision(
                 drive::addVisionMeasurement,
@@ -141,8 +149,8 @@ public class Robot extends LoggedRobot {
                 new TurretIOSpark(),
                 new FlywheelIOSimWPI(),
                 new HoodIOSimWPI());
-        intake = new Intake(new IntakeRollerIO() {}, new IntakeArmIO() {}, new HopperIO() {});
-        feeder = new Feeder(new SpindexerIO() {}, new KickerIO() {});
+        intake = new Intake(new IntakeRollerIOTalonFX(), new IntakeArmIOReal(), new HopperIOReal());
+        // feeder = new Feeder(new SpindexerIOSimSpark(), new KickerIOSimSpark());
         break;
 
       case SIM: // Running a physics simulator
@@ -235,18 +243,20 @@ public class Robot extends LoggedRobot {
     SmartDashboard.putData(drive);
     SmartDashboard.putData(vision);
     SmartDashboard.putData(launcher);
-    SmartDashboard.putData(feeder);
+    // SmartDashboard.putData(feeder);
     SmartDashboard.putData(intake);
     SmartDashboard.putData("Field", field);
     Field.plotRegions();
 
-    launcher.setDefaultCommand(
-        Commands.run(
-                () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()), launcher)
-            .beforeStarting(launcher.initializeHoodCommand())
-            .withName("Aim at hub"));
-    feeder.setDefaultCommand(Commands.run(feeder::spinForward, feeder).withName("Spin forward"));
-    intake.setDefaultCommand(Commands.run(intake::intakeFuel, intake).withName("Intake fuel"));
+    // launcher.setDefaultCommand(
+    //     Commands.run(
+    //             () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()),
+    // launcher)
+    //         .beforeStarting(launcher.initializeHoodCommand())
+    //         .withName("Aim at hub"));
+    // feeder.setDefaultCommand(Commands.run(feeder::stop, feeder).withName("Stop feeder"));
+    intake.setDefaultCommand(
+        Commands.startEnd(intake::stop, () -> {}, intake).withName("Stop intake"));
   }
 
   /** This function is called periodically during all modes. */
@@ -375,23 +385,30 @@ public class Robot extends LoggedRobot {
                 .ignoringDisable(true));
 
     // Aim at hub
-    zorroDriver
-        .AIn()
-        .whileTrue(
-            DriveCommands.joystickDriveAtFixedOrientation(
-                drive,
-                () -> -zorroDriver.getRightYAxis(),
-                () -> -zorroDriver.getRightXAxis(),
-                () ->
-                    GameState.getTarget(drive.getPose())
-                        .toPose2d()
-                        .getTranslation()
-                        .minus(drive.getPose().getTranslation())
-                        .getAngle(),
-                allianceSelector::fieldRotated));
+    // zorroDriver
+    //     .AIn()
+    //     .whileTrue(
+    //         DriveCommands.joystickDriveAtFixedOrientation(
+    //             drive,
+    //             () -> -zorroDriver.getRightYAxis(),
+    //             () -> -zorroDriver.getRightXAxis(),
+    //             () ->
+    //                 GameState.getTarget(drive.getPose())
+    //                     .toPose2d()
+    //                     .getTranslation()
+    //                     .minus(drive.getPose().getTranslation())
+    //                     .getAngle(),
+    //             allianceSelector::fieldRotated));
+
+    // Index
+    // zorroDriver.AIn().whileTrue(Commands.run(feeder::spinForward, feeder).withName("Indexing"));
 
     // Switch to X pattern when button D is pressed
-    zorroDriver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
+    // zorroDriver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
+
+    zorroDriver
+        .DIn()
+        .whileTrue(Commands.startEnd(intake::intakeFuel, () -> {}, intake).withName("Intaking"));
   }
 
   public void bindXboxDriver(int port) {
@@ -489,6 +506,11 @@ public class Robot extends LoggedRobot {
 
   public void bindXboxOperator(int port) {
     var xboxOperator = new CommandXboxController(port);
+
+    // intake
+    xboxOperator
+        .rightBumper()
+        .whileTrue(Commands.startEnd(intake::intakeFuel, () -> {}, intake).withName("Intaking"));
   }
 
   public void configureAutoOptions() {

@@ -52,7 +52,7 @@ public class IntakeRollerIOSimTalonFX implements IntakeRollerIO {
     config = new TalonFXConfiguration();
     config.MotorOutput.withInverted(InvertedValue.CounterClockwise_Positive)
         .withNeutralMode(NeutralModeValue.Brake);
-    config.Slot0 = intakeGains;
+    config.Slot0 = velocityVoltageGains;
     tryUntilOk(5, () -> intakeMotorLeader.getConfigurator().apply(config, 0.25));
     tryUntilOk(5, () -> intakeMotorFollower.getConfigurator().apply(config, 0.25));
 

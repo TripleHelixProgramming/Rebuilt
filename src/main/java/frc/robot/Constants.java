@@ -71,7 +71,7 @@ public final class Constants {
 
     public static final int allianceColorSelector = 3;
 
-    public static final int turretAbsEncoder = 5;
+    public static final int turretAbsEncoder = 4;
   }
 
   public static final class OIPorts {
