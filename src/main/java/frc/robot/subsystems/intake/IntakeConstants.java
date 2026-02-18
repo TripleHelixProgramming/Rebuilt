@@ -11,7 +11,7 @@ import frc.robot.Constants.MotorConstants.KrakenX60Constants;
 
 public class IntakeConstants {
   public class IntakeRoller {
-    public static final Distance rollerRadius = Inches.of(0.75);
+    public static final Distance rollerRadius = Inches.of(0.85);
 
     // motor controller
     public static final double motorReduction = 1.0;

@@ -42,13 +42,13 @@ public class Intake extends SubsystemBase {
 
   public void stop() {
     intakeRollerIO.setOpenLoop(0.0);
-    // intakeArmIO.retract();
-    // hopperIO.retract();
+    intakeArmIO.retract();
+    hopperIO.retract();
   }
 
   public void intakeFuel() {
-    intakeRollerIO.setVelocity(MetersPerSecond.of(3.7));
-    // hopperIO.deploy();
-    // intakeArmIO.deploy();
+    intakeRollerIO.setVelocity(MetersPerSecond.of(6));
+    hopperIO.deploy();
+    intakeArmIO.deploy();
   }
 }

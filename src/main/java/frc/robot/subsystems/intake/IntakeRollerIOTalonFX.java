@@ -48,7 +48,6 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
     config.Slot0 = velocityVoltageGains;
     config.Slot1 = velocityTorqueCurrentGains;
     tryUntilOk(5, () -> intakeMotorLeader.getConfigurator().apply(config, 0.25));
-    // tryUntilOk(5, () -> intakeMotorFollower.getConfigurator().apply(config, 0.25));
 
     intakeVelocity = intakeMotorLeader.getVelocity();
     intakeAppliedVolts = intakeMotorLeader.getMotorVoltage();
@@ -97,15 +96,6 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
     var angularVelocity =
         RadiansPerSecond.of(
             tangentialVelocity.in(MetersPerSecond) * motorReduction / rollerRadius.in(Meters));
-    // intakeMotorLeader.setControl(
-    //     velocityVoltageRequest
-    //         .withVelocity(angularVelocity)
-    //         .withFeedForward(
-    //             RobotConstants.kNominalVoltage
-    //                 * angularVelocity.in(RadiansPerSecond)
-    //                 / maxAngularVelocity.in(RadiansPerSecond)));
     intakeMotorLeader.setControl(velocityTorqueCurrentRequest.withVelocity(angularVelocity));
-    // intakeMotorLeader.setControl(new DutyCycleOut(1.0));
-    // intakeMotorLeader.setControl(voltageRequest.withOutput(4));
   }
 }
