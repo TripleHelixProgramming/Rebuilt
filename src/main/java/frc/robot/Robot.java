@@ -404,7 +404,11 @@ public class Robot extends LoggedRobot {
     // zorroDriver.AIn().whileTrue(Commands.run(feeder::spinForward, feeder).withName("Indexing"));
 
     // Switch to X pattern when button D is pressed
-    zorroDriver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
+    // zorroDriver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
+
+    zorroDriver
+        .DIn()
+        .whileTrue(Commands.startEnd(intake::intakeFuel, () -> {}, intake).withName("Intaking"));
   }
 
   public void bindXboxDriver(int port) {

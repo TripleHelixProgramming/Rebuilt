@@ -104,6 +104,6 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
     //                 * angularVelocity.in(RadiansPerSecond)
     //                 / maxAngularVelocity.in(RadiansPerSecond)));
     // intakeMotorLeader.setControl(velocityTorqueCurrentRequest.withVelocity(angularVelocity));
-    intakeMotorLeader.setControl(new DutyCycleOut(0.1));
+    intakeMotorLeader.setControl(new DutyCycleOut(0.5));
   }
 }
