@@ -1,3 +1,8 @@
+// "Changed" = It has some code from FlywheelIOTalonFX but is not exactly the same.
+// "New" = It has been added and is not referenced in FlywheelIOTalonFX.
+// Not including flywheel -> intake changes. Also not including chnaged/removed comments.
+// Everything in the original code. Only thing changed is the added comments and spaces.
+
 package frc.robot.subsystems.intake;
 
 import static edu.wpi.first.units.Units.*;
@@ -30,29 +35,29 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
   private final Debouncer connectedDebounce = new Debouncer(0.5, Debouncer.DebounceType.kFalling);
 
   private final VoltageOut voltageRequest = new VoltageOut(0);
-  private final VelocityVoltage velocityVoltageRequest = new VelocityVoltage(0.0).withSlot(0);
+  private final VelocityVoltage velocityVoltageRequest = new VelocityVoltage(0.0).withSlot(0); //Unused in here, but not in FlywheelIOTalonFX
   private final VelocityTorqueCurrentFOC velocityTorqueCurrentRequest =
-      new VelocityTorqueCurrentFOC(0.0).withSlot(1);
-  private final NeutralOut brake = new NeutralOut();
+      new VelocityTorqueCurrentFOC(0.0).withSlot(1); //New
+  private final NeutralOut brake = new NeutralOut(); //New
 
   // Inputs from intake motor
   private final StatusSignal<AngularVelocity> intakeVelocity;
-  private final StatusSignal<Voltage> intakeAppliedVolts, followerAppliedVolts;
-  private final StatusSignal<Current> intakeCurrent, followerCurrent;
+  private final StatusSignal<Voltage> intakeAppliedVolts, followerAppliedVolts; //Changed
+  private final StatusSignal<Current> intakeCurrent, followerCurrent; //Changed
 
   public IntakeRollerIOTalonFX() {
     intakeMotorLeader = new TalonFX(CAN2.intakeRollerLeader, CAN2.bus);
     intakeMotorFollower = new TalonFX(CAN2.intakeRollerFollower, CAN2.bus);
     config = new TalonFXConfiguration();
     config.MotorOutput.withNeutralMode(NeutralModeValue.Brake);
-    config.Slot0 = velocityVoltageGains;
-    config.Slot1 = velocityTorqueCurrentGains;
-    tryUntilOk(5, () -> intakeMotorLeader.getConfigurator().apply(config, 0.25));
+    config.Slot0 = velocityVoltageGains; //New
+    config.Slot1 = velocityTorqueCurrentGains; //Changed to 1. Used to be Slot0
+    tryUntilOk(5, () -> intakeMotorLeader.getConfigurator().apply(config, 0.25)); //-1 tryUntilOkay
 
     intakeVelocity = intakeMotorLeader.getVelocity();
     intakeAppliedVolts = intakeMotorLeader.getMotorVoltage();
-    intakeCurrent = intakeMotorLeader.getSupplyCurrent();
-    followerAppliedVolts = intakeMotorFollower.getMotorVoltage();
+    intakeCurrent = intakeMotorLeader.getSupplyCurrent(); //New
+    followerAppliedVolts = intakeMotorFollower.getMotorVoltage(); //New
     followerCurrent = intakeMotorFollower.getSupplyCurrent();
 
     BaseStatusSignal.setUpdateFrequencyForAll(
@@ -60,6 +65,7 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
         intakeVelocity,
         intakeAppliedVolts,
         intakeCurrent,
+        //-1 intakeVelocity. Flywheel has 2. One goes here
         followerAppliedVolts,
         followerCurrent);
 
@@ -71,16 +77,16 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
   public void updateInputs(IntakeRollerIOInputs inputs) {
     inputs.connected =
         connectedDebounce.calculate(
-            BaseStatusSignal.refreshAll(intakeVelocity, intakeAppliedVolts, intakeCurrent).isOK());
+            BaseStatusSignal.refreshAll(intakeVelocity, intakeAppliedVolts, intakeCurrent).isOK()); //Chnaged
 
     inputs.appliedVolts = intakeAppliedVolts.getValueAsDouble();
     inputs.currentAmps = intakeCurrent.getValueAsDouble();
     inputs.velocityMetersPerSec =
         intakeVelocity.getValue().in(RadiansPerSecond) * rollerRadius.in(Meters) / motorReduction;
 
-    BaseStatusSignal.refreshAll(followerCurrent, followerAppliedVolts);
-    Logger.recordOutput("Intake/Follower/Current", followerCurrent.getValue());
-    Logger.recordOutput("Intake/Follower/Volts", followerAppliedVolts.getValue());
+    BaseStatusSignal.refreshAll(followerCurrent, followerAppliedVolts); //New
+    Logger.recordOutput("Intake/Follower/Current", followerCurrent.getValue()); //New
+    Logger.recordOutput("Intake/Follower/Volts", followerAppliedVolts.getValue()); //New
   }
 
   @Override
@@ -88,7 +94,7 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
     if (output < 1e-6) {
       intakeMotorLeader.setControl(brake);
     } else {
-      intakeMotorLeader.setControl(voltageRequest.withOutput(output));
+      intakeMotorLeader.setControl(voltageRequest.withOutput(output)); //New and Changed
     }
   }
 
@@ -96,7 +102,7 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
   public void setVelocity(LinearVelocity tangentialVelocity) {
     var angularVelocity =
         RadiansPerSecond.of(
-            tangentialVelocity.in(MetersPerSecond) * motorReduction / rollerRadius.in(Meters));
-    intakeMotorLeader.setControl(velocityTorqueCurrentRequest.withVelocity(angularVelocity));
+            tangentialVelocity.in(MetersPerSecond) * motorReduction / rollerRadius.in(Meters)); //New
+    intakeMotorLeader.setControl(velocityTorqueCurrentRequest.withVelocity(angularVelocity)); //Changed
   }
 }
