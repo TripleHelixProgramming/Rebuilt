@@ -88,7 +88,7 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
     if (output < 1e-6) {
       intakeMotorLeader.setControl(brake);
     } else {
-    intakeMotorLeader.setControl(voltageRequest.withOutput(output));
+      intakeMotorLeader.setControl(voltageRequest.withOutput(output));
     }
   }
 
