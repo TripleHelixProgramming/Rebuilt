@@ -45,9 +45,11 @@ public class SpindexerIOSpark implements SpindexerIO {
     config
         .encoder
         .positionConversionFactor(encoderPositionFactor)
-        .velocityConversionFactor(encoderVelocityFactor);
+        .velocityConversionFactor(encoderVelocityFactor)
+        .uvwAverageDepth(2)
+        .uvwMeasurementPeriod(8);
 
-    config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kPSim, 0.0, 0.0);
+    config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kPSim, 0.0, kDSim);
 
     tryUntilOk(
         flex,
@@ -82,6 +84,6 @@ public class SpindexerIOSpark implements SpindexerIO {
         tangentialVelocity.in(MetersPerSecond) / radius.in(Meters),
         ControlType.kVelocity,
         ClosedLoopSlot.kSlot0,
-        0);
+        feedforwardVolts);
   }
 }
