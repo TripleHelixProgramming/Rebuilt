@@ -31,7 +31,7 @@ public class FlywheelIOTalonFX implements FlywheelIO {
 
   // Voltage control requests
   private final VoltageOut voltageRequest = new VoltageOut(0);
-  private final VelocityVoltage velocityVoltageRequest = new VelocityVoltage(0.0);
+  // private final VelocityVoltage velocityVoltageRequest = new VelocityVoltage(0.0);
   private final VelocityTorqueCurrentFOC velocityTorqueCurrentRequest =
       new VelocityTorqueCurrentFOC(0.0).withSlot(1);
   private final NeutralOut brake = new NeutralOut();
@@ -55,7 +55,7 @@ public class FlywheelIOTalonFX implements FlywheelIO {
         () ->
             flywheelLeaderTalon
                 .getConfigurator()
-                .apply(config, 0.25)); // Dunno if i should change this or not
+                .apply(config, 0.25));
 
     flywheelVelocity = flywheelLeaderTalon.getVelocity();
     flywheelAppliedVolts = flywheelLeaderTalon.getMotorVoltage();
@@ -96,7 +96,7 @@ public class FlywheelIOTalonFX implements FlywheelIO {
     if (output < 1e-6) {
       flywheelLeaderTalon.setControl(brake);
     } else {
-      flywheelLeaderTalon.setControl(voltageRequest.withOutput(output)); // New and Changed
+      flywheelLeaderTalon.setControl(voltageRequest.withOutput(output));
     }
   }
 
