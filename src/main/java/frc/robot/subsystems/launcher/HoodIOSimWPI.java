@@ -17,7 +17,7 @@ public class HoodIOSimWPI implements HoodIO {
   private final DCMotorSim hoodSim;
 
   private boolean closedLoop = false;
-  private PIDController positionController = new PIDController(kPSim, 0.0, kDSim);
+  private PIDController positionController = new PIDController(kPSimPos, 0.0, kDSimPos);
   private double appliedVolts = 0.0;
   private double feedforwardVolts = 0.0;
 

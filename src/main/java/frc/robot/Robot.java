@@ -248,14 +248,12 @@ public class Robot extends LoggedRobot {
     SmartDashboard.putData("Field", field);
     Field.plotRegions();
 
-    launcher.setDefaultCommand(
-        Commands.run(
-                () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()), launcher)
-            .beforeStarting(launcher.initializeHoodCommand())
-            .withName("Aim at hub"));
     // feeder.setDefaultCommand(Commands.run(feeder::stop, feeder).withName("Stop feeder"));
     intake.setDefaultCommand(
         Commands.startEnd(intake::stop, () -> {}, intake).withName("Stop intake"));
+    launcher.setDefaultCommand(
+        launcher.initializeHoodCommand(
+            () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation())));
   }
 
   /** This function is called periodically during all modes. */

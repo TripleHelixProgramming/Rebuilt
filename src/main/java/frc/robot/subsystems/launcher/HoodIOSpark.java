@@ -9,7 +9,6 @@ import com.revrobotics.RelativeEncoder;
 import com.revrobotics.ResetMode;
 import com.revrobotics.spark.ClosedLoopSlot;
 import com.revrobotics.spark.FeedbackSensor;
-import com.revrobotics.spark.SparkBase;
 import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
@@ -28,7 +27,7 @@ import frc.robot.util.SparkOdometryThread.SparkInputs;
 
 public class HoodIOSpark implements HoodIO {
 
-  private final SparkBase hoodSpark;
+  private final SparkMax hoodSpark;
   private final RelativeEncoder encoderSpark;
   private final SparkClosedLoopController hoodController;
   private final SparkInputs sparkInputs;
@@ -55,7 +54,11 @@ public class HoodIOSpark implements HoodIO {
         .positionConversionFactor(encoderPositionFactor)
         .velocityConversionFactor(encoderVelocityFactor);
 
-    hoodConfig.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kPReal, 0.0, 0.0);
+    hoodConfig
+        .closedLoop
+        .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
+        .pid(kPRealPos, 0.0, 0.0, ClosedLoopSlot.kSlot0)
+        .pid(kPRealVel, 0.0, 0.0, ClosedLoopSlot.kSlot1);
 
     hoodConfig
         .softLimit
@@ -64,15 +67,7 @@ public class HoodIOSpark implements HoodIO {
         .reverseSoftLimit(minPosRad)
         .reverseSoftLimitEnabled(true);
 
-    hoodConfig
-        .signals
-        .absoluteEncoderPositionAlwaysOn(true)
-        .absoluteEncoderPositionPeriodMs(20)
-        .absoluteEncoderVelocityAlwaysOn(true)
-        .absoluteEncoderVelocityPeriodMs(20)
-        .appliedOutputPeriodMs(20)
-        .busVoltagePeriodMs(20)
-        .outputCurrentPeriodMs(20);
+    hoodConfig.signals.appliedOutputPeriodMs(20).busVoltagePeriodMs(20).outputCurrentPeriodMs(10);
 
     tryUntilOk(
         hoodSpark,
@@ -119,7 +114,7 @@ public class HoodIOSpark implements HoodIO {
             * angularVelocity.in(RadiansPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
     hoodController.setSetpoint(
-        setpoint, ControlType.kVelocity, ClosedLoopSlot.kSlot0, feedforwardVolts);
+        setpoint, ControlType.kVelocity, ClosedLoopSlot.kSlot1, feedforwardVolts);
   }
 
   @Override

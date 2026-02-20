@@ -111,11 +111,16 @@ public final class LauncherConstants {
 
   public static final class HoodConstants {
     // Position controller
-    public static final double kPReal = 0.35;
+    public static final double kPRealPos = 0.35;
+    public static final double kPSimPos = 1.5;
+    public static final double kDSimPos = 0.05;
     public static final Angle minPosition = Degrees.of(60);
     public static final Angle maxPosition = Degrees.of(80);
     public static final double minPosRad = minPosition.in(Radians);
     public static final double maxPosRad = maxPosition.in(Radians);
+
+    // Velocity controller
+    public static final double kPRealVel = 0.2;
 
     // Motor controller
     public static final double motorReduction = 5.0 * 256.0 / 16.0;
@@ -126,8 +131,6 @@ public final class LauncherConstants {
         (2 * Math.PI) / (60.0 * motorReduction); // Rad/sec
 
     // Simulation
-    public static final double kPSim = 1.5;
-    public static final double kDSim = 0.05;
     public static final DCMotor gearbox = DCMotor.getNeo550(1);
   }
 }
