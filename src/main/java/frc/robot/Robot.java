@@ -39,8 +39,10 @@ import frc.robot.subsystems.drive.ModuleIOTalonFX;
 import frc.robot.subsystems.feeder.Feeder;
 import frc.robot.subsystems.feeder.KickerIO;
 import frc.robot.subsystems.feeder.KickerIOSimSpark;
+import frc.robot.subsystems.feeder.KickerIOSpark;
 import frc.robot.subsystems.feeder.SpindexerIO;
 import frc.robot.subsystems.feeder.SpindexerIOSimSpark;
+import frc.robot.subsystems.feeder.SpindexerIOSpark;
 import frc.robot.subsystems.intake.HopperIO;
 import frc.robot.subsystems.intake.HopperIOReal;
 import frc.robot.subsystems.intake.HopperIOSim;
@@ -150,7 +152,7 @@ public class Robot extends LoggedRobot {
                 new FlywheelIOSimWPI(),
                 new HoodIOSimWPI());
         intake = new Intake(new IntakeRollerIOTalonFX(), new IntakeArmIOReal(), new HopperIOReal());
-        // feeder = new Feeder(new SpindexerIOSimSpark(), new KickerIOSimSpark());
+        feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
         break;
 
       case SIM: // Running a physics simulator
@@ -243,7 +245,7 @@ public class Robot extends LoggedRobot {
     SmartDashboard.putData(drive);
     SmartDashboard.putData(vision);
     SmartDashboard.putData(launcher);
-    // SmartDashboard.putData(feeder);
+    SmartDashboard.putData(feeder);
     SmartDashboard.putData(intake);
     SmartDashboard.putData("Field", field);
     Field.plotRegions();
@@ -254,7 +256,8 @@ public class Robot extends LoggedRobot {
     // launcher)
     //         .beforeStarting(launcher.initializeHoodCommand())
     //         .withName("Aim at hub"));
-    // feeder.setDefaultCommand(Commands.run(feeder::stop, feeder).withName("Stop feeder"));
+    feeder.setDefaultCommand(
+        Commands.startEnd(feeder::stop, () -> {}, feeder).withName("Stop feeder"));
     intake.setDefaultCommand(
         Commands.startEnd(intake::stop, () -> {}, intake).withName("Stop intake"));
   }
@@ -401,7 +404,9 @@ public class Robot extends LoggedRobot {
     //             allianceSelector::fieldRotated));
 
     // Index
-    // zorroDriver.AIn().whileTrue(Commands.run(feeder::spinForward, feeder).withName("Indexing"));
+    zorroDriver
+        .AIn()
+        .whileTrue(Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Indexing"));
 
     // Switch to X pattern when button D is pressed
     // zorroDriver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
