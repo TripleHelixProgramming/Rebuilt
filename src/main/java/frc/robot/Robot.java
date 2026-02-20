@@ -56,7 +56,7 @@ import frc.robot.subsystems.launcher.FlywheelIOSimTalonFX;
 import frc.robot.subsystems.launcher.FlywheelIOSimWPI;
 import frc.robot.subsystems.launcher.HoodIO;
 import frc.robot.subsystems.launcher.HoodIOSimSpark;
-import frc.robot.subsystems.launcher.HoodIOSimWPI;
+import frc.robot.subsystems.launcher.HoodIOSpark;
 import frc.robot.subsystems.launcher.Launcher;
 import frc.robot.subsystems.launcher.TurretIO;
 import frc.robot.subsystems.launcher.TurretIOSimSpark;
@@ -148,7 +148,7 @@ public class Robot extends LoggedRobot {
                 drive::getRobotRelativeChassisSpeeds,
                 new TurretIOSpark(),
                 new FlywheelIOSimWPI(),
-                new HoodIOSimWPI());
+                new HoodIOSpark());
         intake = new Intake(new IntakeRollerIOTalonFX(), new IntakeArmIOReal(), new HopperIOReal());
         // feeder = new Feeder(new SpindexerIOSimSpark(), new KickerIOSimSpark());
         break;
@@ -248,12 +248,11 @@ public class Robot extends LoggedRobot {
     SmartDashboard.putData("Field", field);
     Field.plotRegions();
 
-    // launcher.setDefaultCommand(
-    //     Commands.run(
-    //             () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()),
-    // launcher)
-    //         .beforeStarting(launcher.initializeHoodCommand())
-    //         .withName("Aim at hub"));
+    launcher.setDefaultCommand(
+        Commands.run(
+                () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()), launcher)
+            .beforeStarting(launcher.initializeHoodCommand())
+            .withName("Aim at hub"));
     // feeder.setDefaultCommand(Commands.run(feeder::stop, feeder).withName("Stop feeder"));
     intake.setDefaultCommand(
         Commands.startEnd(intake::stop, () -> {}, intake).withName("Stop intake"));
