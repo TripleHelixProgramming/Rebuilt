@@ -2,6 +2,7 @@ package frc.robot.subsystems.launcher;
 
 import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static frc.robot.subsystems.launcher.LauncherConstants.FlywheelConstants.*;
+import static frc.robot.subsystems.vision.VisionConstants.tagDistanceToleranceMeters;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
 import com.ctre.phoenix6.BaseStatusSignal;
@@ -20,6 +21,7 @@ import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
+import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants.CANBusPorts.CAN2;
@@ -108,7 +110,7 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
   }
 
   @Override
-  public void setVelocity(AngularVelocity angularVelocity) {
-    flywheelLeaderTalon.setControl(velocityVoltageRequest.withVelocity(angularVelocity));
+  public void setVelocity(LinearVelocity tangentialVelocity) {
+    flywheelLeaderTalon.setControl(velocityVoltageRequest.withVelocity(tangentialVelocity));
   }
 }

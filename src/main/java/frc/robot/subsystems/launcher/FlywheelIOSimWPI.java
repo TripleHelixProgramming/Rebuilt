@@ -7,6 +7,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
@@ -55,12 +56,12 @@ public class FlywheelIOSimWPI implements FlywheelIO {
   }
 
   @Override
-  public void setVelocity(AngularVelocity angularVelocity) {
+  public void setVelocity(LinearVelocity tangentialVelocity) {
     closedLoop = true;
     this.feedforwardVolts =
         RobotConstants.kNominalVoltage
-            * angularVelocity.in(RadiansPerSecond)
+            * tangentialVelocity.in(RadiansPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
-    velocityController.setSetpoint(angularVelocity.in(RadiansPerSecond));
+    velocityController.setSetpoint(tangentialVelocity.in(RadiansPerSecond));
   }
 }
