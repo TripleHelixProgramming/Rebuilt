@@ -1,7 +1,7 @@
 package frc.robot.subsystems.launcher;
 
 import static edu.wpi.first.units.Units.*;
-import static frc.robot.subsystems.intake.IntakeConstants.IntakeRoller.*;
+import static frc.robot.subsystems.launcher.LauncherConstants.FlywheelConstants.*;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
 import com.ctre.phoenix6.BaseStatusSignal;
@@ -10,7 +10,6 @@ import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.NeutralOut;
 import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
-import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
@@ -50,12 +49,7 @@ public class FlywheelIOTalonFX implements FlywheelIO {
         .withNeutralMode(NeutralModeValue.Brake);
     config.Slot0 = velocityVoltageGains;
     config.Slot1 = velocityTorqueCurrentGains;
-    tryUntilOk(
-        5,
-        () ->
-            flywheelLeaderTalon
-                .getConfigurator()
-                .apply(config, 0.25));
+    tryUntilOk(5, () -> flywheelLeaderTalon.getConfigurator().apply(config, 0.25));
 
     flywheelVelocity = flywheelLeaderTalon.getVelocity();
     flywheelAppliedVolts = flywheelLeaderTalon.getMotorVoltage();
@@ -104,7 +98,7 @@ public class FlywheelIOTalonFX implements FlywheelIO {
   public void setVelocity(LinearVelocity tangentialVelocity) {
     var angularVelocity =
         RadiansPerSecond.of(
-            tangentialVelocity.in(MetersPerSecond) * motorReduction / rollerRadius.in(Meters));
+            tangentialVelocity.in(MetersPerSecond) * motorReduction / wheelRadius.in(Meters));
     flywheelLeaderTalon.setControl(velocityTorqueCurrentRequest.withVelocity(angularVelocity));
   }
 }

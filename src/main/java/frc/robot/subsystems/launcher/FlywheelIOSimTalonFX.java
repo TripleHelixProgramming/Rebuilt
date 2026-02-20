@@ -1,7 +1,6 @@
 package frc.robot.subsystems.launcher;
 
 import static edu.wpi.first.units.Units.*;
-import static frc.robot.subsystems.intake.IntakeConstants.IntakeRoller.rollerRadius;
 import static frc.robot.subsystems.launcher.LauncherConstants.FlywheelConstants.*;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
@@ -41,7 +40,7 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
   private final VoltageOut voltageRequest = new VoltageOut(0);
   // private final VelocityVoltage velocityVoltageRequest = new VelocityVoltage(0.0);
   private final VelocityTorqueCurrentFOC velocityTorqueCurrentRequest =
-      new VelocityTorqueCurrentFOC(0.0);
+      new VelocityTorqueCurrentFOC(0.0).withSlot(1);
 
   // Inputs from flywheel motor
   private final StatusSignal<AngularVelocity> flywheelVelocity;
@@ -55,7 +54,8 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
     config = new TalonFXConfiguration();
     config.MotorOutput.withInverted(InvertedValue.CounterClockwise_Positive)
         .withNeutralMode(NeutralModeValue.Brake);
-    config.Slot0 = flywheelGains;
+    config.Slot0 = velocityVoltageGains;
+    config.Slot1 = velocityTorqueCurrentGains;
     tryUntilOk(5, () -> flywheelLeaderTalon.getConfigurator().apply(config, 0.25));
     tryUntilOk(5, () -> flywheelFollowerTalon.getConfigurator().apply(config, 0.25));
 
@@ -113,7 +113,7 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
   public void setVelocity(LinearVelocity tangentialVelocity) {
     var angularVelocity =
         RadiansPerSecond.of(
-            tangentialVelocity.in(MetersPerSecond) * motorReduction / rollerRadius.in(Meters));
+            tangentialVelocity.in(MetersPerSecond) * motorReduction / wheelRadius.in(Meters));
     flywheelLeaderTalon.setControl(velocityTorqueCurrentRequest.withVelocity(angularVelocity));
   }
 }

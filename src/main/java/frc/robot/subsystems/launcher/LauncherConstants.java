@@ -3,7 +3,7 @@ package frc.robot.subsystems.launcher;
 import static edu.wpi.first.units.Units.*;
 
 import com.ctre.phoenix6.configs.Slot0Configs;
-import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
+import com.ctre.phoenix6.configs.Slot1Configs;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
@@ -14,7 +14,6 @@ import edu.wpi.first.units.measure.Distance;
 import frc.robot.Constants;
 import frc.robot.Constants.MotorConstants.KrakenX60Constants;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
-import frc.robot.Constants.RobotConstants;
 
 public final class LauncherConstants {
 
@@ -100,15 +99,10 @@ public final class LauncherConstants {
     public static final double motorReduction = 1.0;
     public static final AngularVelocity maxAngularVelocity =
         KrakenX60Constants.kFreeSpeed.div(motorReduction);
-    public static final Slot0Configs flywheelGains =
-        new Slot0Configs()
-            .withKP(1.0)
-            .withKI(0.0)
-            .withKD(0.05)
-            .withKS(0.0)
-            .withKV(RobotConstants.kNominalVoltage / maxAngularVelocity.in(RotationsPerSecond))
-            .withKA(0.0)
-            .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign);
+    public static final Slot0Configs velocityVoltageGains =
+        new Slot0Configs().withKP(0.11).withKI(0.0).withKD(0.0).withKS(0.1).withKV(0.12);
+    public static final Slot1Configs velocityTorqueCurrentGains =
+        new Slot1Configs().withKP(5).withKI(0.0).withKD(0.0).withKS(2.5);
 
     // Simulation
     public static final double kPSim = 0.1;
