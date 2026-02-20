@@ -12,7 +12,6 @@ import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
-import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
@@ -123,9 +122,7 @@ public class Launcher extends SubsystemBase {
 
     // Set flywheel speed assuming a motionless robot
     var v0_nominal = getV0(vectorTurretBaseToTarget, impactAngle, nominalKey);
-    AngularVelocity flywheelSetpoint =
-        RadiansPerSecond.of(v0_nominal.getNorm() / wheelRadius.in(Meters));
-    flywheelIO.setVelocity(flywheelSetpoint);
+    flywheelIO.setVelocity(MetersPerSecond.of(v0_nominal.getNorm()));
 
     // Get translation velocities (m/s) of the turret caused by motion of the chassis
     var robotRelative = chassisSpeedsSupplier.get();

@@ -1,15 +1,15 @@
 package frc.robot.subsystems.launcher;
 
-import static edu.wpi.first.units.Units.RadiansPerSecond;
+import static edu.wpi.first.units.Units.*;
+import static frc.robot.subsystems.intake.IntakeConstants.IntakeRoller.rollerRadius;
 import static frc.robot.subsystems.launcher.LauncherConstants.FlywheelConstants.*;
-import static frc.robot.subsystems.vision.VisionConstants.tagDistanceToleranceMeters;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.Follower;
-import com.ctre.phoenix6.controls.VelocityVoltage;
+import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
@@ -39,9 +39,9 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
 
   // Voltage control requests
   private final VoltageOut voltageRequest = new VoltageOut(0);
-  private final VelocityVoltage velocityVoltageRequest = new VelocityVoltage(0.0);
-  // private final VelocityTorqueCurrentFOC velocityTorqueCurrentRequest =
-  //     new VelocityTorqueCurrentFOC(0.0);
+  // private final VelocityVoltage velocityVoltageRequest = new VelocityVoltage(0.0);
+  private final VelocityTorqueCurrentFOC velocityTorqueCurrentRequest =
+      new VelocityTorqueCurrentFOC(0.0);
 
   // Inputs from flywheel motor
   private final StatusSignal<AngularVelocity> flywheelVelocity;
@@ -111,6 +111,9 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
 
   @Override
   public void setVelocity(LinearVelocity tangentialVelocity) {
-    flywheelLeaderTalon.setControl(velocityVoltageRequest.withVelocity(tangentialVelocity));
+    var angularVelocity =
+        RadiansPerSecond.of(
+            tangentialVelocity.in(MetersPerSecond) * motorReduction / rollerRadius.in(Meters));
+    flywheelLeaderTalon.setControl(velocityTorqueCurrentRequest.withVelocity(angularVelocity));
   }
 }
