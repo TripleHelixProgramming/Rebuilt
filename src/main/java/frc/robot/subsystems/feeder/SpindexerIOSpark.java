@@ -3,6 +3,7 @@ package frc.robot.subsystems.feeder;
 import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.MetersPerSecond;
 import static frc.robot.subsystems.feeder.FeederConstants.SpindexerConstants.*;
+import static frc.robot.util.SparkUtil.*;
 
 import com.revrobotics.PersistMode;
 import com.revrobotics.RelativeEncoder;
@@ -48,7 +49,11 @@ public class SpindexerIOSpark implements SpindexerIO {
 
     config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kPSim, 0.0, 0.0);
 
-    flex.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+    tryUntilOk(
+        flex,
+        5,
+        () ->
+            flex.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters));
 
     sparkInputs = SparkOdometryThread.getInstance().registerSpark(flex, encoder);
   }
@@ -56,8 +61,7 @@ public class SpindexerIOSpark implements SpindexerIO {
   @Override
   public void updateInputs(SpindexerIOInputs inputs) {
 
-    // Update inputs
-    inputs.connected = true;
+    inputs.connected = sparkInputs.isConnected();
     inputs.velocityMetersPerSec = sparkInputs.getVelocity();
     inputs.appliedVolts = sparkInputs.getAppliedVolts();
     inputs.currentAmps = sparkInputs.getOutputCurrent();
@@ -66,7 +70,6 @@ public class SpindexerIOSpark implements SpindexerIO {
   @Override
   public void setOpenLoop(double output) {
     flex.setVoltage(output);
-    ;
   }
 
   @Override
@@ -79,6 +82,6 @@ public class SpindexerIOSpark implements SpindexerIO {
         tangentialVelocity.in(MetersPerSecond) / radius.in(Meters),
         ControlType.kVelocity,
         ClosedLoopSlot.kSlot0,
-        feedforwardVolts);
+        0);
   }
 }

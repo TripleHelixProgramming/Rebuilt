@@ -3,6 +3,7 @@ package frc.robot.subsystems.feeder;
 import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.MetersPerSecond;
 import static frc.robot.subsystems.feeder.FeederConstants.KickerConstants.*;
+import static frc.robot.util.SparkUtil.*;
 
 import com.revrobotics.PersistMode;
 import com.revrobotics.RelativeEncoder;
@@ -48,15 +49,19 @@ public class KickerIOSpark implements KickerIO {
 
     config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kPSim, 0.0, 0.0);
 
-    flex.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+    tryUntilOk(
+        flex,
+        5,
+        () ->
+            flex.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters));
 
     sparkInputs = SparkOdometryThread.getInstance().registerSpark(flex, encoder);
   }
 
   @Override
   public void updateInputs(KickerIOInputs inputs) {
-    // Update inputs
-    inputs.connected = true;
+
+    inputs.connected = sparkInputs.isConnected();
     inputs.velocityMetersPerSec = sparkInputs.getVelocity();
     inputs.appliedVolts = sparkInputs.getAppliedVolts();
     inputs.currentAmps = sparkInputs.getOutputCurrent();
@@ -65,7 +70,6 @@ public class KickerIOSpark implements KickerIO {
   @Override
   public void setOpenLoop(double output) {
     flex.setVoltage(output);
-    ;
   }
 
   @Override
@@ -78,6 +82,6 @@ public class KickerIOSpark implements KickerIO {
         tangentialVelocity.in(MetersPerSecond) / radius.in(Meters),
         ControlType.kVelocity,
         ClosedLoopSlot.kSlot0,
-        feedforwardVolts);
+        0);
   }
 }

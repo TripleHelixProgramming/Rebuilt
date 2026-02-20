@@ -256,7 +256,8 @@ public class Robot extends LoggedRobot {
     // launcher)
     //         .beforeStarting(launcher.initializeHoodCommand())
     //         .withName("Aim at hub"));
-    feeder.setDefaultCommand(Commands.startEnd(feeder::stop, () -> {}, feeder).withName("Stop feeder"));
+    feeder.setDefaultCommand(
+        Commands.startEnd(feeder::stop, () -> {}, feeder).withName("Stop feeder"));
     intake.setDefaultCommand(
         Commands.startEnd(intake::stop, () -> {}, intake).withName("Stop intake"));
   }
@@ -403,7 +404,9 @@ public class Robot extends LoggedRobot {
     //             allianceSelector::fieldRotated));
 
     // Index
-    zorroDriver.AIn().whileTrue(Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Indexing"));
+    zorroDriver
+        .AIn()
+        .whileTrue(Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Indexing"));
 
     // Switch to X pattern when button D is pressed
     // zorroDriver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
