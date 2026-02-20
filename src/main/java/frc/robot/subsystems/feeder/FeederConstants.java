@@ -28,7 +28,7 @@ public final class FeederConstants {
     public static final double encoderVelocityFactor = encoderPositionFactor / 60.0; // Meters/sec
 
     // Simulation
-    public static final double kPSim = 0.05;
+    public static final double kPSim = 0.005;
     public static final DCMotor gearbox = DCMotor.getNeoVortex(1);
   }
 
@@ -49,7 +49,7 @@ public final class FeederConstants {
     public static final double encoderVelocityFactor = encoderPositionFactor / 60.0; // Meters/sec
 
     // Simulation
-    public static final double kPSim = 0.05;
+    public static final double kPSim = 0.005;
     public static final DCMotor gearbox = DCMotor.getNeoVortex(1);
   }
 }

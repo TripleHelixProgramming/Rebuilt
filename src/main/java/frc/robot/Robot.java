@@ -245,7 +245,7 @@ public class Robot extends LoggedRobot {
     SmartDashboard.putData(drive);
     SmartDashboard.putData(vision);
     SmartDashboard.putData(launcher);
-    // SmartDashboard.putData(feeder);
+    SmartDashboard.putData(feeder);
     SmartDashboard.putData(intake);
     SmartDashboard.putData("Field", field);
     Field.plotRegions();

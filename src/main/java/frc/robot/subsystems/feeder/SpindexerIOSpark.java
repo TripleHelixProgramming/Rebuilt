@@ -62,7 +62,7 @@ public class SpindexerIOSpark implements SpindexerIO {
   public void updateInputs(SpindexerIOInputs inputs) {
 
     inputs.connected = sparkInputs.isConnected();
-    inputs.velocityMetersPerSec = sparkInputs.getVelocity();
+    inputs.velocityMetersPerSec = sparkInputs.getVelocity() * radius.in(Meters);
     inputs.appliedVolts = sparkInputs.getAppliedVolts();
     inputs.currentAmps = sparkInputs.getOutputCurrent();
   }

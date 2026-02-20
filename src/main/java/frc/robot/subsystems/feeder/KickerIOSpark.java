@@ -62,7 +62,7 @@ public class KickerIOSpark implements KickerIO {
   public void updateInputs(KickerIOInputs inputs) {
 
     inputs.connected = sparkInputs.isConnected();
-    inputs.velocityMetersPerSec = sparkInputs.getVelocity();
+    inputs.velocityMetersPerSec = sparkInputs.getVelocity() * radius.in(Meters);
     inputs.appliedVolts = sparkInputs.getAppliedVolts();
     inputs.currentAmps = sparkInputs.getOutputCurrent();
   }
