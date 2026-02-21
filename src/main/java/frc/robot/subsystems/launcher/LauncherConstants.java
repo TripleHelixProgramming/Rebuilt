@@ -94,8 +94,8 @@ public final class LauncherConstants {
     public static final Distance wheelRadius = Inches.of(1.5);
 
     // Velocity Controller
-    public static final double maxAcceleration = 10000.0;
-    public static final double maxJerk = 100000.0;
+    public static final double maxAcceleration = 4000.0;
+    public static final double maxJerk = 40000.0;
 
     // Motor controller
     public static final double motorReduction = 1.0;
@@ -104,7 +104,7 @@ public final class LauncherConstants {
     public static final Slot0Configs velocityVoltageGains =
         new Slot0Configs().withKP(0.11).withKI(0.0).withKD(0.0).withKS(0.1).withKV(0.12);
     public static final Slot1Configs velocityTorqueCurrentGains =
-        new Slot1Configs().withKP(5).withKI(0.0).withKD(0.0).withKS(2.5);
+        new Slot1Configs().withKP(12).withKI(0.0).withKD(0.0).withKS(2.5);
 
     // Simulation
     public static final double kPSim = 0.1;
