@@ -69,7 +69,7 @@ public final class LauncherConstants {
     // Geometry
     public static final Transform3d chassisToTurretBase =
         new Transform3d(Inches.of(0), Inches.of(10), Inches.of(22), Rotation3d.kZero);
-    public static final Rotation2d absEncoderOffset = new Rotation2d(5.3);
+    public static final Rotation2d absEncoderOffset = new Rotation2d(2.04);
     public static final Rotation2d mechanismOffset = Rotation2d.k180deg;
     public static final Angle rangeOfMotion = Degrees.of(5);
 
