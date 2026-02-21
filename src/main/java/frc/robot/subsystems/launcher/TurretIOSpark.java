@@ -1,7 +1,6 @@
 package frc.robot.subsystems.launcher;
 
-import static edu.wpi.first.units.Units.Radians;
-import static edu.wpi.first.units.Units.RadiansPerSecond;
+import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.*;
 import static frc.robot.util.SparkUtil.*;
 
@@ -21,6 +20,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DutyCycleEncoder;
 import frc.robot.Constants.CANBusPorts.CAN2;
@@ -111,8 +111,8 @@ public class TurretIOSpark implements TurretIO {
   }
 
   @Override
-  public void setOpenLoop(double output) {
-    controller.setSetpoint(output, ControlType.kDutyCycle);
+  public void setOpenLoop(Voltage volts) {
+    controller.setSetpoint(volts.in(Volts), ControlType.kVoltage);
   }
 
   @Override

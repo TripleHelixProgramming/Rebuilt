@@ -1,6 +1,6 @@
 package frc.robot.subsystems.launcher;
 
-import static edu.wpi.first.units.Units.RadiansPerSecond;
+import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.*;
 import static frc.robot.util.SparkUtil.*;
 
@@ -9,7 +9,6 @@ import com.revrobotics.RelativeEncoder;
 import com.revrobotics.ResetMode;
 import com.revrobotics.spark.ClosedLoopSlot;
 import com.revrobotics.spark.FeedbackSensor;
-import com.revrobotics.spark.SparkBase;
 import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
@@ -20,6 +19,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Voltage;
 import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
 import frc.robot.Constants.RobotConstants;
@@ -28,7 +28,7 @@ import frc.robot.util.SparkOdometryThread.SparkInputs;
 
 public class HoodIOSpark implements HoodIO {
 
-  private final SparkBase hoodSpark;
+  private final SparkMax hoodSpark;
   private final RelativeEncoder encoderSpark;
   private final SparkClosedLoopController hoodController;
   private final SparkInputs sparkInputs;
@@ -45,7 +45,7 @@ public class HoodIOSpark implements HoodIO {
     hoodConfig = new SparkMaxConfig();
 
     hoodConfig
-        .inverted(false)
+        .inverted(true)
         .idleMode(IdleMode.kBrake)
         .smartCurrentLimit(NEO550Constants.kDefaultSupplyCurrentLimit)
         .voltageCompensation(RobotConstants.kNominalVoltage);
@@ -55,7 +55,11 @@ public class HoodIOSpark implements HoodIO {
         .positionConversionFactor(encoderPositionFactor)
         .velocityConversionFactor(encoderVelocityFactor);
 
-    hoodConfig.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kPReal, 0.0, 0.0);
+    hoodConfig
+        .closedLoop
+        .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
+        .pid(kPRealPos, 0.0, 0.0, ClosedLoopSlot.kSlot0)
+        .pid(kPRealVel, 0.0, 0.0, ClosedLoopSlot.kSlot1);
 
     hoodConfig
         .softLimit
@@ -64,15 +68,7 @@ public class HoodIOSpark implements HoodIO {
         .reverseSoftLimit(minPosRad)
         .reverseSoftLimitEnabled(true);
 
-    hoodConfig
-        .signals
-        .absoluteEncoderPositionAlwaysOn(true)
-        .absoluteEncoderPositionPeriodMs(20)
-        .absoluteEncoderVelocityAlwaysOn(true)
-        .absoluteEncoderVelocityPeriodMs(20)
-        .appliedOutputPeriodMs(20)
-        .busVoltagePeriodMs(20)
-        .outputCurrentPeriodMs(20);
+    hoodConfig.signals.appliedOutputPeriodMs(20).busVoltagePeriodMs(20).outputCurrentPeriodMs(20);
 
     tryUntilOk(
         hoodSpark,
@@ -96,8 +92,8 @@ public class HoodIOSpark implements HoodIO {
   }
 
   @Override
-  public void setOpenLoop(double output) {
-    hoodSpark.setVoltage(output);
+  public void setOpenLoop(Voltage volts) {
+    hoodSpark.setVoltage(volts);
   }
 
   @Override
@@ -119,13 +115,19 @@ public class HoodIOSpark implements HoodIO {
             * angularVelocity.in(RadiansPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
     hoodController.setSetpoint(
-        setpoint, ControlType.kVelocity, ClosedLoopSlot.kSlot0, feedforwardVolts);
+        setpoint, ControlType.kVelocity, ClosedLoopSlot.kSlot1, feedforwardVolts);
   }
 
   @Override
   public void configureSoftLimits(boolean enable) {
     hoodConfig.softLimit.forwardSoftLimitEnabled(enable);
     hoodConfig.softLimit.reverseSoftLimitEnabled(enable);
+    tryUntilOk(
+        hoodSpark,
+        5,
+        () ->
+            hoodSpark.configure(
+                hoodConfig, ResetMode.kNoResetSafeParameters, PersistMode.kNoPersistParameters));
   }
 
   @Override

@@ -3,7 +3,7 @@ package frc.robot.subsystems.launcher;
 import static edu.wpi.first.units.Units.*;
 
 import com.ctre.phoenix6.configs.Slot0Configs;
-import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
+import com.ctre.phoenix6.configs.Slot1Configs;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
@@ -14,7 +14,6 @@ import edu.wpi.first.units.measure.Distance;
 import frc.robot.Constants;
 import frc.robot.Constants.MotorConstants.KrakenX60Constants;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
-import frc.robot.Constants.RobotConstants;
 
 public final class LauncherConstants {
 
@@ -70,9 +69,9 @@ public final class LauncherConstants {
     // Geometry
     public static final Transform3d chassisToTurretBase =
         new Transform3d(Inches.of(0), Inches.of(10), Inches.of(22), Rotation3d.kZero);
-    public static final Rotation2d absEncoderOffset = new Rotation2d(5.3);
+    public static final Rotation2d absEncoderOffset = new Rotation2d(2.04);
     public static final Rotation2d mechanismOffset = Rotation2d.k180deg;
-    public static final Angle rangeOfMotion = Degrees.of(240);
+    public static final Angle rangeOfMotion = Degrees.of(5);
 
     // Position controller
     public static final double kPReal = 0.5;
@@ -100,15 +99,10 @@ public final class LauncherConstants {
     public static final double motorReduction = 1.0;
     public static final AngularVelocity maxAngularVelocity =
         KrakenX60Constants.kFreeSpeed.div(motorReduction);
-    public static final Slot0Configs flywheelGains =
-        new Slot0Configs()
-            .withKP(1.0)
-            .withKI(0.0)
-            .withKD(0.05)
-            .withKS(0.0)
-            .withKV(RobotConstants.kNominalVoltage / maxAngularVelocity.in(RotationsPerSecond))
-            .withKA(0.0)
-            .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign);
+    public static final Slot0Configs velocityVoltageGains =
+        new Slot0Configs().withKP(0.11).withKI(0.0).withKD(0.0).withKS(0.1).withKV(0.12);
+    public static final Slot1Configs velocityTorqueCurrentGains =
+        new Slot1Configs().withKP(5).withKI(0.0).withKD(0.0).withKS(2.5);
 
     // Simulation
     public static final double kPSim = 0.1;
@@ -117,11 +111,16 @@ public final class LauncherConstants {
 
   public static final class HoodConstants {
     // Position controller
-    public static final double kPReal = 0.35;
+    public static final double kPRealPos = 0.35;
+    public static final double kPSimPos = 1.5;
+    public static final double kDSimPos = 0.05;
     public static final Angle minPosition = Degrees.of(60);
     public static final Angle maxPosition = Degrees.of(80);
     public static final double minPosRad = minPosition.in(Radians);
     public static final double maxPosRad = maxPosition.in(Radians);
+
+    // Velocity controller
+    public static final double kPRealVel = 0.2;
 
     // Motor controller
     public static final double motorReduction = 5.0 * 256.0 / 16.0;
@@ -132,8 +131,6 @@ public final class LauncherConstants {
         (2 * Math.PI) / (60.0 * motorReduction); // Rad/sec
 
     // Simulation
-    public static final double kPSim = 1.5;
-    public static final double kDSim = 0.05;
     public static final DCMotor gearbox = DCMotor.getNeo550(1);
   }
 }

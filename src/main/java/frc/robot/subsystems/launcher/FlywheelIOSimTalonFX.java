@@ -1,6 +1,6 @@
 package frc.robot.subsystems.launcher;
 
-import static edu.wpi.first.units.Units.RadiansPerSecond;
+import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.launcher.LauncherConstants.FlywheelConstants.*;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
@@ -8,7 +8,7 @@ import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.Follower;
-import com.ctre.phoenix6.controls.VelocityVoltage;
+import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
@@ -20,6 +20,7 @@ import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
+import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants.CANBusPorts.CAN2;
@@ -37,9 +38,9 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
 
   // Voltage control requests
   private final VoltageOut voltageRequest = new VoltageOut(0);
-  private final VelocityVoltage velocityVoltageRequest = new VelocityVoltage(0.0);
-  // private final VelocityTorqueCurrentFOC velocityTorqueCurrentRequest =
-  //     new VelocityTorqueCurrentFOC(0.0);
+  // private final VelocityVoltage velocityVoltageRequest = new VelocityVoltage(0.0);
+  private final VelocityTorqueCurrentFOC velocityTorqueCurrentRequest =
+      new VelocityTorqueCurrentFOC(0.0).withSlot(1);
 
   // Inputs from flywheel motor
   private final StatusSignal<AngularVelocity> flywheelVelocity;
@@ -53,7 +54,8 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
     config = new TalonFXConfiguration();
     config.MotorOutput.withInverted(InvertedValue.CounterClockwise_Positive)
         .withNeutralMode(NeutralModeValue.Brake);
-    config.Slot0 = flywheelGains;
+    config.Slot0 = velocityVoltageGains;
+    config.Slot1 = velocityTorqueCurrentGains;
     tryUntilOk(5, () -> flywheelLeaderTalon.getConfigurator().apply(config, 0.25));
     tryUntilOk(5, () -> flywheelFollowerTalon.getConfigurator().apply(config, 0.25));
 
@@ -99,16 +101,21 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
 
     inputs.appliedVolts = flywheelAppliedVolts.getValueAsDouble();
     inputs.currentAmps = flywheelCurrent.getValueAsDouble();
-    inputs.velocityRadPerSec = flywheelVelocity.getValue().in(RadiansPerSecond) / motorReduction;
+    inputs.velocityMetersPerSec =
+        (flywheelVelocity.getValue().in(RadiansPerSecond) * wheelRadius.in(Meters))
+            / motorReduction;
   }
 
   @Override
-  public void setOpenLoop(double output) {
-    flywheelLeaderTalon.setControl(voltageRequest.withOutput(output));
+  public void setOpenLoop(Voltage volts) {
+    flywheelLeaderTalon.setControl(voltageRequest.withOutput(volts));
   }
 
   @Override
-  public void setVelocity(AngularVelocity angularVelocity) {
-    flywheelLeaderTalon.setControl(velocityVoltageRequest.withVelocity(angularVelocity));
+  public void setVelocity(LinearVelocity tangentialVelocity) {
+    var angularVelocity =
+        RadiansPerSecond.of(
+            tangentialVelocity.in(MetersPerSecond) * motorReduction / wheelRadius.in(Meters));
+    flywheelLeaderTalon.setControl(velocityTorqueCurrentRequest.withVelocity(angularVelocity));
   }
 }

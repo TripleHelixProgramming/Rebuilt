@@ -1,7 +1,6 @@
 package frc.robot.subsystems.launcher;
 
-import static edu.wpi.first.units.Units.Radians;
-import static edu.wpi.first.units.Units.RadiansPerSecond;
+import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.*;
 
 import com.revrobotics.PersistMode;
@@ -19,6 +18,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
@@ -92,8 +92,8 @@ public class TurretIOSimSpark implements TurretIO {
   }
 
   @Override
-  public void setOpenLoop(double output) {
-    controller.setSetpoint(output, ControlType.kDutyCycle);
+  public void setOpenLoop(Voltage volts) {
+    controller.setSetpoint(volts.in(Volts), ControlType.kVoltage);
   }
 
   @Override

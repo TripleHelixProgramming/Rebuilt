@@ -1,6 +1,7 @@
 package frc.robot.subsystems.feeder;
 
 import edu.wpi.first.units.measure.LinearVelocity;
+import edu.wpi.first.units.measure.Voltage;
 import org.littletonrobotics.junction.AutoLog;
 
 public interface SpindexerIO {
@@ -14,7 +15,7 @@ public interface SpindexerIO {
 
   public default void updateInputs(SpindexerIOInputs inputs) {}
 
-  public default void setOpenLoop(double output) {}
+  public default void setOpenLoop(Voltage volts) {}
 
   public default void setVelocity(LinearVelocity tangentialVelocity) {}
 }

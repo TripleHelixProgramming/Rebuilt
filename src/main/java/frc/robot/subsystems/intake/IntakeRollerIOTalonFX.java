@@ -10,7 +10,6 @@ import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.NeutralOut;
 import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
-import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
@@ -30,7 +29,8 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
   private final Debouncer connectedDebounce = new Debouncer(0.5, Debouncer.DebounceType.kFalling);
 
   private final VoltageOut voltageRequest = new VoltageOut(0);
-  private final VelocityVoltage velocityVoltageRequest = new VelocityVoltage(0.0).withSlot(0);
+  // private final VelocityVoltage velocityVoltageRequest =
+  //     new VelocityVoltage(0.0).withSlot(0);
   private final VelocityTorqueCurrentFOC velocityTorqueCurrentRequest =
       new VelocityTorqueCurrentFOC(0.0).withSlot(1);
   private final NeutralOut brake = new NeutralOut();
@@ -47,7 +47,7 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
     config.MotorOutput.withNeutralMode(NeutralModeValue.Brake);
     config.Slot0 = velocityVoltageGains;
     config.Slot1 = velocityTorqueCurrentGains;
-    tryUntilOk(5, () -> intakeMotorLeader.getConfigurator().apply(config, 0.25));
+    tryUntilOk(5, () -> intakeMotorLeader.getConfigurator().apply(config, 0.25)); // -1 tryUntilOkay
 
     intakeVelocity = intakeMotorLeader.getVelocity();
     intakeAppliedVolts = intakeMotorLeader.getMotorVoltage();
@@ -84,11 +84,11 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
   }
 
   @Override
-  public void setOpenLoop(double output) {
-    if (output < 1e-6) {
+  public void setOpenLoop(Voltage volts) {
+    if (volts.in(Volts) < 1e-6) {
       intakeMotorLeader.setControl(brake);
     } else {
-      intakeMotorLeader.setControl(voltageRequest.withOutput(output));
+      intakeMotorLeader.setControl(voltageRequest.withOutput(volts));
     }
   }
 

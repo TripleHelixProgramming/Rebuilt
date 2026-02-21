@@ -12,11 +12,11 @@ import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
-import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.FunctionalCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Robot;
@@ -111,9 +111,9 @@ public class Launcher extends SubsystemBase {
   }
 
   public void stop() {
-    turretIO.setOpenLoop(0.0);
-    flywheelIO.setOpenLoop(0.0);
-    hoodIO.setOpenLoop(0.0);
+    turretIO.setOpenLoop(Volts.of(0.0));
+    flywheelIO.setOpenLoop(Volts.of(0.0));
+    hoodIO.setOpenLoop(Volts.of(0.0));
   }
 
   public void aim(Translation3d target) {
@@ -123,9 +123,7 @@ public class Launcher extends SubsystemBase {
 
     // Set flywheel speed assuming a motionless robot
     var v0_nominal = getV0(vectorTurretBaseToTarget, impactAngle, nominalKey);
-    AngularVelocity flywheelSetpoint =
-        RadiansPerSecond.of(v0_nominal.getNorm() / wheelRadius.in(Meters));
-    flywheelIO.setVelocity(flywheelSetpoint);
+    flywheelIO.setVelocity(MetersPerSecond.of(v0_nominal.getNorm()));
 
     // Get translation velocities (m/s) of the turret caused by motion of the chassis
     var robotRelative = chassisSpeedsSupplier.get();
@@ -135,20 +133,23 @@ public class Launcher extends SubsystemBase {
     var v_base = getTurretBaseSpeeds(turretBasePose.toPose2d().getRotation(), fieldRelative);
 
     // Get actual flywheel speed
-    double flywheelSpeedMetersPerSec = flywheelInputs.velocityRadPerSec * wheelRadius.in(Meters);
+    double flywheelSpeedMetersPerSec = flywheelInputs.velocityMetersPerSec;
 
     // Replan shot using actual flywheel speed
     var v0_total = getV0(vectorTurretBaseToTarget, flywheelSpeedMetersPerSec, replannedKey);
 
     // Point turret to align velocity vectors
-    var v0_flywheel = v0_total.minus(v_base);
+    // var v0_flywheel = v0_total.minus(v_base);
+    var v0_flywheel = v0_nominal.minus(v_base);
 
     // Check if v0_flywheel has non-zero horizontal component
     double v0_horizontal = Math.hypot(v0_flywheel.getX(), v0_flywheel.getY());
     if (!Double.isFinite(v0_horizontal) || v0_horizontal < 1e-6) {
       // Flywheel velocity is too low or target unreachable, stop mechanisms
+      Logger.recordOutput("Launcher/Flywheel velocity too low", true);
       return;
     }
+    Logger.recordOutput("Launcher/Flywheel velocity too low", false);
 
     Rotation2d turretSetpoint = new Rotation2d(v0_flywheel.getX(), v0_flywheel.getY());
     turretIO.setPosition(
@@ -381,12 +382,12 @@ public class Launcher extends SubsystemBase {
     return t;
   }
 
-  public Command initializeHoodCommand() {
+  public Command initializeHoodCommand(Runnable action) {
     return new FunctionalCommand(
             // initialize
             () -> {
               hoodIO.configureSoftLimits(false);
-              hoodIO.setVelocity(RotationsPerSecond.of(1.0));
+              hoodIO.setOpenLoop(Volts.of(1.0));
             },
             // execute
             () -> {},
@@ -394,11 +395,14 @@ public class Launcher extends SubsystemBase {
             interrupted -> {
               hoodIO.configureSoftLimits(true);
               hoodIO.resetEncoder();
+
+              this.setDefaultCommand(Commands.run(action, this).withName("Aim at hub"));
             },
             // isFinished
-            () -> hoodInputs.currentAmps > 5 && Math.abs(hoodInputs.velocityRadPerSec) < 0.5,
+            () -> hoodInputs.currentAmps > 15.0 && Math.abs(hoodInputs.velocityRadPerSec) < 0.01,
             // requirements
             this)
+        .withTimeout(1.0)
         .withName("Initialize hood");
   }
 }

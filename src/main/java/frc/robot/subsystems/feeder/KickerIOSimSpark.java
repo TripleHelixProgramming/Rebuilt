@@ -1,7 +1,6 @@
 package frc.robot.subsystems.feeder;
 
-import static edu.wpi.first.units.Units.Meters;
-import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.feeder.FeederConstants.KickerConstants.*;
 
 import com.revrobotics.PersistMode;
@@ -17,6 +16,7 @@ import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkFlexConfig;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.LinearVelocity;
+import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.NEOVortexConstants;
@@ -74,8 +74,8 @@ public class KickerIOSimSpark implements KickerIO {
   }
 
   @Override
-  public void setOpenLoop(double output) {
-    flexSim.setAppliedOutput(output);
+  public void setOpenLoop(Voltage volts) {
+    flexSim.setAppliedOutput(volts.in(Volts) / 12.0);
   }
 
   @Override

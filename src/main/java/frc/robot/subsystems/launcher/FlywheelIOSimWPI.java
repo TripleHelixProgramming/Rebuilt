@@ -6,7 +6,8 @@ import static frc.robot.subsystems.launcher.LauncherConstants.FlywheelConstants.
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.system.plant.LinearSystemId;
-import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.LinearVelocity;
+import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
@@ -43,24 +44,25 @@ public class FlywheelIOSimWPI implements FlywheelIO {
 
     // Update turn inputs
     inputs.connected = true;
-    inputs.velocityRadPerSec = flywheelSim.getAngularVelocityRadPerSec();
+    inputs.velocityMetersPerSec =
+        flywheelSim.getAngularVelocityRadPerSec() * wheelRadius.in(Meters);
     inputs.appliedVolts = appliedVolts;
     inputs.currentAmps = Math.abs(flywheelSim.getCurrentDrawAmps());
   }
 
   @Override
-  public void setOpenLoop(double output) {
+  public void setOpenLoop(Voltage volts) {
     closedLoop = false;
-    appliedVolts = output;
+    appliedVolts = volts.in(Volts);
   }
 
   @Override
-  public void setVelocity(AngularVelocity angularVelocity) {
+  public void setVelocity(LinearVelocity tangentialVelocity) {
     closedLoop = true;
     this.feedforwardVolts =
         RobotConstants.kNominalVoltage
-            * angularVelocity.in(RadiansPerSecond)
+            * tangentialVelocity.in(MetersPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
-    velocityController.setSetpoint(angularVelocity.in(RadiansPerSecond));
+    velocityController.setSetpoint(tangentialVelocity.in(MetersPerSecond));
   }
 }
