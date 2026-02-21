@@ -101,7 +101,9 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
 
     inputs.appliedVolts = flywheelAppliedVolts.getValueAsDouble();
     inputs.currentAmps = flywheelCurrent.getValueAsDouble();
-    inputs.velocityRadPerSec = flywheelVelocity.getValue().in(RadiansPerSecond) / motorReduction;
+    inputs.velocityMetersPerSec =
+        (flywheelVelocity.getValue().in(RadiansPerSecond) * wheelRadius.in(Meters))
+            / motorReduction;
   }
 
   @Override

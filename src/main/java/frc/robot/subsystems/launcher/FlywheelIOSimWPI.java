@@ -43,7 +43,8 @@ public class FlywheelIOSimWPI implements FlywheelIO {
 
     // Update turn inputs
     inputs.connected = true;
-    inputs.velocityRadPerSec = flywheelSim.getAngularVelocityRadPerSec();
+    inputs.velocityMetersPerSec =
+        flywheelSim.getAngularVelocityRadPerSec() * wheelRadius.in(Meters);
     inputs.appliedVolts = appliedVolts;
     inputs.currentAmps = Math.abs(flywheelSim.getCurrentDrawAmps());
   }

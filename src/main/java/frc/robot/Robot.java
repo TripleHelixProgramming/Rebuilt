@@ -32,7 +32,6 @@ import frc.robot.commands.DriveCommands;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.DriveConstants;
 import frc.robot.subsystems.drive.GyroIO;
-import frc.robot.subsystems.drive.GyroIOBoron;
 import frc.robot.subsystems.drive.ModuleIO;
 import frc.robot.subsystems.drive.ModuleIOSimWPI;
 import frc.robot.subsystems.feeder.Feeder;
@@ -124,7 +123,7 @@ public class Robot extends LoggedRobot {
         // Instantiate hardware IO implementations
         drive =
             new Drive(
-                new GyroIOBoron(),
+                new GyroIO() {},
                 new ModuleIOSimWPI(DriveConstants.FrontLeft),
                 new ModuleIOSimWPI(DriveConstants.FrontRight),
                 new ModuleIOSimWPI(DriveConstants.BackLeft),

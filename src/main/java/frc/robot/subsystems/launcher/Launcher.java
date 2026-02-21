@@ -133,20 +133,23 @@ public class Launcher extends SubsystemBase {
     var v_base = getTurretBaseSpeeds(turretBasePose.toPose2d().getRotation(), fieldRelative);
 
     // Get actual flywheel speed
-    double flywheelSpeedMetersPerSec = flywheelInputs.velocityRadPerSec * wheelRadius.in(Meters);
+    double flywheelSpeedMetersPerSec = flywheelInputs.velocityMetersPerSec;
 
     // Replan shot using actual flywheel speed
     var v0_total = getV0(vectorTurretBaseToTarget, flywheelSpeedMetersPerSec, replannedKey);
 
     // Point turret to align velocity vectors
-    var v0_flywheel = v0_total.minus(v_base);
+    // var v0_flywheel = v0_total.minus(v_base);
+    var v0_flywheel = v0_nominal.minus(v_base);
 
     // Check if v0_flywheel has non-zero horizontal component
     double v0_horizontal = Math.hypot(v0_flywheel.getX(), v0_flywheel.getY());
     if (!Double.isFinite(v0_horizontal) || v0_horizontal < 1e-6) {
       // Flywheel velocity is too low or target unreachable, stop mechanisms
+      Logger.recordOutput("Launcher/Flywheel velocity too low", true);
       return;
     }
+    Logger.recordOutput("Launcher/Flywheel velocity too low", false);
 
     Rotation2d turretSetpoint = new Rotation2d(v0_flywheel.getX(), v0_flywheel.getY());
     turretIO.setPosition(
@@ -384,7 +387,7 @@ public class Launcher extends SubsystemBase {
             // initialize
             () -> {
               hoodIO.configureSoftLimits(false);
-              hoodIO.setVelocity(RotationsPerSecond.of(1.0));
+              hoodIO.setOpenLoop(1.0);
             },
             // execute
             () -> {},
@@ -396,7 +399,7 @@ public class Launcher extends SubsystemBase {
               this.setDefaultCommand(Commands.run(action, this).withName("Aim at hub"));
             },
             // isFinished
-            () -> hoodInputs.currentAmps > 5.0 && Math.abs(hoodInputs.velocityRadPerSec) < 0.5,
+            () -> hoodInputs.currentAmps > 15.0 && Math.abs(hoodInputs.velocityRadPerSec) < 0.01,
             // requirements
             this)
         .withTimeout(1.0)
