@@ -114,7 +114,8 @@ public class FlywheelIOTalonFX implements FlywheelIO {
     TrapezoidProfile.State goal = new TrapezoidProfile.State(angularVelocity, 0);
     TrapezoidProfile.State setpoint =
         new TrapezoidProfile.State(
-            flywheelVelocity.getValueAsDouble(), flywheelAcceleration.getValueAsDouble());
+            flywheelVelocity.getValue().in(RadiansPerSecond),
+            flywheelAcceleration.getValue().in(RadiansPerSecondPerSecond));
 
     setpoint = profile.calculate(Robot.defaultPeriodSecs, setpoint, goal);
 
