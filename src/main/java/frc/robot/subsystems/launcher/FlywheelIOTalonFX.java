@@ -108,14 +108,15 @@ public class FlywheelIOTalonFX implements FlywheelIO {
 
   @Override
   public void setVelocity(LinearVelocity tangentialVelocity) {
-    double angularVelocity =
-        tangentialVelocity.in(MetersPerSecond) * motorReduction / wheelRadius.in(Meters);
+    AngularVelocity angularVelocity =
+        RadiansPerSecond.of(
+            tangentialVelocity.in(MetersPerSecond) * motorReduction / wheelRadius.in(Meters));
 
-    TrapezoidProfile.State goal = new TrapezoidProfile.State(angularVelocity, 0);
+    TrapezoidProfile.State goal =
+        new TrapezoidProfile.State(angularVelocity.in(RotationsPerSecond), 0);
     TrapezoidProfile.State setpoint =
         new TrapezoidProfile.State(
-            flywheelVelocity.getValue().in(RadiansPerSecond),
-            flywheelAcceleration.getValue().in(RadiansPerSecondPerSecond));
+            flywheelVelocity.getValueAsDouble(), flywheelAcceleration.getValueAsDouble());
 
     setpoint = profile.calculate(Robot.defaultPeriodSecs, setpoint, goal);
 
