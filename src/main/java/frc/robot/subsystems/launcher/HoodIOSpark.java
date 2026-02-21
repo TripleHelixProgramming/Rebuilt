@@ -18,6 +18,7 @@ import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.AngularVelocity;
 import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
@@ -62,9 +63,9 @@ public class HoodIOSpark implements HoodIO {
 
     hoodConfig
         .softLimit
-        .forwardSoftLimit(maxPosRad)
+        .forwardSoftLimit(Units.degreesToRadians(75))
         .forwardSoftLimitEnabled(true)
-        .reverseSoftLimit(minPosRad)
+        .reverseSoftLimit(Units.degreesToRadians(65))
         .reverseSoftLimitEnabled(true);
 
     hoodConfig.signals.appliedOutputPeriodMs(20).busVoltagePeriodMs(20).outputCurrentPeriodMs(10);
@@ -121,6 +122,12 @@ public class HoodIOSpark implements HoodIO {
   public void configureSoftLimits(boolean enable) {
     hoodConfig.softLimit.forwardSoftLimitEnabled(enable);
     hoodConfig.softLimit.reverseSoftLimitEnabled(enable);
+    tryUntilOk(
+        hoodSpark,
+        5,
+        () ->
+            hoodSpark.configure(
+                hoodConfig, ResetMode.kNoResetSafeParameters, PersistMode.kNoPersistParameters));
   }
 
   @Override
