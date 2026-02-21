@@ -2,6 +2,7 @@ package frc.robot.subsystems.launcher;
 
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Voltage;
 import org.littletonrobotics.junction.AutoLog;
 
 public interface TurretIO {
@@ -19,7 +20,7 @@ public interface TurretIO {
 
   public default void updateInputs(TurretIOInputs inputs) {}
 
-  public default void setOpenLoop(double output) {}
+  public default void setOpenLoop(Voltage volts) {}
 
   public default void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {}
 }

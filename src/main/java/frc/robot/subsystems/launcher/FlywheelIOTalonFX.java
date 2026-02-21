@@ -88,11 +88,11 @@ public class FlywheelIOTalonFX implements FlywheelIO {
   }
 
   @Override
-  public void setOpenLoop(double output) {
-    if (output < 1e-6) {
+  public void setOpenLoop(Voltage volts) {
+    if (volts.in(Volts) < 1e-6) {
       flywheelLeaderTalon.setControl(brake);
     } else {
-      flywheelLeaderTalon.setControl(voltageRequest.withOutput(output));
+      flywheelLeaderTalon.setControl(voltageRequest.withOutput(volts));
     }
   }
 

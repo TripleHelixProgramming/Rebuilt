@@ -1,6 +1,6 @@
 package frc.robot.subsystems.launcher;
 
-import static edu.wpi.first.units.Units.RadiansPerSecond;
+import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.*;
 import static frc.robot.util.SparkUtil.*;
 
@@ -19,6 +19,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Voltage;
 import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
 import frc.robot.Constants.RobotConstants;
@@ -91,8 +92,8 @@ public class HoodIOSpark implements HoodIO {
   }
 
   @Override
-  public void setOpenLoop(double output) {
-    hoodSpark.setVoltage(output);
+  public void setOpenLoop(Voltage volts) {
+    hoodSpark.setVoltage(volts);
   }
 
   @Override

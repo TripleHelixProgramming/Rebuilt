@@ -7,6 +7,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.LinearVelocity;
+import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
@@ -50,9 +51,9 @@ public class FlywheelIOSimWPI implements FlywheelIO {
   }
 
   @Override
-  public void setOpenLoop(double output) {
+  public void setOpenLoop(Voltage volts) {
     closedLoop = false;
-    appliedVolts = output;
+    appliedVolts = volts.in(Volts);
   }
 
   @Override

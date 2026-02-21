@@ -1,6 +1,7 @@
 package frc.robot.subsystems.intake;
 
 import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.Volts;
 
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
@@ -41,7 +42,7 @@ public class Intake extends SubsystemBase {
   }
 
   public void stop() {
-    intakeRollerIO.setOpenLoop(0.0);
+    intakeRollerIO.setOpenLoop(Volts.of(0.0));
     intakeArmIO.retract();
     hopperIO.retract();
   }

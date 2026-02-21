@@ -8,6 +8,7 @@ import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
@@ -57,9 +58,9 @@ public class HoodIOSimWPI implements HoodIO {
   }
 
   @Override
-  public void setOpenLoop(double output) {
+  public void setOpenLoop(Voltage volts) {
     closedLoop = false;
-    appliedVolts = output;
+    appliedVolts = volts.in(Volts);
   }
 
   @Override

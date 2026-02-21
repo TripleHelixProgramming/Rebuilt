@@ -97,8 +97,8 @@ public class IntakeRollerIOSimTalonFX implements IntakeRollerIO {
   }
 
   @Override
-  public void setOpenLoop(double output) {
-    intakeMotorLeader.setControl(voltageRequest.withOutput(output));
+  public void setOpenLoop(Voltage volts) {
+    intakeMotorLeader.setControl(voltageRequest.withOutput(volts));
   }
 
   @Override

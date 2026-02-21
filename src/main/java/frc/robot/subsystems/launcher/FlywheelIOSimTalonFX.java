@@ -107,8 +107,8 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
   }
 
   @Override
-  public void setOpenLoop(double output) {
-    flywheelLeaderTalon.setControl(voltageRequest.withOutput(output));
+  public void setOpenLoop(Voltage volts) {
+    flywheelLeaderTalon.setControl(voltageRequest.withOutput(volts));
   }
 
   @Override

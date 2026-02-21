@@ -111,9 +111,9 @@ public class Launcher extends SubsystemBase {
   }
 
   public void stop() {
-    turretIO.setOpenLoop(0.0);
-    flywheelIO.setOpenLoop(0.0);
-    hoodIO.setOpenLoop(0.0);
+    turretIO.setOpenLoop(Volts.of(0.0));
+    flywheelIO.setOpenLoop(Volts.of(0.0));
+    hoodIO.setOpenLoop(Volts.of(0.0));
   }
 
   public void aim(Translation3d target) {
@@ -387,7 +387,7 @@ public class Launcher extends SubsystemBase {
             // initialize
             () -> {
               hoodIO.configureSoftLimits(false);
-              hoodIO.setOpenLoop(1.0);
+              hoodIO.setOpenLoop(Volts.of(1.0));
             },
             // execute
             () -> {},
