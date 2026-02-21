@@ -16,6 +16,7 @@ import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
+import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.LinearVelocity;
@@ -42,6 +43,7 @@ public class FlywheelIOTalonFX implements FlywheelIO {
 
   // Inputs from flywheel motor
   private final StatusSignal<AngularVelocity> flywheelVelocity;
+  private final StatusSignal<AngularAcceleration> flywheelAcceleration;
   private final StatusSignal<Voltage> flywheelAppliedVolts, followerAppliedVolts;
   private final StatusSignal<Current> flywheelCurrent, followerCurrent;
 
@@ -57,6 +59,7 @@ public class FlywheelIOTalonFX implements FlywheelIO {
     tryUntilOk(5, () -> flywheelLeaderTalon.getConfigurator().apply(config, 0.25));
 
     flywheelVelocity = flywheelLeaderTalon.getVelocity();
+    flywheelAcceleration = flywheelLeaderTalon.getAcceleration();
     flywheelAppliedVolts = flywheelLeaderTalon.getMotorVoltage();
     followerCurrent = flywheelLeaderTalon.getSupplyCurrent();
     flywheelCurrent = flywheelLeaderTalon.getSupplyCurrent();
@@ -65,6 +68,7 @@ public class FlywheelIOTalonFX implements FlywheelIO {
     BaseStatusSignal.setUpdateFrequencyForAll(
         50.0,
         flywheelVelocity,
+        flywheelAcceleration,
         flywheelAppliedVolts,
         flywheelCurrent,
         flywheelAppliedVolts,
@@ -78,7 +82,8 @@ public class FlywheelIOTalonFX implements FlywheelIO {
   public void updateInputs(FlywheelIOInputs inputs) {
     inputs.connected =
         connectedDebounce.calculate(
-            BaseStatusSignal.refreshAll(flywheelVelocity, flywheelAppliedVolts, flywheelCurrent)
+            BaseStatusSignal.refreshAll(
+                    flywheelVelocity, flywheelAcceleration, flywheelAppliedVolts, flywheelCurrent)
                 .isOK());
 
     inputs.appliedVolts = flywheelAppliedVolts.getValueAsDouble();
@@ -107,7 +112,9 @@ public class FlywheelIOTalonFX implements FlywheelIO {
         tangentialVelocity.in(MetersPerSecond) * motorReduction / wheelRadius.in(Meters);
 
     TrapezoidProfile.State goal = new TrapezoidProfile.State(angularVelocity, 0);
-    TrapezoidProfile.State setpoint = new TrapezoidProfile.State();
+    TrapezoidProfile.State setpoint =
+        new TrapezoidProfile.State(
+            flywheelVelocity.getValueAsDouble(), flywheelAcceleration.getValueAsDouble());
 
     setpoint = profile.calculate(Robot.defaultPeriodSecs, setpoint, goal);
 
