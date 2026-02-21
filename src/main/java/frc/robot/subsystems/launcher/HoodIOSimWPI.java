@@ -8,6 +8,7 @@ import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
@@ -17,7 +18,7 @@ public class HoodIOSimWPI implements HoodIO {
   private final DCMotorSim hoodSim;
 
   private boolean closedLoop = false;
-  private PIDController positionController = new PIDController(kPSim, 0.0, kDSim);
+  private PIDController positionController = new PIDController(kPSimPos, 0.0, kDSimPos);
   private double appliedVolts = 0.0;
   private double feedforwardVolts = 0.0;
 
@@ -57,9 +58,9 @@ public class HoodIOSimWPI implements HoodIO {
   }
 
   @Override
-  public void setOpenLoop(double output) {
+  public void setOpenLoop(Voltage volts) {
     closedLoop = false;
-    appliedVolts = output;
+    appliedVolts = volts.in(Volts);
   }
 
   @Override

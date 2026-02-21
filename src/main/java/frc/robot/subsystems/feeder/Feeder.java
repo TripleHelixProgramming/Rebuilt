@@ -1,6 +1,7 @@
 package frc.robot.subsystems.feeder;
 
 import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.Volts;
 
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
@@ -38,8 +39,8 @@ public class Feeder extends SubsystemBase {
   }
 
   public void stop() {
-    spindexerIO.setOpenLoop(0.0);
-    kickerIO.setOpenLoop(0.0);
+    spindexerIO.setOpenLoop(Volts.of(0.0));
+    kickerIO.setOpenLoop(Volts.of(0.0));
   }
 
   public void spinForward() {

@@ -17,6 +17,7 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkFlexConfig;
 import edu.wpi.first.units.measure.LinearVelocity;
+import edu.wpi.first.units.measure.Voltage;
 import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.NEOVortexConstants;
 import frc.robot.Constants.RobotConstants;
@@ -70,8 +71,9 @@ public class KickerIOSpark implements KickerIO {
   }
 
   @Override
-  public void setOpenLoop(double output) {
-    flex.setVoltage(output);
+  public void setOpenLoop(Voltage volts) {
+    flex.setVoltage(volts);
+    ;
   }
 
   @Override

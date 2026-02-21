@@ -1,6 +1,7 @@
 package frc.robot.subsystems.feeder;
 
 import edu.wpi.first.units.measure.LinearVelocity;
+import edu.wpi.first.units.measure.Voltage;
 import org.littletonrobotics.junction.AutoLog;
 
 public interface KickerIO {
@@ -14,7 +15,7 @@ public interface KickerIO {
 
   public default void updateInputs(KickerIOInputs inputs) {}
 
-  public default void setOpenLoop(double output) {}
+  public default void setOpenLoop(Voltage volts) {}
 
   public default void setVelocity(LinearVelocity tangentialVelocity) {}
 }

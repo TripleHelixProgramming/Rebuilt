@@ -18,6 +18,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
@@ -51,7 +52,10 @@ public class HoodIOSimSpark implements HoodIO {
         .positionConversionFactor(encoderPositionFactor)
         .velocityConversionFactor(encoderVelocityFactor);
 
-    hoodConfig.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kPSim, 0.0, kDSim);
+    hoodConfig
+        .closedLoop
+        .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
+        .pid(kPSimPos, 0.0, kDSimPos);
 
     hoodConfig
         .softLimit
@@ -105,8 +109,8 @@ public class HoodIOSimSpark implements HoodIO {
   }
 
   @Override
-  public void setOpenLoop(double output) {
-    maxSim.setAppliedOutput(output);
+  public void setOpenLoop(Voltage volts) {
+    maxSim.setAppliedOutput(volts.in(Volts) / 12.0);
   }
 
   @Override

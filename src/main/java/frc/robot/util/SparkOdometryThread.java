@@ -64,37 +64,46 @@ public class SparkOdometryThread {
       boolean ok = true;
 
       double pos = positionSupplier.getAsDouble();
-      if (spark.getLastError() != REVLibError.kOk) ok = false;
+      if (spark.getLastError() == REVLibError.kOk) {
+        position = pos;
+      } else {
+        ok = false;
+      }
 
       double vel = velocitySupplier.getAsDouble();
-      if (spark.getLastError() != REVLibError.kOk) ok = false;
+      if (spark.getLastError() == REVLibError.kOk) {
+        velocity = vel;
+      } else {
+        ok = false;
+      }
 
       double output = spark.getAppliedOutput();
-      if (spark.getLastError() != REVLibError.kOk) ok = false;
-
+      boolean outputOk = spark.getLastError() == REVLibError.kOk;
       double voltage = spark.getBusVoltage();
-      if (spark.getLastError() != REVLibError.kOk) ok = false;
-
-      double volts = output * voltage;
+      boolean voltageOk = spark.getLastError() == REVLibError.kOk;
+      if (outputOk && voltageOk) {
+        appliedVolts = output * voltage;
+      } else {
+        ok = false;
+      }
 
       double current = spark.getOutputCurrent();
-      if (spark.getLastError() != REVLibError.kOk) ok = false;
-
-      double[] additional = new double[additionalSuppliers.length];
-      for (int i = 0; i < additionalSuppliers.length; i++) {
-        additional[i] = additionalSuppliers[i].getAsDouble();
-        if (spark.getLastError() != REVLibError.kOk) ok = false;
-      }
-
-      // Only update cached values if all reads succeeded
-      if (ok) {
-        position = pos;
-        velocity = vel;
-        appliedVolts = volts;
+      if (spark.getLastError() == REVLibError.kOk) {
         outputCurrent = current;
-        additionalValues = additional;
-        timestamp = RobotController.getFPGATime() / 1e6;
+      } else {
+        ok = false;
       }
+
+      for (int i = 0; i < additionalSuppliers.length; i++) {
+        double val = additionalSuppliers[i].getAsDouble();
+        if (spark.getLastError() == REVLibError.kOk) {
+          additionalValues[i] = val;
+        } else {
+          ok = false;
+        }
+      }
+
+      timestamp = RobotController.getFPGATime() / 1e6;
       connected = ok;
     }
 
