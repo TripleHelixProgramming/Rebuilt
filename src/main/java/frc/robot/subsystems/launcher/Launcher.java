@@ -3,6 +3,7 @@ package frc.robot.subsystems.launcher;
 import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.launcher.LauncherConstants.*;
 import static frc.robot.subsystems.launcher.LauncherConstants.FlywheelConstants.*;
+import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.ballToHoodOffset;
 import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.*;
 
 import edu.wpi.first.math.geometry.Pose2d;
@@ -123,7 +124,7 @@ public class Launcher extends SubsystemBase {
 
     // Set flywheel speed assuming a motionless robot
     var v0_nominal = getV0(vectorTurretBaseToTarget, impactAngle, nominalKey);
-    flywheelIO.setVelocity(MetersPerSecond.of(2.0 * v0_nominal.getNorm()));
+    flywheelIO.setVelocity(MetersPerSecond.of(ballToFlywheelFactor * v0_nominal.getNorm()));
 
     // Get translation velocities (m/s) of the turret caused by motion of the chassis
     var robotRelative = chassisSpeedsSupplier.get();
@@ -133,7 +134,7 @@ public class Launcher extends SubsystemBase {
     var v_base = getTurretBaseSpeeds(turretBasePose.toPose2d().getRotation(), fieldRelative);
 
     // Get actual flywheel speed
-    double flywheelSpeedMetersPerSec = flywheelInputs.velocityMetersPerSec / 2.0;
+    double flywheelSpeedMetersPerSec = flywheelInputs.velocityMetersPerSec / ballToFlywheelFactor;
 
     // Replan shot using actual flywheel speed
     var v0_total = getV0(vectorTurretBaseToTarget, flywheelSpeedMetersPerSec, replannedKey);
@@ -156,10 +157,10 @@ public class Launcher extends SubsystemBase {
         turretSetpoint.minus(turretBasePose.toPose2d().getRotation()),
         RadiansPerSecond.of(robotRelative.omegaRadiansPerSecond).unaryMinus().times(2.0));
     Rotation2d hoodSetpoint = new Rotation2d(v0_horizontal, v0_flywheel.getZ());
-    hoodIO.setPosition(hoodSetpoint.minus(new Rotation2d(Degrees.of(5))), RadiansPerSecond.of(0));
+    hoodIO.setPosition(hoodSetpoint.minus(ballToHoodOffset), RadiansPerSecond.of(0));
 
     // Get actual hood & turret position
-    Rotation2d hoodPosition = hoodInputs.position.plus(new Rotation2d(Degrees.of(5)));
+    Rotation2d hoodPosition = hoodInputs.position.plus(ballToHoodOffset);
     Rotation2d turretPosition =
         turretInputs.relativePosition.plus(turretBasePose.toPose2d().getRotation());
 
