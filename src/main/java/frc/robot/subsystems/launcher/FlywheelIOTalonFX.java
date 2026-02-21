@@ -15,11 +15,13 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.math.filter.Debouncer;
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.Constants.CANBusPorts.CAN2;
+import frc.robot.Robot;
 import org.littletonrobotics.junction.Logger;
 
 public class FlywheelIOTalonFX implements FlywheelIO {
@@ -34,6 +36,9 @@ public class FlywheelIOTalonFX implements FlywheelIO {
   private final VelocityTorqueCurrentFOC velocityTorqueCurrentRequest =
       new VelocityTorqueCurrentFOC(0.0).withSlot(1);
   private final NeutralOut brake = new NeutralOut();
+
+  private final TrapezoidProfile profile =
+      new TrapezoidProfile(new TrapezoidProfile.Constraints(maxAcceleration, maxJerk));
 
   // Inputs from flywheel motor
   private final StatusSignal<AngularVelocity> flywheelVelocity;
@@ -98,9 +103,16 @@ public class FlywheelIOTalonFX implements FlywheelIO {
 
   @Override
   public void setVelocity(LinearVelocity tangentialVelocity) {
-    var angularVelocity =
-        RadiansPerSecond.of(
-            tangentialVelocity.in(MetersPerSecond) * motorReduction / wheelRadius.in(Meters));
-    flywheelLeaderTalon.setControl(velocityTorqueCurrentRequest.withVelocity(angularVelocity));
+    double angularVelocity =
+        tangentialVelocity.in(MetersPerSecond) * motorReduction / wheelRadius.in(Meters);
+
+    TrapezoidProfile.State goal = new TrapezoidProfile.State(angularVelocity, 0);
+    TrapezoidProfile.State setpoint = new TrapezoidProfile.State();
+
+    setpoint = profile.calculate(Robot.defaultPeriodSecs, setpoint, goal);
+
+    velocityTorqueCurrentRequest.Velocity = setpoint.position;
+    velocityTorqueCurrentRequest.Acceleration = setpoint.velocity;
+    flywheelLeaderTalon.setControl(velocityTorqueCurrentRequest);
   }
 }

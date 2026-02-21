@@ -399,7 +399,8 @@ public class Launcher extends SubsystemBase {
               this.setDefaultCommand(Commands.run(action, this).withName("Aim at hub"));
             },
             // isFinished
-            () -> hoodInputs.currentAmps > 15.0 && Math.abs(hoodInputs.velocityRadPerSec) < 0.01,
+            // () -> hoodInputs.currentAmps > 15.0 && Math.abs(hoodInputs.velocityRadPerSec) < 0.01,
+            () -> false,
             // requirements
             this)
         .withTimeout(1.0)

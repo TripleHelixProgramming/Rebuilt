@@ -94,6 +94,8 @@ public final class LauncherConstants {
     public static final Distance wheelRadius = Inches.of(1.5);
 
     // Velocity Controller
+    public static final double maxAcceleration = 10.0;
+    public static final double maxJerk = 100.0;
 
     // Motor controller
     public static final double motorReduction = 1.0;
