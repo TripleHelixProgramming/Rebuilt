@@ -22,7 +22,6 @@ import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.Constants.CANBusPorts.CAN2;
-import frc.robot.Robot;
 import org.littletonrobotics.junction.Logger;
 
 public class IntakeRollerIOTalonFX implements IntakeRollerIO {
@@ -109,16 +108,16 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
         RadiansPerSecond.of(
             tangentialVelocity.in(MetersPerSecond) * motorReduction / rollerRadius.in(Meters));
 
-    TrapezoidProfile.State goal =
-        new TrapezoidProfile.State(angularVelocity.in(RotationsPerSecond), 0);
-    TrapezoidProfile.State setpoint =
-        new TrapezoidProfile.State(
-            intakeVelocity.getValueAsDouble(), intakeAcceleration.getValueAsDouble());
+    // TrapezoidProfile.State goal =
+    //     new TrapezoidProfile.State(angularVelocity.in(RotationsPerSecond), 0);
+    // TrapezoidProfile.State setpoint =
+    //     new TrapezoidProfile.State(
+    //         intakeVelocity.getValueAsDouble(), intakeAcceleration.getValueAsDouble());
 
-    setpoint = profile.calculate(Robot.defaultPeriodSecs, setpoint, goal);
+    // setpoint = profile.calculate(Robot.defaultPeriodSecs, setpoint, goal);
 
-    velocityTorqueCurrentRequest.Velocity = setpoint.position;
-    velocityTorqueCurrentRequest.Acceleration = setpoint.velocity;
-    intakeMotorLeader.setControl(velocityTorqueCurrentRequest);
+    // velocityTorqueCurrentRequest.Velocity = setpoint.position;
+    // velocityTorqueCurrentRequest.Acceleration = setpoint.velocity;
+    intakeMotorLeader.setControl(velocityTorqueCurrentRequest.withVelocity(angularVelocity));
   }
 }
