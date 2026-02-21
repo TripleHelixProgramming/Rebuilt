@@ -22,6 +22,9 @@ public class IntakeConstants {
     public static final Slot1Configs velocityTorqueCurrentGains =
         new Slot1Configs().withKP(5).withKI(0.0).withKD(0.0).withKS(2.5);
 
+    public static final double maxAcceleration = 4000.0;
+    public static final double maxJerk = 40000.0;
+
     // simulation
     public static final DCMotor gearbox = DCMotor.getKrakenX60(2);
   }

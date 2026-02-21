@@ -68,7 +68,7 @@ public final class LauncherConstants {
   public static final class TurretConstants {
     // Geometry
     public static final Transform3d chassisToTurretBase =
-        new Transform3d(Inches.of(0), Inches.of(10), Inches.of(22), Rotation3d.kZero);
+        new Transform3d(Inches.of(-2.271), Inches.of(-4.959), Inches.of(16.331), Rotation3d.kZero);
     public static final Rotation2d absEncoderOffset = new Rotation2d(2.04);
     public static final Rotation2d mechanismOffset = Rotation2d.k180deg;
     public static final Angle rangeOfMotion = Degrees.of(5);
@@ -91,9 +91,12 @@ public final class LauncherConstants {
   }
 
   public static final class FlywheelConstants {
+    public static final double ballToFlywheelFactor = 1.6;
     public static final Distance wheelRadius = Inches.of(1.5);
 
     // Velocity Controller
+    public static final double maxAcceleration = 4000.0;
+    public static final double maxJerk = 40000.0;
 
     // Motor controller
     public static final double motorReduction = 1.0;
@@ -102,7 +105,7 @@ public final class LauncherConstants {
     public static final Slot0Configs velocityVoltageGains =
         new Slot0Configs().withKP(0.11).withKI(0.0).withKD(0.0).withKS(0.1).withKV(0.12);
     public static final Slot1Configs velocityTorqueCurrentGains =
-        new Slot1Configs().withKP(5).withKI(0.0).withKD(0.0).withKS(2.5);
+        new Slot1Configs().withKP(12).withKI(0.0).withKD(0.0).withKS(2.5);
 
     // Simulation
     public static final double kPSim = 0.1;
@@ -110,6 +113,8 @@ public final class LauncherConstants {
   }
 
   public static final class HoodConstants {
+    public static final Rotation2d ballToHoodOffset = new Rotation2d(Degrees.of(0));
+
     // Position controller
     public static final double kPRealPos = 0.35;
     public static final double kPSimPos = 1.5;

@@ -32,10 +32,8 @@ import frc.robot.commands.DriveCommands;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.DriveConstants;
 import frc.robot.subsystems.drive.GyroIO;
-import frc.robot.subsystems.drive.GyroIOBoron;
 import frc.robot.subsystems.drive.ModuleIO;
 import frc.robot.subsystems.drive.ModuleIOSimWPI;
-import frc.robot.subsystems.drive.ModuleIOTalonFX;
 import frc.robot.subsystems.feeder.Feeder;
 import frc.robot.subsystems.feeder.KickerIO;
 import frc.robot.subsystems.feeder.KickerIOSimSpark;
@@ -55,7 +53,7 @@ import frc.robot.subsystems.intake.IntakeRollerIOSimTalonFX;
 import frc.robot.subsystems.intake.IntakeRollerIOTalonFX;
 import frc.robot.subsystems.launcher.FlywheelIO;
 import frc.robot.subsystems.launcher.FlywheelIOSimTalonFX;
-import frc.robot.subsystems.launcher.FlywheelIOSimWPI;
+import frc.robot.subsystems.launcher.FlywheelIOTalonFX;
 import frc.robot.subsystems.launcher.HoodIO;
 import frc.robot.subsystems.launcher.HoodIOSimSpark;
 import frc.robot.subsystems.launcher.HoodIOSpark;
@@ -127,11 +125,11 @@ public class Robot extends LoggedRobot {
         // Instantiate hardware IO implementations
         drive =
             new Drive(
-                new GyroIOBoron(),
-                new ModuleIOTalonFX(DriveConstants.FrontLeft),
-                new ModuleIOTalonFX(DriveConstants.FrontRight),
-                new ModuleIOTalonFX(DriveConstants.BackLeft),
-                new ModuleIOTalonFX(DriveConstants.BackRight));
+                new GyroIO() {},
+                new ModuleIOSimWPI(DriveConstants.FrontLeft),
+                new ModuleIOSimWPI(DriveConstants.FrontRight),
+                new ModuleIOSimWPI(DriveConstants.BackLeft),
+                new ModuleIOSimWPI(DriveConstants.BackRight));
         vision =
             new Vision(
                 drive::addVisionMeasurement,
@@ -149,7 +147,7 @@ public class Robot extends LoggedRobot {
                 drive::getPose,
                 drive::getRobotRelativeChassisSpeeds,
                 new TurretIOSpark(),
-                new FlywheelIOSimWPI(),
+                new FlywheelIOTalonFX(),
                 new HoodIOSpark());
         intake = new Intake(new IntakeRollerIOTalonFX(), new IntakeArmIOReal(), new HopperIOReal());
         feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
