@@ -91,7 +91,7 @@ public final class LauncherConstants {
   }
 
   public static final class FlywheelConstants {
-    public static final double ballToFlywheelFactor = 1.55;
+    public static final double ballToFlywheelFactor = 1.6;
     public static final Distance wheelRadius = Inches.of(1.5);
 
     // Velocity Controller

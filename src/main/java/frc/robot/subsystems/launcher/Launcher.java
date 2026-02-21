@@ -140,8 +140,8 @@ public class Launcher extends SubsystemBase {
     var v0_total = getV0(vectorTurretBaseToTarget, flywheelSpeedMetersPerSec, replannedKey);
 
     // Point turret to align velocity vectors
-    // var v0_flywheel = v0_total.minus(v_base);
-    var v0_flywheel = v0_nominal.minus(v_base);
+    var v0_flywheel = v0_total.minus(v_base);
+    // var v0_flywheel = v0_nominal.minus(v_base);
 
     // Check if v0_flywheel has non-zero horizontal component
     double v0_horizontal = Math.hypot(v0_flywheel.getX(), v0_flywheel.getY());
