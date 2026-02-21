@@ -3,6 +3,7 @@ package frc.robot.subsystems.feeder;
 import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.MetersPerSecond;
 import static frc.robot.subsystems.feeder.FeederConstants.SpindexerConstants.*;
+import static frc.robot.util.SparkUtil.*;
 
 import com.revrobotics.PersistMode;
 import com.revrobotics.RelativeEncoder;
@@ -45,11 +46,17 @@ public class SpindexerIOSpark implements SpindexerIO {
     config
         .encoder
         .positionConversionFactor(encoderPositionFactor)
-        .velocityConversionFactor(encoderVelocityFactor);
+        .velocityConversionFactor(encoderVelocityFactor)
+        .uvwAverageDepth(2)
+        .uvwMeasurementPeriod(8);
 
-    config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kPSim, 0.0, 0.0);
+    config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kPSim, 0.0, kDSim);
 
-    flex.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+    tryUntilOk(
+        flex,
+        5,
+        () ->
+            flex.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters));
 
     sparkInputs = SparkOdometryThread.getInstance().registerSpark(flex, encoder);
   }
@@ -57,9 +64,8 @@ public class SpindexerIOSpark implements SpindexerIO {
   @Override
   public void updateInputs(SpindexerIOInputs inputs) {
 
-    // Update inputs
-    inputs.connected = true;
-    inputs.velocityMetersPerSec = sparkInputs.getVelocity();
+    inputs.connected = sparkInputs.isConnected();
+    inputs.velocityMetersPerSec = sparkInputs.getVelocity() * radius.in(Meters);
     inputs.appliedVolts = sparkInputs.getAppliedVolts();
     inputs.currentAmps = sparkInputs.getOutputCurrent();
   }
