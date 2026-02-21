@@ -91,7 +91,7 @@ public final class LauncherConstants {
   }
 
   public static final class FlywheelConstants {
-    public static final double ballToFlywheelFactor = 1.5;
+    public static final double ballToFlywheelFactor = 1.55;
     public static final Distance wheelRadius = Inches.of(1.5);
 
     // Velocity Controller
@@ -113,7 +113,7 @@ public final class LauncherConstants {
   }
 
   public static final class HoodConstants {
-    public static final Rotation2d ballToHoodOffset = new Rotation2d(Degrees.of(5));
+    public static final Rotation2d ballToHoodOffset = new Rotation2d(Degrees.of(0));
 
     // Position controller
     public static final double kPRealPos = 0.35;
