@@ -61,9 +61,10 @@ public class FlywheelIOTalonFX implements FlywheelIO {
     flywheelVelocity = flywheelLeaderTalon.getVelocity();
     flywheelAcceleration = flywheelLeaderTalon.getAcceleration();
     flywheelAppliedVolts = flywheelLeaderTalon.getMotorVoltage();
-    followerCurrent = flywheelLeaderTalon.getSupplyCurrent();
     flywheelCurrent = flywheelLeaderTalon.getSupplyCurrent();
+
     followerAppliedVolts = flywheelFollowerTalon.getMotorVoltage();
+    followerCurrent = flywheelFollowerTalon.getSupplyCurrent();
 
     BaseStatusSignal.setUpdateFrequencyForAll(
         50.0,
@@ -71,8 +72,8 @@ public class FlywheelIOTalonFX implements FlywheelIO {
         flywheelAcceleration,
         flywheelAppliedVolts,
         flywheelCurrent,
-        flywheelAppliedVolts,
-        flywheelCurrent);
+        followerAppliedVolts,
+        followerCurrent);
 
     flywheelFollowerTalon.setControl(
         new Follower(CAN2.flywheelLeader, MotorAlignmentValue.Opposed));
