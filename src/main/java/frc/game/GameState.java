@@ -4,7 +4,6 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
-import frc.game.Field.Region;
 import frc.robot.Robot;
 import java.util.List;
 import java.util.Optional;
@@ -125,7 +124,7 @@ public class GameState {
 
   public static Pose3d getTarget(Pose2d robotPose) {
     if (Robot.getAlliance() == Alliance.Red) {
-      if (Region.RedZone.contains(robotPose)) {
+      if (robotPose.getMeasureX().gt(Field.field_x_len.minus(Field.hub_x_centerPos))) {
         return Field.redHubCenter;
       }
       if (robotPose.getMeasureY().gt(Field.centerField_y_pos)) {
@@ -133,7 +132,7 @@ public class GameState {
       }
       return Field.redRightTarget;
     }
-    if (Region.BlueZone.contains(robotPose)) {
+    if (robotPose.getMeasureX().lt(Field.hub_x_centerPos)) {
       return Field.blueHubCenter;
     }
     if (robotPose.getMeasureY().gt(Field.centerField_y_pos)) {
