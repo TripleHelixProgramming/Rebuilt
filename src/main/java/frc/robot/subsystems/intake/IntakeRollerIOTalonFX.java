@@ -59,6 +59,7 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
     intakeAcceleration = intakeMotorLeader.getAcceleration();
     intakeAppliedVolts = intakeMotorLeader.getMotorVoltage();
     intakeCurrent = intakeMotorLeader.getSupplyCurrent();
+
     followerAppliedVolts = intakeMotorFollower.getMotorVoltage();
     followerCurrent = intakeMotorFollower.getSupplyCurrent();
 
