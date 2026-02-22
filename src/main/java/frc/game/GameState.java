@@ -124,7 +124,7 @@ public class GameState {
 
   public static Pose3d getTarget(Pose2d robotPose) {
     if (Robot.getAlliance() == Alliance.Red) {
-      if (robotPose.getMeasureX().gt(Field.field_x_len.minus(Field.hub_x_centerPos))) {
+      if (robotPose.getMeasureX().gt(Field.redHubCenter.getMeasureX())) {
         return Field.redHubCenter;
       }
       if (robotPose.getMeasureY().gt(Field.centerField_y_pos)) {
@@ -132,7 +132,7 @@ public class GameState {
       }
       return Field.redRightTarget;
     }
-    if (robotPose.getMeasureX().lt(Field.hub_x_centerPos)) {
+    if (robotPose.getMeasureX().lt(Field.blueHubCenter.getMeasureX())) {
       return Field.blueHubCenter;
     }
     if (robotPose.getMeasureY().gt(Field.centerField_y_pos)) {

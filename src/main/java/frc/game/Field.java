@@ -44,10 +44,7 @@ public class Field {
       new Pose3d(hub_x_centerPos, centerField_y_pos, hub_z_len, Rotation3d.kZero);
   public static final Pose3d redHubCenter =
       new Pose3d(
-          centerField_x_pos.times(2).minus(hub_x_centerPos),
-          centerField_y_pos,
-          hub_z_len,
-          Rotation3d.kZero);
+          field_x_len.minus(hub_x_centerPos), centerField_y_pos, hub_z_len, Rotation3d.kZero);
 
   public static final Pose3d redRightTarget =
       new Pose3d(
