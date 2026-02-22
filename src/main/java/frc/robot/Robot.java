@@ -254,12 +254,11 @@ public class Robot extends LoggedRobot {
     SmartDashboard.putData("Field", field);
     Field.plotRegions();
 
-    feeder.setDefaultCommand(
-        Commands.startEnd(feeder::stop, () -> {}, feeder).withName("Stop feeder"));
+    feeder.setDefaultCommand(Commands.startEnd(feeder::stop, () -> {}, feeder).withName("Stop"));
     intake.setDefaultCommand(
-        Commands.startEnd(intake::stop, () -> {}, intake).withName("Stop intake"));
+        Commands.startEnd(intake::stop, () -> {}, intake).withName("Retract and stop"));
     hopper.setDefaultCommand(
-        Commands.startEnd(hopper::retract, () -> {}, hopper).withName("Retract hopper"));
+        Commands.startEnd(hopper::retract, () -> {}, hopper).withName("Retract"));
     launcher.setDefaultCommand(
         launcher.initializeHoodCommand(
             () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation())));
@@ -409,7 +408,7 @@ public class Robot extends LoggedRobot {
     // Index
     zorroDriver
         .AIn()
-        .whileTrue(Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Indexing"));
+        .whileTrue(Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance"));
 
     // Switch to X pattern when button D is pressed
     // zorroDriver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
