@@ -17,7 +17,7 @@ public class Field {
   // Measured
   public static final Distance centerField_x_pos = Inches.of(325.06);
   public static final Distance centerField_y_pos = Inches.of(158.32);
-  public static final Distance hub_x_centerPos = Inches.of(181.56);
+  private static final Distance hub_x_centerPos = Inches.of(181.56);
   private static final Distance hub_x_len = Inches.of(47);
   private static final Distance hub_y_len = Inches.of(47);
   private static final Distance hub_z_len = Inches.of(72);
