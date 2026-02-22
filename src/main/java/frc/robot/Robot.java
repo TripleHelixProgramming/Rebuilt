@@ -1,5 +1,6 @@
 package frc.robot;
 
+import static edu.wpi.first.units.Units.Seconds;
 import static frc.robot.subsystems.vision.VisionConstants.*;
 
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -11,6 +12,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.game.Field;
 import frc.game.GameState;
@@ -41,9 +43,10 @@ import frc.robot.subsystems.feeder.KickerIOSpark;
 import frc.robot.subsystems.feeder.SpindexerIO;
 import frc.robot.subsystems.feeder.SpindexerIOSimSpark;
 import frc.robot.subsystems.feeder.SpindexerIOSpark;
-import frc.robot.subsystems.intake.HopperIO;
-import frc.robot.subsystems.intake.HopperIOReal;
-import frc.robot.subsystems.intake.HopperIOSim;
+import frc.robot.subsystems.hopper.Hopper;
+import frc.robot.subsystems.hopper.HopperIO;
+import frc.robot.subsystems.hopper.HopperIOReal;
+import frc.robot.subsystems.hopper.HopperIOSim;
 import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.intake.IntakeArmIO;
 import frc.robot.subsystems.intake.IntakeArmIOReal;
@@ -95,6 +98,7 @@ public class Robot extends LoggedRobot {
   private Launcher launcher;
   private Feeder feeder;
   private Intake intake;
+  private Hopper hopper;
 
   public Robot() {
     // Record metadata
@@ -149,7 +153,8 @@ public class Robot extends LoggedRobot {
                 new TurretIOSpark(),
                 new FlywheelIOTalonFX(),
                 new HoodIOSpark());
-        intake = new Intake(new IntakeRollerIOTalonFX(), new IntakeArmIOReal(), new HopperIOReal());
+        intake = new Intake(new IntakeRollerIOTalonFX(), new IntakeArmIOReal());
+        hopper = new Hopper(new HopperIOReal());
         feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
         break;
 
@@ -185,8 +190,8 @@ public class Robot extends LoggedRobot {
                 new FlywheelIOSimTalonFX(),
                 new HoodIOSimSpark());
         feeder = new Feeder(new SpindexerIOSimSpark(), new KickerIOSimSpark());
-        intake =
-            new Intake(new IntakeRollerIOSimTalonFX(), new IntakeArmIOSim(), new HopperIOSim());
+        intake = new Intake(new IntakeRollerIOSimTalonFX(), new IntakeArmIOSim());
+        hopper = new Hopper(new HopperIOSim());
         break;
 
       case REPLAY: // Replaying a log
@@ -220,7 +225,8 @@ public class Robot extends LoggedRobot {
                 new TurretIO() {},
                 new FlywheelIO() {},
                 new HoodIO() {});
-        intake = new Intake(new IntakeRollerIO() {}, new IntakeArmIO() {}, new HopperIO() {});
+        intake = new Intake(new IntakeRollerIO() {}, new IntakeArmIO() {});
+        hopper = new Hopper(new HopperIO() {});
         feeder = new Feeder(new SpindexerIO() {}, new KickerIO() {});
         break;
     }
@@ -252,6 +258,8 @@ public class Robot extends LoggedRobot {
         Commands.startEnd(feeder::stop, () -> {}, feeder).withName("Stop feeder"));
     intake.setDefaultCommand(
         Commands.startEnd(intake::stop, () -> {}, intake).withName("Stop intake"));
+    hopper.setDefaultCommand(
+        Commands.startEnd(hopper::retract, () -> {}, hopper).withName("Retract hopper"));
     launcher.setDefaultCommand(
         launcher.initializeHoodCommand(
             () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation())));
@@ -408,7 +416,26 @@ public class Robot extends LoggedRobot {
 
     zorroDriver
         .DIn()
-        .whileTrue(Commands.startEnd(intake::intakeFuel, () -> {}, intake).withName("Intaking"));
+        .and(() -> hopper.isDeployed())
+        .onTrue(Commands.startEnd(intake::intakeFuel, () -> {}, intake).withName("Intake"));
+
+    zorroDriver.DIn().negate().and(() -> hopper.isDeployed()).onTrue(intake.getDefaultCommand());
+
+    zorroDriver
+        .FUp()
+        .and(() -> intake.isStowed())
+        .onTrue(Commands.startEnd(hopper::deploy, () -> {}, hopper).withName("Deploy"));
+
+    zorroDriver.FUp().negate().and(() -> intake.isStowed()).onTrue(hopper.getDefaultCommand());
+
+    zorroDriver
+        .FUp()
+        .negate()
+        .and(() -> intake.isDeployed())
+        .onTrue(
+            Commands.parallel(
+                hopper.getDefaultCommand(),
+                Commands.sequence(new WaitCommand(Seconds.of(2)), intake.getDefaultCommand())));
   }
 
   public void bindXboxDriver(int port) {

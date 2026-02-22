@@ -1,12 +1,12 @@
 package frc.robot.subsystems.intake;
 
-import edu.wpi.first.wpilibj.DoubleSolenoid.Value;
+import edu.wpi.first.wpilibj.DoubleSolenoid;
 import org.littletonrobotics.junction.AutoLog;
 
 public interface IntakeArmIO {
   @AutoLog
   public static class IntakeArmIOInputs {
-    public Value isDeployed = Value.kReverse;
+    public DoubleSolenoid.Value isDeployed = DoubleSolenoid.Value.kReverse;
   }
 
   public default void updateInputs(IntakeArmIOInputs inputs) {}
