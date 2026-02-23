@@ -421,14 +421,13 @@ public class Robot extends LoggedRobot {
     zorroDriver.DIn().negate().and(() -> hopper.isDeployed()).onTrue(intake.getDefaultCommand());
 
     zorroDriver
-        .FUp()
-        .and(() -> intake.isStowed())
+        .FDown()
         .onTrue(Commands.startEnd(hopper::deploy, () -> {}, hopper).withName("Deploy"));
 
-    zorroDriver.FUp().negate().and(() -> intake.isStowed()).onTrue(hopper.getDefaultCommand());
+    zorroDriver.FDown().negate().and(() -> intake.isStowed()).onTrue(hopper.getDefaultCommand());
 
     zorroDriver
-        .FUp()
+        .FDown()
         .negate()
         .and(() -> intake.isDeployed())
         .onTrue(
