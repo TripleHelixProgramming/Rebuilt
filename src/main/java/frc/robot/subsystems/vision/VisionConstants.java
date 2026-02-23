@@ -34,13 +34,29 @@ public class VisionConstants {
 
   // Robot to camera transforms
   public static Transform3d robotToFrontRightCamera =
-      new Transform3d(Inches.of(-10.572), Inches.of(-12.337), Inches.of(16.688), new Rotation3d(new Quaternion(0.8735, -0.0802, -0.1540, -0.4547)));
+      new Transform3d(
+          Inches.of(-10.572),
+          Inches.of(-12.337),
+          Inches.of(16.688),
+          new Rotation3d(new Quaternion(0.8735, -0.0802, -0.1540, -0.4547)));
   public static Transform3d robotToFrontLeftCamera =
-      new Transform3d(Inches.of(-10.572), Inches.of(12.337), Inches.of(16.688), new Rotation3d(new Quaternion(0.8735, 0.0802, -0.1540, 0.4547)));
+      new Transform3d(
+          Inches.of(-10.572),
+          Inches.of(12.337),
+          Inches.of(16.688),
+          new Rotation3d(new Quaternion(0.8735, 0.0802, -0.1540, 0.4547)));
   public static Transform3d robotToBackRightCamera =
-      new Transform3d(Inches.of(-13.1623), Inches.of(-12.1623), Inches.of(20.26674), new Rotation3d(new Quaternion(-0.3794, 0.1206, 0.0500, 0.9160)));
+      new Transform3d(
+          Inches.of(-13.1623),
+          Inches.of(-12.1623),
+          Inches.of(20.26674),
+          new Rotation3d(new Quaternion(-0.3794, 0.1206, 0.0500, 0.9160)));
   public static Transform3d robotToBackLeftCamera =
-      new Transform3d(Inches.of(-13.1623), Inches.of(12.1623), Inches.of(20.26674), new Rotation3d(new Quaternion(0.3794, 0.1206, -0.0500, 0.9160)));
+      new Transform3d(
+          Inches.of(-13.1623),
+          Inches.of(12.1623),
+          Inches.of(20.26674),
+          new Rotation3d(new Quaternion(0.3794, 0.1206, -0.0500, 0.9160)));
 
   public static Distance minRobotWidth = Inches.of(36.875);
 
