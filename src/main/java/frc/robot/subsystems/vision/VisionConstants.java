@@ -38,24 +38,28 @@ public class VisionConstants {
           Inches.of(-10.572),
           Inches.of(-12.337),
           Inches.of(16.688),
+          // pitch 20 degrees up, yaw 55 degrees right
           new Rotation3d(new Quaternion(0.8735, -0.0802, -0.1540, -0.4547)));
   public static Transform3d robotToFrontLeftCamera =
       new Transform3d(
           Inches.of(-10.572),
           Inches.of(12.337),
           Inches.of(16.688),
+          // pitch 20 degrees up, yaw 55 degrees left
           new Rotation3d(new Quaternion(0.8735, 0.0802, -0.1540, 0.4547)));
   public static Transform3d robotToBackRightCamera =
       new Transform3d(
           Inches.of(-13.1623),
           Inches.of(-12.1623),
           Inches.of(20.26674),
+          // pitch 15 degrees up, yaw 135 degrees right
           new Rotation3d(new Quaternion(-0.3794, 0.1206, 0.0500, 0.9160)));
   public static Transform3d robotToBackLeftCamera =
       new Transform3d(
           Inches.of(-13.1623),
           Inches.of(12.1623),
           Inches.of(20.26674),
+          // pitch 15 degrees up, yaw 135 degrees left
           new Rotation3d(new Quaternion(0.3794, 0.1206, -0.0500, 0.9160)));
 
   public static Distance minRobotWidth = Inches.of(36.875);
