@@ -381,21 +381,16 @@ public class Robot extends LoggedRobot {
                     drive)
                 .ignoringDisable(true));
 
-    // Aim at hub
-    // zorroDriver
-    //     .AIn()
-    //     .whileTrue(
-    //         DriveCommands.joystickDriveAtFixedOrientation(
-    //             drive,
-    //             () -> -zorroDriver.getRightYAxis(),
-    //             () -> -zorroDriver.getRightXAxis(),
-    //             () ->
-    //                 GameState.getTarget(drive.getPose())
-    //                     .toPose2d()
-    //                     .getTranslation()
-    //                     .minus(drive.getPose().getTranslation())
-    //                     .getAngle(),
-    //             allianceSelector::fieldRotated));
+    // Aim at target
+    zorroDriver
+        .HIn()
+        .whileTrue(
+            DriveCommands.joystickDriveAtFixedOrientation(
+                drive,
+                () -> -zorroDriver.getRightYAxis(),
+                () -> -zorroDriver.getRightXAxis(),
+                () -> launcher.getHorizontalAimAngle(),
+                allianceSelector::fieldRotated));
 
     // Index
     zorroDriver

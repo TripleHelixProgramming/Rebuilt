@@ -46,6 +46,7 @@ public class Launcher extends SubsystemBase {
   private Pose3d turretBasePose = new Pose3d();
   private Translation3d v0nominalLast = new Translation3d();
   private Translation3d v0replannedLast = new Translation3d();
+  private Rotation2d horizontalAimAngle = Rotation2d.kZero;
 
   // Fuel ballistics simulation
   private final ArrayList<BallisticObject> fuelNominal = new ArrayList<>();
@@ -152,9 +153,9 @@ public class Launcher extends SubsystemBase {
     }
     Logger.recordOutput("Launcher/Flywheel velocity too low", false);
 
-    Rotation2d turretSetpoint = new Rotation2d(v0_flywheel.getX(), v0_flywheel.getY());
+    horizontalAimAngle = new Rotation2d(v0_flywheel.getX(), v0_flywheel.getY());
     turretIO.setPosition(
-        turretSetpoint.minus(turretBasePose.toPose2d().getRotation()),
+        horizontalAimAngle.minus(turretBasePose.toPose2d().getRotation()),
         RadiansPerSecond.of(robotRelative.omegaRadiansPerSecond).unaryMinus().times(2.0));
     Rotation2d hoodSetpoint = new Rotation2d(v0_horizontal, v0_flywheel.getZ());
     hoodIO.setPosition(hoodSetpoint.minus(ballToHoodOffset), RadiansPerSecond.of(0));
@@ -194,6 +195,11 @@ public class Launcher extends SubsystemBase {
   @AutoLogOutput(key = "Launcher/TurretPose")
   public Pose2d getTurretPose() {
     return turretBasePose.toPose2d().plus(new Transform2d(0, 0, turretInputs.relativePosition));
+  }
+
+  @AutoLogOutput(key = "Launcher/HorizontalAimAngle")
+  public Rotation2d getHorizontalAimAngle() {
+    return horizontalAimAngle;
   }
 
   // @AutoLogOutput(key = "Turret/IsOnTarget")
