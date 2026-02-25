@@ -1,7 +1,7 @@
 package frc.robot.subsystems.hopper;
 
 import static edu.wpi.first.wpilibj.DoubleSolenoid.Value.*;
-import static frc.robot.subsystems.intake.IntakeConstants.PneumaticConstants.*;
+import static frc.robot.Constants.PneumaticChannels.*;
 
 import edu.wpi.first.wpilibj.PneumaticsModuleType;
 import edu.wpi.first.wpilibj.simulation.DoubleSolenoidSim;
@@ -11,8 +11,7 @@ public class HopperIOSim implements HopperIO {
 
   public HopperIOSim() {
     hopperPneumatic =
-        new DoubleSolenoidSim(
-            PneumaticsModuleType.REVPH, hopperForwardChannel, hopperReverseChannel);
+        new DoubleSolenoidSim(PneumaticsModuleType.REVPH, hopperForward, hopperReverse);
   }
 
   @Override
