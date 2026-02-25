@@ -5,6 +5,7 @@ import static frc.robot.subsystems.vision.VisionConstants.*;
 
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.Compressor;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.PneumaticsModuleType;
 import edu.wpi.first.wpilibj.PowerDistribution;
@@ -15,7 +16,9 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.ConditionalCommand;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.game.Field;
 import frc.game.GameState;
 import frc.lib.AllianceSelector;
@@ -26,6 +29,7 @@ import frc.lib.ControllerSelector;
 import frc.lib.ControllerSelector.ControllerConfig;
 import frc.lib.ControllerSelector.ControllerFunction;
 import frc.lib.ControllerSelector.ControllerType;
+import frc.lib.ZorroController.Axis;
 import frc.robot.Constants.DIOPorts;
 import frc.robot.auto.B_MoveForward1M;
 import frc.robot.auto.B_Path;
@@ -260,8 +264,7 @@ public class Robot extends LoggedRobot {
     intake.setDefaultCommand(intake.getDefaultCommand());
     hopper.setDefaultCommand(hopper.getDefaultCommand());
     launcher.setDefaultCommand(
-        launcher.initializeHoodCommand(
-            () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation())));
+        Commands.startEnd(launcher::stop, () -> {}, launcher).withName("Stop"));
   }
 
   /** This function is called periodically during all modes. */
@@ -404,6 +407,19 @@ public class Robot extends LoggedRobot {
     zorroDriver
         .AIn()
         .whileTrue(Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance"));
+
+    Trigger launcherEnabled = zorroDriver.axisGreaterThan(Axis.kLeftDial.value, 0.5).debounce(0.1);
+    launcherEnabled
+        .or(() -> DriverStation.isFMSAttached())
+        .whileTrue(
+            launcher
+                .initializeHoodCommand()
+                .andThen(
+                    new RunCommand(
+                            () ->
+                                launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()),
+                            launcher)
+                        .withName("Aim at hub")));
 
     // Switch to X pattern when button D is pressed
     // zorroDriver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));

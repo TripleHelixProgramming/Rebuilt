@@ -17,8 +17,7 @@ import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.FunctionalCommand;
+import edu.wpi.first.wpilibj2.command.StartEndCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Robot;
 import java.util.ArrayList;
@@ -389,25 +388,18 @@ public class Launcher extends SubsystemBase {
     return t;
   }
 
-  public Command initializeHoodCommand(Runnable action) {
-    return new FunctionalCommand(
+  public Command initializeHoodCommand() {
+    return new StartEndCommand(
             // initialize
             () -> {
               hoodIO.configureSoftLimits(false);
               hoodIO.setOpenLoop(Volts.of(1.0));
             },
-            // execute
-            () -> {},
             // end
-            interrupted -> {
+            () -> {
               hoodIO.configureSoftLimits(true);
               hoodIO.resetEncoder();
-
-              this.setDefaultCommand(Commands.run(action, this).withName("Aim at hub"));
             },
-            // isFinished
-            // () -> hoodInputs.currentAmps > 15.0 && Math.abs(hoodInputs.velocityRadPerSec) < 0.01,
-            () -> false,
             // requirements
             this)
         .withTimeout(1.0)
