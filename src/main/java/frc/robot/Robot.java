@@ -423,10 +423,13 @@ public class Robot extends LoggedRobot {
         .FUp()
         .onTrue(
             new ConditionalCommand(
+                // If intake is stowed, immediately retract hopper
                 hopper.getDefaultCommand(),
+                // If intake is deployed, retract it first before retracting hopper
                 Commands.parallel(
                     intake.getDefaultCommand(),
                     hopper.idle().withTimeout(Seconds.of(2)).andThen(hopper.getDefaultCommand())),
+                // Condition to check
                 () -> intake.isStowed()));
   }
 
