@@ -27,10 +27,10 @@ public class VisionConstants {
   public static AprilTagFields defaultAprilTagFieldLayout = AprilTagFields.k2026RebuiltAndymark;
 
   // Camera names, must match names configured on coprocessor
-  public static String cameraFrontRightName = "OV2311_TH_1";
-  public static String cameraFrontLeftName = "OV2311_TH_5";
-  public static String cameraBackRightName = "OV2311_TH_6";
-  public static String cameraBackLeftName = "OV2311_TH_7";
+  public static String cameraFrontRightName = "OV2311_TH_2026_FR";
+  public static String cameraFrontLeftName = "OV2311_TH_2026_FL";
+  public static String cameraBackRightName = "OV2311_TH_2026_RR";
+  public static String cameraBackLeftName = "OV2311_TH_2026_RL";
 
   // Robot to camera transforms
   public static Transform3d robotToFrontRightCamera =
