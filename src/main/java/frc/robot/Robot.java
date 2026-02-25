@@ -13,8 +13,8 @@ import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.ConditionalCommand;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
-import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.game.Field;
 import frc.game.GameState;
@@ -419,16 +419,15 @@ public class Robot extends LoggedRobot {
         .FDown()
         .onTrue(Commands.startEnd(hopper::deploy, () -> {}, hopper).withName("Deploy"));
 
-    zorroDriver.FDown().negate().and(() -> intake.isStowed()).onTrue(hopper.getDefaultCommand());
-
     zorroDriver
-        .FDown()
-        .negate()
-        .and(() -> intake.isDeployed())
+        .FUp()
         .onTrue(
-            Commands.parallel(
+            new ConditionalCommand(
                 hopper.getDefaultCommand(),
-                Commands.sequence(new WaitCommand(Seconds.of(2)), intake.getDefaultCommand())));
+                Commands.parallel(
+                    intake.getDefaultCommand(),
+                    hopper.idle().withTimeout(Seconds.of(2)).andThen(hopper.getDefaultCommand())),
+                () -> intake.isStowed()));
   }
 
   public void bindXboxDriver(int port) {
