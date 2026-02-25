@@ -4,7 +4,9 @@ import static edu.wpi.first.units.Units.Seconds;
 import static frc.robot.subsystems.vision.VisionConstants.*;
 
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.PneumaticsModuleType;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
@@ -155,6 +157,7 @@ public class Robot extends LoggedRobot {
         intake = new Intake(new IntakeRollerIOTalonFX(), new IntakeArmIOReal());
         hopper = new Hopper(new HopperIOReal());
         feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
+        SmartDashboard.putData(new Compressor(PneumaticsModuleType.REVPH));
         break;
 
       case SIM: // Running a physics simulator
@@ -388,21 +391,16 @@ public class Robot extends LoggedRobot {
                     drive)
                 .ignoringDisable(true));
 
-    // Aim at hub
-    // zorroDriver
-    //     .AIn()
-    //     .whileTrue(
-    //         DriveCommands.joystickDriveAtFixedOrientation(
-    //             drive,
-    //             () -> -zorroDriver.getRightYAxis(),
-    //             () -> -zorroDriver.getRightXAxis(),
-    //             () ->
-    //                 GameState.getTarget(drive.getPose())
-    //                     .toPose2d()
-    //                     .getTranslation()
-    //                     .minus(drive.getPose().getTranslation())
-    //                     .getAngle(),
-    //             allianceSelector::fieldRotated));
+    // Aim at target
+    zorroDriver
+        .HIn()
+        .whileTrue(
+            DriveCommands.joystickDriveAtFixedOrientation(
+                drive,
+                () -> -zorroDriver.getRightYAxis(),
+                () -> -zorroDriver.getRightXAxis(),
+                () -> launcher.getHorizontalAimAngle(),
+                allianceSelector::fieldRotated));
 
     // Index
     zorroDriver
