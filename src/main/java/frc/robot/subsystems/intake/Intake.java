@@ -6,6 +6,8 @@ import static edu.wpi.first.units.Units.Volts;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import org.littletonrobotics.junction.Logger;
 
@@ -53,5 +55,10 @@ public class Intake extends SubsystemBase {
 
   public Boolean isStowed() {
     return intakeArmInputs.isDeployed.equals(DoubleSolenoid.Value.kReverse);
+  }
+
+  @Override
+  public Command getDefaultCommand() {
+    return Commands.startEnd(this::stop, () -> {}, this).withName("Retract and stop");
   }
 }

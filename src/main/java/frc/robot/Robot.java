@@ -257,10 +257,8 @@ public class Robot extends LoggedRobot {
     Field.plotRegions();
 
     feeder.setDefaultCommand(Commands.startEnd(feeder::stop, () -> {}, feeder).withName("Stop"));
-    intake.setDefaultCommand(
-        Commands.startEnd(intake::stop, () -> {}, intake).withName("Retract and stop"));
-    hopper.setDefaultCommand(
-        Commands.startEnd(hopper::retract, () -> {}, hopper).withName("Retract"));
+    intake.setDefaultCommand(intake.getDefaultCommand());
+    hopper.setDefaultCommand(hopper.getDefaultCommand());
     launcher.setDefaultCommand(
         launcher.initializeHoodCommand(
             () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation())));

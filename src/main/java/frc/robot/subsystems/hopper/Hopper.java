@@ -1,6 +1,8 @@
 package frc.robot.subsystems.hopper;
 
 import edu.wpi.first.wpilibj.DoubleSolenoid;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import org.littletonrobotics.junction.Logger;
 
@@ -28,5 +30,10 @@ public class Hopper extends SubsystemBase {
 
   public Boolean isDeployed() {
     return hopperInputs.isDeployed.equals(DoubleSolenoid.Value.kForward);
+  }
+
+  @Override
+  public Command getDefaultCommand() {
+    return Commands.startEnd(this::retract, () -> {}, this).withName("Retract");
   }
 }
