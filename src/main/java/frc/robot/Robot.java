@@ -1,5 +1,6 @@
 package frc.robot;
 
+import static edu.wpi.first.units.Units.Seconds;
 import static frc.robot.subsystems.vision.VisionConstants.*;
 
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -12,6 +13,7 @@ import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.ConditionalCommand;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.game.Field;
@@ -45,9 +47,10 @@ import frc.robot.subsystems.feeder.KickerIOSpark;
 import frc.robot.subsystems.feeder.SpindexerIO;
 import frc.robot.subsystems.feeder.SpindexerIOSimSpark;
 import frc.robot.subsystems.feeder.SpindexerIOSpark;
-import frc.robot.subsystems.intake.HopperIO;
-import frc.robot.subsystems.intake.HopperIOReal;
-import frc.robot.subsystems.intake.HopperIOSim;
+import frc.robot.subsystems.hopper.Hopper;
+import frc.robot.subsystems.hopper.HopperIO;
+import frc.robot.subsystems.hopper.HopperIOReal;
+import frc.robot.subsystems.hopper.HopperIOSim;
 import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.intake.IntakeArmIO;
 import frc.robot.subsystems.intake.IntakeArmIOReal;
@@ -100,6 +103,7 @@ public class Robot extends LoggedRobot {
   private Launcher launcher;
   private Feeder feeder;
   private Intake intake;
+  private Hopper hopper;
 
   public Robot() {
     // Record metadata
@@ -150,7 +154,8 @@ public class Robot extends LoggedRobot {
                 new TurretIOSpark(),
                 new FlywheelIOTalonFX(),
                 new HoodIOSpark());
-        intake = new Intake(new IntakeRollerIOTalonFX(), new IntakeArmIOReal(), new HopperIOReal());
+        intake = new Intake(new IntakeRollerIOTalonFX(), new IntakeArmIOReal());
+        hopper = new Hopper(new HopperIOReal());
         feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
         SmartDashboard.putData(new Compressor(PneumaticsModuleType.REVPH));
         break;
@@ -187,8 +192,8 @@ public class Robot extends LoggedRobot {
                 new FlywheelIOSimTalonFX(),
                 new HoodIOSimSpark());
         feeder = new Feeder(new SpindexerIOSimSpark(), new KickerIOSimSpark());
-        intake =
-            new Intake(new IntakeRollerIOSimTalonFX(), new IntakeArmIOSim(), new HopperIOSim());
+        intake = new Intake(new IntakeRollerIOSimTalonFX(), new IntakeArmIOSim());
+        hopper = new Hopper(new HopperIOSim());
         break;
 
       case REPLAY: // Replaying a log
@@ -222,7 +227,8 @@ public class Robot extends LoggedRobot {
                 new TurretIO() {},
                 new FlywheelIO() {},
                 new HoodIO() {});
-        intake = new Intake(new IntakeRollerIO() {}, new IntakeArmIO() {}, new HopperIO() {});
+        intake = new Intake(new IntakeRollerIO() {}, new IntakeArmIO() {});
+        hopper = new Hopper(new HopperIO() {});
         feeder = new Feeder(new SpindexerIO() {}, new KickerIO() {});
         break;
     }
@@ -250,10 +256,9 @@ public class Robot extends LoggedRobot {
     SmartDashboard.putData("Field", field);
     Field.plotRegions();
 
-    feeder.setDefaultCommand(
-        Commands.startEnd(feeder::stop, () -> {}, feeder).withName("Stop feeder"));
-    intake.setDefaultCommand(
-        Commands.startEnd(intake::stop, () -> {}, intake).withName("Stop intake"));
+    feeder.setDefaultCommand(Commands.startEnd(feeder::stop, () -> {}, feeder).withName("Stop"));
+    intake.setDefaultCommand(intake.getDefaultCommand());
+    hopper.setDefaultCommand(hopper.getDefaultCommand());
     launcher.setDefaultCommand(
         launcher.initializeHoodCommand(
             () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation())));
@@ -398,14 +403,34 @@ public class Robot extends LoggedRobot {
     // Index
     zorroDriver
         .AIn()
-        .whileTrue(Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Indexing"));
+        .whileTrue(Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance"));
 
     // Switch to X pattern when button D is pressed
     // zorroDriver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
 
     zorroDriver
         .DIn()
-        .whileTrue(Commands.startEnd(intake::intakeFuel, () -> {}, intake).withName("Intaking"));
+        .and(() -> hopper.isDeployed())
+        .onTrue(Commands.startEnd(intake::intakeFuel, () -> {}, intake).withName("Intake"));
+
+    zorroDriver.DIn().negate().and(() -> hopper.isDeployed()).onTrue(intake.getDefaultCommand());
+
+    zorroDriver
+        .FDown()
+        .onTrue(Commands.startEnd(hopper::deploy, () -> {}, hopper).withName("Deploy"));
+
+    zorroDriver
+        .FUp()
+        .onTrue(
+            new ConditionalCommand(
+                // If intake is stowed, immediately retract hopper
+                hopper.getDefaultCommand(),
+                // If intake is deployed, retract it first before retracting hopper
+                Commands.parallel(
+                    intake.getDefaultCommand(),
+                    hopper.idle().withTimeout(Seconds.of(2)).andThen(hopper.getDefaultCommand())),
+                // Condition to check
+                () -> intake.isStowed()));
   }
 
   public void bindXboxDriver(int port) {

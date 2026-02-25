@@ -1,4 +1,4 @@
-package frc.robot.subsystems.intake;
+package frc.robot.subsystems.hopper;
 
 import static edu.wpi.first.wpilibj.DoubleSolenoid.Value.*;
 import static frc.robot.Constants.PneumaticChannels.*;
