@@ -124,4 +124,14 @@ public final class Constants {
       public static final int backLeftTurnAbsEncoder = 45;
     }
   }
+
+  public static final class PneumaticChannels {
+    // hopper
+    public static final int hopperForward = 15;
+    public static final int hopperReverse = 14;
+
+    // intake arm
+    public static final int intakeArmForward = 0;
+    public static final int intakeArmReverse = 1;
+  }
 }

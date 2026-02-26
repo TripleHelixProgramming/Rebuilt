@@ -17,8 +17,7 @@ import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.FunctionalCommand;
+import edu.wpi.first.wpilibj2.command.StartEndCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Robot;
 import java.util.ArrayList;
@@ -46,6 +45,7 @@ public class Launcher extends SubsystemBase {
   private Pose3d turretBasePose = new Pose3d();
   private Translation3d v0nominalLast = new Translation3d();
   private Translation3d v0replannedLast = new Translation3d();
+  private Rotation2d horizontalAimAngle = Rotation2d.kZero;
 
   // Fuel ballistics simulation
   private final ArrayList<BallisticObject> fuelNominal = new ArrayList<>();
@@ -152,9 +152,9 @@ public class Launcher extends SubsystemBase {
     }
     Logger.recordOutput("Launcher/Flywheel velocity too low", false);
 
-    Rotation2d turretSetpoint = new Rotation2d(v0_flywheel.getX(), v0_flywheel.getY());
+    horizontalAimAngle = new Rotation2d(v0_flywheel.getX(), v0_flywheel.getY());
     turretIO.setPosition(
-        turretSetpoint.minus(turretBasePose.toPose2d().getRotation()),
+        horizontalAimAngle.minus(turretBasePose.toPose2d().getRotation()),
         RadiansPerSecond.of(robotRelative.omegaRadiansPerSecond).unaryMinus().times(2.0));
     Rotation2d hoodSetpoint = new Rotation2d(v0_horizontal, v0_flywheel.getZ());
     hoodIO.setPosition(hoodSetpoint.minus(ballToHoodOffset), RadiansPerSecond.of(0));
@@ -194,6 +194,11 @@ public class Launcher extends SubsystemBase {
   @AutoLogOutput(key = "Launcher/TurretPose")
   public Pose2d getTurretPose() {
     return turretBasePose.toPose2d().plus(new Transform2d(0, 0, turretInputs.relativePosition));
+  }
+
+  @AutoLogOutput(key = "Launcher/HorizontalAimAngle")
+  public Rotation2d getHorizontalAimAngle() {
+    return horizontalAimAngle;
   }
 
   // @AutoLogOutput(key = "Turret/IsOnTarget")
@@ -383,25 +388,18 @@ public class Launcher extends SubsystemBase {
     return t;
   }
 
-  public Command initializeHoodCommand(Runnable action) {
-    return new FunctionalCommand(
+  public Command initializeHoodCommand() {
+    return new StartEndCommand(
             // initialize
             () -> {
               hoodIO.configureSoftLimits(false);
               hoodIO.setOpenLoop(Volts.of(1.0));
             },
-            // execute
-            () -> {},
             // end
-            interrupted -> {
+            () -> {
               hoodIO.configureSoftLimits(true);
               hoodIO.resetEncoder();
-
-              this.setDefaultCommand(Commands.run(action, this).withName("Aim at hub"));
             },
-            // isFinished
-            // () -> hoodInputs.currentAmps > 15.0 && Math.abs(hoodInputs.velocityRadPerSec) < 0.01,
-            () -> false,
             // requirements
             this)
         .withTimeout(1.0)

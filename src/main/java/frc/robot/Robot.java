@@ -1,17 +1,24 @@
 package frc.robot;
 
+import static edu.wpi.first.units.Units.Seconds;
 import static frc.robot.subsystems.vision.VisionConstants.*;
 
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.Compressor;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.PneumaticsModuleType;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.ConditionalCommand;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.game.Field;
 import frc.game.GameState;
 import frc.lib.AllianceSelector;
@@ -22,6 +29,7 @@ import frc.lib.ControllerSelector;
 import frc.lib.ControllerSelector.ControllerConfig;
 import frc.lib.ControllerSelector.ControllerFunction;
 import frc.lib.ControllerSelector.ControllerType;
+import frc.lib.ZorroController.Axis;
 import frc.robot.Constants.DIOPorts;
 import frc.robot.auto.B_MoveForward1M;
 import frc.robot.auto.B_Path;
@@ -32,8 +40,10 @@ import frc.robot.commands.DriveCommands;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.DriveConstants;
 import frc.robot.subsystems.drive.GyroIO;
+import frc.robot.subsystems.drive.GyroIOBoron;
 import frc.robot.subsystems.drive.ModuleIO;
 import frc.robot.subsystems.drive.ModuleIOSimWPI;
+import frc.robot.subsystems.drive.ModuleIOTalonFX;
 import frc.robot.subsystems.feeder.Feeder;
 import frc.robot.subsystems.feeder.KickerIO;
 import frc.robot.subsystems.feeder.KickerIOSimSpark;
@@ -41,9 +51,10 @@ import frc.robot.subsystems.feeder.KickerIOSpark;
 import frc.robot.subsystems.feeder.SpindexerIO;
 import frc.robot.subsystems.feeder.SpindexerIOSimSpark;
 import frc.robot.subsystems.feeder.SpindexerIOSpark;
-import frc.robot.subsystems.intake.HopperIO;
-import frc.robot.subsystems.intake.HopperIOReal;
-import frc.robot.subsystems.intake.HopperIOSim;
+import frc.robot.subsystems.hopper.Hopper;
+import frc.robot.subsystems.hopper.HopperIO;
+import frc.robot.subsystems.hopper.HopperIOReal;
+import frc.robot.subsystems.hopper.HopperIOSim;
 import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.intake.IntakeArmIO;
 import frc.robot.subsystems.intake.IntakeArmIOReal;
@@ -63,6 +74,7 @@ import frc.robot.subsystems.launcher.TurretIOSimSpark;
 import frc.robot.subsystems.launcher.TurretIOSpark;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionIO;
+import frc.robot.subsystems.vision.VisionIOPhotonVision;
 import frc.robot.subsystems.vision.VisionIOPhotonVisionSim;
 import frc.robot.util.CanandgyroThread;
 import frc.robot.util.SparkOdometryThread;
@@ -95,6 +107,7 @@ public class Robot extends LoggedRobot {
   private Launcher launcher;
   private Feeder feeder;
   private Intake intake;
+  private Hopper hopper;
 
   public Robot() {
     // Record metadata
@@ -125,23 +138,19 @@ public class Robot extends LoggedRobot {
         // Instantiate hardware IO implementations
         drive =
             new Drive(
-                new GyroIO() {},
-                new ModuleIOSimWPI(DriveConstants.FrontLeft),
-                new ModuleIOSimWPI(DriveConstants.FrontRight),
-                new ModuleIOSimWPI(DriveConstants.BackLeft),
-                new ModuleIOSimWPI(DriveConstants.BackRight));
+                new GyroIOBoron(),
+                new ModuleIOTalonFX(DriveConstants.FrontLeft),
+                new ModuleIOTalonFX(DriveConstants.FrontRight),
+                new ModuleIOTalonFX(DriveConstants.BackLeft),
+                new ModuleIOTalonFX(DriveConstants.BackRight));
         vision =
             new Vision(
                 drive::addVisionMeasurement,
                 drive::getPose,
-                new VisionIOPhotonVisionSim(
-                    cameraFrontRightName, robotToFrontRightCamera, drive::getPose),
-                new VisionIOPhotonVisionSim(
-                    cameraFrontLeftName, robotToFrontLeftCamera, drive::getPose),
-                new VisionIOPhotonVisionSim(
-                    cameraBackRightName, robotToBackRightCamera, drive::getPose),
-                new VisionIOPhotonVisionSim(
-                    cameraBackLeftName, robotToBackLeftCamera, drive::getPose));
+                new VisionIOPhotonVision(cameraFrontRightName, robotToFrontRightCamera),
+                new VisionIOPhotonVision(cameraFrontLeftName, robotToFrontLeftCamera),
+                new VisionIOPhotonVision(cameraBackRightName, robotToBackRightCamera),
+                new VisionIOPhotonVision(cameraBackLeftName, robotToBackLeftCamera));
         launcher =
             new Launcher(
                 drive::getPose,
@@ -149,8 +158,10 @@ public class Robot extends LoggedRobot {
                 new TurretIOSpark(),
                 new FlywheelIOTalonFX(),
                 new HoodIOSpark());
-        intake = new Intake(new IntakeRollerIOTalonFX(), new IntakeArmIOReal(), new HopperIOReal());
+        intake = new Intake(new IntakeRollerIOTalonFX(), new IntakeArmIOReal());
+        hopper = new Hopper(new HopperIOReal());
         feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
+        SmartDashboard.putData(new Compressor(PneumaticsModuleType.REVPH));
         break;
 
       case SIM: // Running a physics simulator
@@ -185,8 +196,8 @@ public class Robot extends LoggedRobot {
                 new FlywheelIOSimTalonFX(),
                 new HoodIOSimSpark());
         feeder = new Feeder(new SpindexerIOSimSpark(), new KickerIOSimSpark());
-        intake =
-            new Intake(new IntakeRollerIOSimTalonFX(), new IntakeArmIOSim(), new HopperIOSim());
+        intake = new Intake(new IntakeRollerIOSimTalonFX(), new IntakeArmIOSim());
+        hopper = new Hopper(new HopperIOSim());
         break;
 
       case REPLAY: // Replaying a log
@@ -220,7 +231,8 @@ public class Robot extends LoggedRobot {
                 new TurretIO() {},
                 new FlywheelIO() {},
                 new HoodIO() {});
-        intake = new Intake(new IntakeRollerIO() {}, new IntakeArmIO() {}, new HopperIO() {});
+        intake = new Intake(new IntakeRollerIO() {}, new IntakeArmIO() {});
+        hopper = new Hopper(new HopperIO() {});
         feeder = new Feeder(new SpindexerIO() {}, new KickerIO() {});
         break;
     }
@@ -248,13 +260,11 @@ public class Robot extends LoggedRobot {
     SmartDashboard.putData("Field", field);
     Field.plotRegions();
 
-    feeder.setDefaultCommand(
-        Commands.startEnd(feeder::stop, () -> {}, feeder).withName("Stop feeder"));
-    intake.setDefaultCommand(
-        Commands.startEnd(intake::stop, () -> {}, intake).withName("Stop intake"));
+    feeder.setDefaultCommand(Commands.startEnd(feeder::stop, () -> {}, feeder).withName("Stop"));
+    intake.setDefaultCommand(intake.getDefaultCommand());
+    hopper.setDefaultCommand(hopper.getDefaultCommand());
     launcher.setDefaultCommand(
-        launcher.initializeHoodCommand(
-            () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation())));
+        Commands.startEnd(launcher::stop, () -> {}, launcher).withName("Stop"));
   }
 
   /** This function is called periodically during all modes. */
@@ -382,33 +392,61 @@ public class Robot extends LoggedRobot {
                     drive)
                 .ignoringDisable(true));
 
-    // Aim at hub
-    // zorroDriver
-    //     .AIn()
-    //     .whileTrue(
-    //         DriveCommands.joystickDriveAtFixedOrientation(
-    //             drive,
-    //             () -> -zorroDriver.getRightYAxis(),
-    //             () -> -zorroDriver.getRightXAxis(),
-    //             () ->
-    //                 GameState.getTarget(drive.getPose())
-    //                     .toPose2d()
-    //                     .getTranslation()
-    //                     .minus(drive.getPose().getTranslation())
-    //                     .getAngle(),
-    //             allianceSelector::fieldRotated));
+    // Aim at target
+    zorroDriver
+        .HIn()
+        .whileTrue(
+            DriveCommands.joystickDriveAtFixedOrientation(
+                drive,
+                () -> -zorroDriver.getRightYAxis(),
+                () -> -zorroDriver.getRightXAxis(),
+                () -> launcher.getHorizontalAimAngle(),
+                allianceSelector::fieldRotated));
 
     // Index
     zorroDriver
         .AIn()
-        .whileTrue(Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Indexing"));
+        .whileTrue(Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance"));
+
+    Trigger launcherEnabled = zorroDriver.axisGreaterThan(Axis.kLeftDial.value, 0.5).debounce(0.1);
+    launcherEnabled
+        .or(() -> DriverStation.isFMSAttached())
+        .whileTrue(
+            launcher
+                .initializeHoodCommand()
+                .andThen(
+                    new RunCommand(
+                            () ->
+                                launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()),
+                            launcher)
+                        .withName("Aim at hub")));
 
     // Switch to X pattern when button D is pressed
     // zorroDriver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
 
     zorroDriver
         .DIn()
-        .whileTrue(Commands.startEnd(intake::intakeFuel, () -> {}, intake).withName("Intaking"));
+        .and(() -> hopper.isDeployed())
+        .onTrue(Commands.startEnd(intake::intakeFuel, () -> {}, intake).withName("Intake"));
+
+    zorroDriver.DIn().negate().and(() -> hopper.isDeployed()).onTrue(intake.getDefaultCommand());
+
+    zorroDriver
+        .FDown()
+        .onTrue(Commands.startEnd(hopper::deploy, () -> {}, hopper).withName("Deploy"));
+
+    zorroDriver
+        .FUp()
+        .onTrue(
+            new ConditionalCommand(
+                // If intake is stowed, immediately retract hopper
+                hopper.getDefaultCommand(),
+                // If intake is deployed, retract it first before retracting hopper
+                Commands.parallel(
+                    intake.getDefaultCommand(),
+                    hopper.idle().withTimeout(Seconds.of(2)).andThen(hopper.getDefaultCommand())),
+                // Condition to check
+                () -> intake.isStowed()));
   }
 
   public void bindXboxDriver(int port) {
