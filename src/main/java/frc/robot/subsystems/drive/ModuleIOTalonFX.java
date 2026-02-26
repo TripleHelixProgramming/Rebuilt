@@ -183,37 +183,12 @@ public class ModuleIOTalonFX implements ModuleIO {
         turnAppliedVolts,
         turnCurrent);
     ParentDevice.optimizeBusUtilizationForAll(driveTalon, turnTalon);
-
-    // Cache all signals for batched refresh
-    allSignals =
-        new BaseStatusSignal[] {
-          drivePosition,
-          driveVelocity,
-          driveAppliedVolts,
-          driveCurrent,
-          turnPosition,
-          turnVelocity,
-          turnAppliedVolts,
-          turnCurrent,
-          turnAbsolutePosition
-        };
-  }
-
-  // Cached array for getStatusSignals() to avoid allocation per call
-  private BaseStatusSignal[] allSignals;
-
-  @Override
-  public void refreshSignals() {
-    BaseStatusSignal.refreshAll(allSignals);
-  }
-
-  @Override
-  public BaseStatusSignal[] getStatusSignals() {
-    return allSignals;
   }
 
   @Override
   public void updateInputs(ModuleIOInputs inputs) {
+    // No explicit refresh - Phoenix 6 auto-updates signals at configured frequency (50Hz)
+    // This avoids blocking CAN calls in the main loop
 
     // Update drive inputs
     inputs.driveConnected =

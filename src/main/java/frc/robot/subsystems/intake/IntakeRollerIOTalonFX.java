@@ -78,18 +78,20 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
 
   @Override
   public void updateInputs(IntakeRollerIOInputs inputs) {
+    // No explicit refresh - Phoenix 6 auto-updates signals at configured frequency (50Hz)
+    // This avoids blocking CAN calls in the main loop
     inputs.connected =
         connectedDebounce.calculate(
-            BaseStatusSignal.refreshAll(
-                    intakeVelocity, intakeAcceleration, intakeAppliedVolts, intakeCurrent)
-                .isOK());
+            intakeVelocity.getStatus().isOK()
+                && intakeAcceleration.getStatus().isOK()
+                && intakeAppliedVolts.getStatus().isOK()
+                && intakeCurrent.getStatus().isOK());
 
     inputs.appliedVolts = intakeAppliedVolts.getValueAsDouble();
     inputs.currentAmps = intakeCurrent.getValueAsDouble();
     inputs.velocityMetersPerSec =
         intakeVelocity.getValue().in(RadiansPerSecond) * rollerRadius.in(Meters) / motorReduction;
 
-    BaseStatusSignal.refreshAll(followerCurrent, followerAppliedVolts);
     Logger.recordOutput("Intake/Follower/Current", followerCurrent.getValue());
     Logger.recordOutput("Intake/Follower/Volts", followerAppliedVolts.getValue());
   }
