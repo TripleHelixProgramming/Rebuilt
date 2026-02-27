@@ -26,10 +26,10 @@ import frc.lib.AutoOption;
 import frc.lib.AutoSelector;
 import frc.lib.CommandZorroController;
 import frc.lib.ControllerSelector;
-import frc.lib.ControllerSelector.DriverConfig;
-import frc.lib.ControllerSelector.OperatorConfig;
 import frc.lib.ControllerSelector.ControllerType;
+import frc.lib.ControllerSelector.DriverConfig;
 import frc.lib.ControllerSelector.DriverController;
+import frc.lib.ControllerSelector.OperatorConfig;
 import frc.lib.ZorroController.Axis;
 import frc.robot.Constants.DIOPorts;
 import frc.robot.auto.B_MoveForward1M;
@@ -364,22 +364,13 @@ public class Robot extends LoggedRobot {
     ControllerSelector.configure(
         // ZORRO is always preferred as driver in REAL and SIM mode
         new DriverConfig(
-            ControllerType.ZORRO,
-            this::bindZorroDriver,
-            Constants.Mode.REAL,
-            Constants.Mode.SIM),
+            ControllerType.ZORRO, this::bindZorroDriver, Constants.Mode.REAL, Constants.Mode.SIM),
         // XBOX is always preferred as operator in REAL and SIM mode
         new OperatorConfig(
-            ControllerType.XBOX,
-            this::bindXboxOperator,
-            Constants.Mode.REAL,
-            Constants.Mode.SIM),
+            ControllerType.XBOX, this::bindXboxOperator, Constants.Mode.REAL, Constants.Mode.SIM),
         // XBOX is permitted as driver in REAL and SIM mode
         new DriverConfig(
-            ControllerType.XBOX,
-            this::bindXboxDriver,
-            Constants.Mode.REAL,
-            Constants.Mode.SIM));
+            ControllerType.XBOX, this::bindXboxDriver, Constants.Mode.REAL, Constants.Mode.SIM));
   }
 
   public DriverController bindZorroDriver(int port) {
@@ -419,7 +410,7 @@ public class Robot extends LoggedRobot {
                 () -> -zorroDriver.getRightXAxis(),
                 () -> launcher.getHorizontalAimAngle(),
                 allianceSelector::fieldRotated));
-    
+
     // Switch to X pattern when button D is pressed
     // zorroDriver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
 
@@ -469,8 +460,13 @@ public class Robot extends LoggedRobot {
                 () -> intake.isStowed()));
 
     return new DriverController() {
-        public double getRightXAxis() { return zorroDriver.getRightXAxis(); }
-        public double getRightYAxis() { return zorroDriver.getRightYAxis(); }
+      public double getRightXAxis() {
+        return zorroDriver.getRightXAxis();
+      }
+
+      public double getRightYAxis() {
+        return zorroDriver.getRightYAxis();
+      }
     };
   }
 
@@ -567,8 +563,13 @@ public class Robot extends LoggedRobot {
     xboxDriver.x().onTrue(Commands.runOnce(drive::stopWithX, drive));
 
     return new DriverController() {
-        public double getRightXAxis() { return xboxDriver.getRightX(); }
-        public double getRightYAxis() { return xboxDriver.getRightY(); }
+      public double getRightXAxis() {
+        return xboxDriver.getRightX();
+      }
+
+      public double getRightYAxis() {
+        return xboxDriver.getRightY();
+      }
     };
   }
 
