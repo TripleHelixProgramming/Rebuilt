@@ -18,11 +18,13 @@ import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
 import frc.robot.Constants.RobotConstants;
+import frc.robot.Robot;
 import frc.robot.util.SparkOdometryThread;
 import frc.robot.util.SparkOdometryThread.SparkInputs;
 
@@ -36,6 +38,12 @@ public class HoodIOSpark implements HoodIO {
   private final SparkMaxConfig hoodConfig;
 
   private final Debouncer connectedDebounce = new Debouncer(0.5, Debouncer.DebounceType.kFalling);
+
+  // Motion profile to limit hood motion (position profile in radians)
+  private final TrapezoidProfile profile =
+      new TrapezoidProfile(
+          new TrapezoidProfile.Constraints(
+              maxAngularVelocity.in(RadiansPerSecond), maxAngularAcceleration));
 
   public HoodIOSpark() {
     hoodSpark = new SparkMax(CAN2.hood, MotorType.kBrushless);
@@ -99,12 +107,19 @@ public class HoodIOSpark implements HoodIO {
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
     double setpoint = MathUtil.clamp(rotation.getRadians(), minPosRad, maxPosRad);
+
+    TrapezoidProfile.State goal = new TrapezoidProfile.State(setpoint, 0.0);
+    TrapezoidProfile.State current =
+        new TrapezoidProfile.State(sparkInputs.getPosition(), sparkInputs.getVelocity());
+    TrapezoidProfile.State profiled = profile.calculate(Robot.defaultPeriodSecs, current, goal);
+
     double feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
+
     hoodController.setSetpoint(
-        setpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
+        profiled.position, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
   }
 
   @Override

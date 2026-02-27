@@ -18,6 +18,7 @@ import com.ctre.phoenix6.sim.ChassisReference;
 import com.ctre.phoenix6.sim.TalonFXSimState.MotorType;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.system.plant.LinearSystemId;
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.LinearVelocity;
@@ -40,6 +41,9 @@ public class IntakeRollerIOSimTalonFX implements IntakeRollerIO {
   private final VelocityVoltage velocityVoltageRequest = new VelocityVoltage(0.0);
   // private final VelocityTorqueCurrentFOC velocityTorqueCurrentRequest =
   //     new VelocityTorqueCurrentFOC(0.0);
+
+  private final TrapezoidProfile profile =
+      new TrapezoidProfile(new TrapezoidProfile.Constraints(maxAcceleration, maxJerk));
 
   // Inputs from intake motor
   private final StatusSignal<AngularVelocity> intakeVelocity;
@@ -103,11 +107,21 @@ public class IntakeRollerIOSimTalonFX implements IntakeRollerIO {
 
   @Override
   public void setVelocity(LinearVelocity tangentialVelocity) {
+    AngularVelocity angularVelocity =
+        RadiansPerSecond.of(
+            tangentialVelocity.in(MetersPerSecond) * motorReduction / rollerRadius.in(Meters));
+
+    TrapezoidProfile.State goal =
+        new TrapezoidProfile.State(angularVelocity.in(RotationsPerSecond), 0);
+    // Use the status signal values (likely in rotations/sec) as the current setpoint
+    TrapezoidProfile.State setpoint =
+        new TrapezoidProfile.State(intakeVelocity.getValueAsDouble(), 0.0);
+
+    setpoint = profile.calculate(Robot.defaultPeriodSecs, setpoint, goal);
+
+    // setpoint.position is in rotations/sec (per goal), convert to rad/sec for the velocity API
+    double radPerSec = setpoint.position * 2.0 * Math.PI;
     intakeMotorLeader.setControl(
-        velocityVoltageRequest.withVelocity(
-            RadiansPerSecond.of(
-                tangentialVelocity.in(MetersPerSecond)
-                    * motorReduction
-                    / rollerRadius.in(Meters))));
+        velocityVoltageRequest.withVelocity(RadiansPerSecond.of(radPerSec)));
   }
 }

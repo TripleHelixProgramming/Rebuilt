@@ -16,11 +16,13 @@ import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkFlexConfig;
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.NEOVortexConstants;
 import frc.robot.Constants.RobotConstants;
+import frc.robot.Robot;
 import frc.robot.util.SparkOdometryThread;
 import frc.robot.util.SparkOdometryThread.SparkInputs;
 
@@ -30,6 +32,15 @@ public class KickerIOSpark implements KickerIO {
   private final RelativeEncoder encoder;
   private final SparkClosedLoopController controller;
   private final SparkInputs sparkInputs;
+
+  // Trapezoidal profile to limit angular acceleration (rad/s and rad/s^2)
+  private final TrapezoidProfile profile =
+      new TrapezoidProfile(
+          new TrapezoidProfile.Constraints(
+              // max angular velocity (rad/s)
+              maxTangentialVelocity.in(MetersPerSecond) / radius.in(Meters),
+              // max angular acceleration (rad/s^2) derived from tangential accel
+              maxTangentialAcceleration / radius.in(Meters)));
 
   public KickerIOSpark() {
     flex = new SparkFlex(CAN2.kicker, MotorType.kBrushless);
@@ -78,14 +89,20 @@ public class KickerIOSpark implements KickerIO {
 
   @Override
   public void setVelocity(LinearVelocity tangentialVelocity) {
+    double desiredAngular = tangentialVelocity.in(MetersPerSecond) / radius.in(Meters);
+
+    TrapezoidProfile.State goal = new TrapezoidProfile.State(desiredAngular, 0.0);
+    TrapezoidProfile.State setpoint = new TrapezoidProfile.State(sparkInputs.getVelocity(), 0.0);
+
+    setpoint = profile.calculate(Robot.defaultPeriodSecs, setpoint, goal);
+
+    double tangentialSetpoint = setpoint.position * radius.in(Meters);
     double feedforwardVolts =
         RobotConstants.kNominalVoltage
-            * tangentialVelocity.in(MetersPerSecond)
+            * tangentialSetpoint
             / maxTangentialVelocity.in(MetersPerSecond);
+
     controller.setSetpoint(
-        tangentialVelocity.in(MetersPerSecond) / radius.in(Meters),
-        ControlType.kVelocity,
-        ClosedLoopSlot.kSlot0,
-        feedforwardVolts);
+        setpoint.position, ControlType.kVelocity, ClosedLoopSlot.kSlot0, feedforwardVolts);
   }
 }

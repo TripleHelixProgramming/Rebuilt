@@ -17,6 +17,7 @@ import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.LinearSystemId;
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
@@ -106,11 +107,21 @@ public class TurretIOSimSpark implements TurretIO {
             setpoint,
             Math.PI - rangeOfMotion.div(2).in(Radians),
             Math.PI + rangeOfMotion.div(2).in(Radians));
+    TrapezoidProfile.State goal = new TrapezoidProfile.State(setpoint, 0.0);
+    TrapezoidProfile.State current =
+        new TrapezoidProfile.State(
+            turnSparkSim.getPosition(), turnSim.getAngularVelocityRadPerSec());
+    TrapezoidProfile.State profiled =
+        new TrapezoidProfile(
+                new TrapezoidProfile.Constraints(
+                    maxAngularVelocity.in(RadiansPerSecond), maxAngularAcceleration))
+            .calculate(Robot.defaultPeriodSecs, current, goal);
+
     var feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
     controller.setSetpoint(
-        setpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
+        profiled.position, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
   }
 }

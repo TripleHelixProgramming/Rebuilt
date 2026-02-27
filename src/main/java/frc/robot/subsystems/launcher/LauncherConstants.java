@@ -84,6 +84,9 @@ public final class LauncherConstants {
     public static final double encoderVelocityFactor =
         (2 * Math.PI) / (60.0 * motorReduction); // Rad/sec
 
+    // Maximum angular acceleration (rad/s^2) for motion profiling. Tune as needed.
+    public static final double maxAngularAcceleration = 10.0;
+
     // Simulation
     public static final DCMotor gearbox = DCMotor.getNeo550(1);
     public static final double kPSim = 0.8;
@@ -134,6 +137,9 @@ public final class LauncherConstants {
     public static final double encoderPositionFactor = 2 * Math.PI / motorReduction; // Radians
     public static final double encoderVelocityFactor =
         (2 * Math.PI) / (60.0 * motorReduction); // Rad/sec
+
+    // Maximum angular acceleration (rad/s^2) for motion profiling. Tune as needed.
+    public static final double maxAngularAcceleration = 5.0;
 
     // Simulation
     public static final DCMotor gearbox = DCMotor.getNeo550(1);

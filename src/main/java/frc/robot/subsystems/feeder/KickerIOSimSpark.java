@@ -15,6 +15,7 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkFlexConfig;
 import edu.wpi.first.math.system.plant.LinearSystemId;
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
@@ -30,6 +31,12 @@ public class KickerIOSimSpark implements KickerIO {
   private final SparkFlex flex;
   private final SparkClosedLoopController controller;
   private final SparkFlexSim flexSim;
+  // Trapezoid profile to limit angular acceleration (rad/s and rad/s^2)
+  private final TrapezoidProfile profile =
+      new TrapezoidProfile(
+          new TrapezoidProfile.Constraints(
+              maxTangentialVelocity.in(MetersPerSecond) / radius.in(Meters),
+              maxTangentialAcceleration / radius.in(Meters)));
 
   public KickerIOSimSpark() {
     flex = new SparkFlex(CAN2.kicker, MotorType.kBrushless);
@@ -80,14 +87,20 @@ public class KickerIOSimSpark implements KickerIO {
 
   @Override
   public void setVelocity(LinearVelocity tangentialVelocity) {
+    double desiredAngular = tangentialVelocity.in(MetersPerSecond) / radius.in(Meters);
+
+    TrapezoidProfile.State goal = new TrapezoidProfile.State(desiredAngular, 0.0);
+    TrapezoidProfile.State setpoint = new TrapezoidProfile.State(flexSim.getVelocity(), 0.0);
+
+    setpoint = profile.calculate(Robot.defaultPeriodSecs, setpoint, goal);
+
+    double tangentialSetpoint = setpoint.position * radius.in(Meters);
     double feedforwardVolts =
         RobotConstants.kNominalVoltage
-            * tangentialVelocity.in(MetersPerSecond)
+            * tangentialSetpoint
             / maxTangentialVelocity.in(MetersPerSecond);
+
     controller.setSetpoint(
-        tangentialVelocity.in(MetersPerSecond) / radius.in(Meters),
-        ControlType.kVelocity,
-        ClosedLoopSlot.kSlot0,
-        feedforwardVolts);
+        setpoint.position, ControlType.kVelocity, ClosedLoopSlot.kSlot0, feedforwardVolts);
   }
 }
