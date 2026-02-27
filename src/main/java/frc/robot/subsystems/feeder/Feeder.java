@@ -69,4 +69,9 @@ public class Feeder extends SubsystemBase {
     spindexerIO.setVelocity(MetersPerSecond.of(2.0));
     kickerIO.setVelocity(MetersPerSecond.of(6.0));
   }
+
+  public void reverse() {
+    spindexerIO.setVelocity(MetersPerSecond.of(-2.0));
+    kickerIO.setVelocity(MetersPerSecond.of(-6.0));
+  }
 }

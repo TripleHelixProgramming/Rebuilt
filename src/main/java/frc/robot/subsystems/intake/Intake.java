@@ -65,6 +65,10 @@ public class Intake extends SubsystemBase {
     intakeArmIO.deploy();
   }
 
+  public void reverse() {
+    intakeRollerIO.setVelocity(MetersPerSecond.of(-6));
+  }
+
   public Boolean isDeployed() {
     return intakeArmInputs.isDeployed.equals(DoubleSolenoid.Value.kForward);
   }

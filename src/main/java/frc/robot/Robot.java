@@ -564,10 +564,18 @@ public class Robot extends LoggedRobot {
   public void bindXboxOperator(int port) {
     var xboxOperator = new CommandXboxController(port);
 
-    // intake
     xboxOperator
         .rightBumper()
-        .whileTrue(Commands.startEnd(intake::intakeFuel, () -> {}, intake).withName("Intaking"));
+        .and(() -> hopper.isDeployed())
+        .whileTrue(Commands.startEnd(intake::intakeFuel, () -> {}, intake).withName("Intake"));
+
+    xboxOperator
+        .y()
+        .whileTrue(Commands.startEnd(intake::reverse, () -> {}, intake).withName("Reverse roller"));
+
+    xboxOperator
+        .x()
+        .whileTrue(Commands.startEnd(feeder::reverse, () -> {}, feeder).withName("Reverse"));
   }
 
   public void configureAutoOptions() {
