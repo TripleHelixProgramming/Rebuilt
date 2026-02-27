@@ -16,8 +16,24 @@ public class Hopper extends SubsystemBase {
 
   @Override
   public void periodic() {
+    long t0 = System.nanoTime();
     hopperIO.updateInputs(hopperInputs);
+    long t1 = System.nanoTime();
     Logger.processInputs("Hopper", hopperInputs);
+    long t2 = System.nanoTime();
+
+    // Profiling output
+    long totalMs = (t2 - t0) / 1_000_000;
+    if (totalMs > 2) {
+      System.out.println(
+          "[Hopper] update="
+              + (t1 - t0) / 1_000_000
+              + "ms log="
+              + (t2 - t1) / 1_000_000
+              + "ms total="
+              + totalMs
+              + "ms");
+    }
   }
 
   public void retract() {

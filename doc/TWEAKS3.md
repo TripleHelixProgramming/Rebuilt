@@ -24,6 +24,7 @@ Timing instrumentation has been added throughout the codebase to identify bottle
 | `Feeder.java` | `periodic()` | >2ms | spindexer, kicker, spindexerLog, kickerLog |
 | `Launcher.java` | `periodic()` | >3ms | update, log, aimLog, ballistics |
 | `Launcher.java` | `aim()` | >500μs | v0nom, baseSpeeds, v0replan, setPos, rest |
+| `Hopper.java` | `periodic()` | >2ms | update, log |
 
 **Example profiling output:**
 ```
@@ -100,6 +101,25 @@ Added protection against `Translation2d.getAngle()` errors when velocity vectors
 | `IntakeRollerIOTalonFX.java` | Changed to non-blocking status checks |
 | `FlywheelIOTalonFX.java` | Changed to non-blocking status checks |
 | `Launcher.java` | Added profiling, deferred logging, zero-velocity guard |
+| `Hopper.java` | Added profiling to `periodic()` |
+
+---
+
+## Phase 3: Analysis of New Subsystems
+
+Subsystems added since `performance-tweaks-2` was branched were analyzed for blocking calls:
+
+| Subsystem | IO Implementation | Status |
+|-----------|-------------------|--------|
+| `Hopper` | `HopperIOReal` | Uses DoubleSolenoid (pneumatics, not CAN) - no blocking issues. Added profiling. |
+| `Feeder/Spindexer` | `SpindexerIOSpark` | Uses `SparkOdometryThread` for non-blocking CAN reads. |
+| `Feeder/Kicker` | `KickerIOSpark` | Uses `SparkOdometryThread` for non-blocking CAN reads. |
+| `Launcher/Hood` | `HoodIOSpark` | Uses `SparkOdometryThread` for non-blocking CAN reads. |
+| `Launcher/Turret` | `TurretIOSpark` | Uses `SparkOdometryThread` for non-blocking CAN reads. |
+| `Intake/Arm` | `IntakeArmIOReal` | Uses DoubleSolenoid (pneumatics, not CAN) - no blocking issues. |
+| `Drive/Gyro` | `GyroIOBoron` | Uses `CanandgyroThread` for non-blocking CAN reads. |
+
+**Conclusion:** All motor controller IO implementations properly use background threading (`SparkOdometryThread` or `CanandgyroThread`) for CAN reads. Pneumatic subsystems use WPILib's DoubleSolenoid which doesn't have blocking CAN concerns.
 
 ---
 
