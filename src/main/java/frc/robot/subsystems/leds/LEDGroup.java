@@ -83,7 +83,8 @@ public enum LEDGroup implements LEDReader, LEDWriter {
       }
       offset += portionLen;
     }
-    throw new IndexOutOfBoundsException("Index " + index + " out of bounds for length " + totalLength);
+    throw new IndexOutOfBoundsException(
+        "Index " + index + " out of bounds for length " + totalLength);
   }
 
   /** Converts a virtual index to a local index within its portion. */
@@ -96,7 +97,8 @@ public enum LEDGroup implements LEDReader, LEDWriter {
       }
       offset += portionLen;
     }
-    throw new IndexOutOfBoundsException("Index " + index + " out of bounds for length " + totalLength);
+    throw new IndexOutOfBoundsException(
+        "Index " + index + " out of bounds for length " + totalLength);
   }
 
   @Override

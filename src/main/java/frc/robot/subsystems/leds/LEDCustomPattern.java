@@ -52,8 +52,7 @@ public final class LEDCustomPattern {
    * @param falseColor color when condition is false
    * @return the conditional solid pattern
    */
-  public static LEDPattern solidIf(
-      BooleanSupplier condition, Color trueColor, Color falseColor) {
+  public static LEDPattern solidIf(BooleanSupplier condition, Color trueColor, Color falseColor) {
     return (reader, writer) -> {
       Color c = condition.getAsBoolean() ? trueColor : falseColor;
       LEDPattern.solid(c).applyTo(reader, writer);
