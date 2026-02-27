@@ -421,12 +421,16 @@ public class Robot extends LoggedRobot {
                 () -> -zorroDriver.getRightXAxis(),
                 () -> launcher.getHorizontalAimAngle(),
                 allianceSelector::fieldRotated));
+    
+    // Switch to X pattern when button D is pressed
+    // zorroDriver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
 
-    // Index
+    // Feeder
     zorroDriver
         .AIn()
         .whileTrue(Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance"));
 
+    // Launcher
     Trigger launcherEnabled = zorroDriver.axisGreaterThan(Axis.kLeftDial.value, 0.5).debounce(0.1);
     launcherEnabled
         .or(() -> DriverStation.isFMSAttached())
@@ -440,9 +444,7 @@ public class Robot extends LoggedRobot {
                             launcher)
                         .withName("Aim at hub")));
 
-    // Switch to X pattern when button D is pressed
-    // zorroDriver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
-
+    // Intake
     zorroDriver
         .DIn()
         .and(() -> hopper.isDeployed())
@@ -450,6 +452,7 @@ public class Robot extends LoggedRobot {
 
     zorroDriver.DIn().negate().and(() -> hopper.isDeployed()).onTrue(intake.getDefaultCommand());
 
+    // Hopper
     zorroDriver
         .FDown()
         .onTrue(Commands.startEnd(hopper::deploy, () -> {}, hopper).withName("Deploy"));
@@ -564,8 +567,9 @@ public class Robot extends LoggedRobot {
   public void bindXboxOperator(int port) {
     var xboxOperator = new CommandXboxController(port);
 
+    // Intake
     xboxOperator
-        .rightBumper()
+        .b()
         .and(() -> hopper.isDeployed())
         .whileTrue(Commands.startEnd(intake::intakeFuel, () -> {}, intake).withName("Intake"));
 
@@ -573,9 +577,25 @@ public class Robot extends LoggedRobot {
         .y()
         .whileTrue(Commands.startEnd(intake::reverse, () -> {}, intake).withName("Reverse roller"));
 
+    // Feeder
+    xboxOperator
+        .a()
+        .whileTrue(Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance"));
+
     xboxOperator
         .x()
         .whileTrue(Commands.startEnd(feeder::reverse, () -> {}, feeder).withName("Reverse"));
+
+    // Chassis aiming
+    // xboxOperator
+    //     .rightBumper()
+    //     .whileTrue(
+    //         DriveCommands.joystickDriveAtFixedOrientation(
+    //             drive,
+    //             () -> -zorroDriver.getRightYAxis(),
+    //             () -> -zorroDriver.getRightXAxis(),
+    //             () -> launcher.getHorizontalAimAngle(),
+    //             allianceSelector::fieldRotated));
   }
 
   public void configureAutoOptions() {
