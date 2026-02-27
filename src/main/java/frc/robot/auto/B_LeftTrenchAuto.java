@@ -50,11 +50,14 @@ public class B_LeftTrenchAuto extends AutoMode {
     routine
         .active()
         .onTrue(
-            Commands.parallel(
-                blueLeftNeutralZone.cmd(),
-                Commands.sequence(
-                    Commands.runOnce(hopper::deploy, hopper),
-                    Commands.startEnd(intake::intakeFuel, () -> {}, intake).withTimeout(10.0))));
+            Commands.sequence(
+                blueLeftNeutralZone.resetOdometry(),
+                Commands.parallel(
+                    blueLeftNeutralZone.cmd(),
+                    Commands.sequence(
+                        // Commands.runOnce(hopper::deploy, hopper),
+                        Commands.startEnd(intake::intakeFuel, () -> {}, intake)
+                            .withTimeout(10.0)))));
 
     blueLeftNeutralZone
         .done()
