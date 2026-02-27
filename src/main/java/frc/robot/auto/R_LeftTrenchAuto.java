@@ -33,6 +33,7 @@ public class R_LeftTrenchAuto extends AutoMode {
 
   // Load trajectories
   AutoTrajectory redLeftNeutralZone = routine.trajectory("RedLeftNeutralZone");
+  AutoTrajectory redLeftTransitionToNZ = routine.trajectory("RedLeftTransitionToNZ");
 
   @Override
   public String getName() {
@@ -60,6 +61,15 @@ public class R_LeftTrenchAuto extends AutoMode {
                             .withTimeout(10.0)))));
 
     redLeftNeutralZone
+        .done()
+        .onTrue(
+            Commands.sequence(
+                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
+                Commands.parallel(
+                    redLeftTransitionToNZ.cmd(),
+                    Commands.startEnd(intake::intakeFuel, () -> {}, intake).withTimeout(8.0))));
+
+    redLeftTransitionToNZ
         .done()
         .onTrue(Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0));
 
