@@ -22,6 +22,8 @@ Timing instrumentation has been added throughout the codebase to identify bottle
 | `Vision.java` | `periodic()` | >5ms | copyInputs, cameraLoop, consumer, summaryLog |
 | `Intake.java` | `periodic()` | >2ms | update, log |
 | `Feeder.java` | `periodic()` | >2ms | spindexer, kicker, spindexerLog, kickerLog |
+| `Launcher.java` | `periodic()` | >3ms | update, log, aimLog, ballistics |
+| `Launcher.java` | `aim()` | >500μs | v0nom, baseSpeeds, v0replan, setPos, rest |
 
 **Example profiling output:**
 ```
@@ -57,17 +59,29 @@ The codebase already implements background threading for sensor reads:
 - **VisionThread** - Processes camera data asynchronously
 - **CanandgyroThread** - Reads gyro data in background
 
----
+### 3. Deferred Logging in Launcher
 
-## Future Work (Phase 2)
+The `aim()` method is called frequently and was experiencing significant overhead from `Logger.recordOutput()` calls. The fix is to cache values during `aim()` and log them in `periodic()` instead.
 
-The following changes from `performance-tweaks-2` still need to be adapted for the current `main` branch:
+**Implementation:**
+- Added cached fields: `cachedBaseSpeeds`, `cachedFlywheelVelocityTooLow`, `cachedActualD`, `cachedActualV`
+- `hasCachedAimData` flag indicates when cached data is available
+- `aim()` populates the cache instead of calling Logger directly
+- `periodic()` calls `logCachedAimData()` to flush the cache
 
-1. **Deferred Logging in Launcher** - Cache values during `aim()`, log them in `periodic()`
-2. **Zero-Velocity Guard** - Prevent `Translation2d.getAngle()` errors when velocity is zero
-3. **Launcher Profiling** - Add timing instrumentation to `periodic()` and `aim()`
+**Why this helps:**
+- `Logger.recordOutput()` can take 11-28ms per call due to serialization overhead
+- Moving logging out of `aim()` keeps the hot path fast
+- Logging happens once per robot loop instead of during time-critical aiming calculations
 
-These changes require more careful adaptation due to structural differences in `Launcher.java` between the branches.
+### 4. Zero-Velocity Guard
+
+Added protection against `Translation2d.getAngle()` errors when velocity vectors are near zero.
+
+**In `log()` method:**
+- Check if `v_r < 1e-6` before calling `.getAngle()` on velocity vectors
+- Log 0.0 for angles and travel time when velocity is too low
+- Prevents `ArithmeticException` or `NaN` propagation
 
 ---
 
@@ -85,6 +99,7 @@ These changes require more careful adaptation due to structural differences in `
 | `Feeder.java` | Added profiling to `periodic()` |
 | `IntakeRollerIOTalonFX.java` | Changed to non-blocking status checks |
 | `FlywheelIOTalonFX.java` | Changed to non-blocking status checks |
+| `Launcher.java` | Added profiling, deferred logging, zero-velocity guard |
 
 ---
 
