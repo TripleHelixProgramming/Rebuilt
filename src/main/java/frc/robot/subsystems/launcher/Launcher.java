@@ -177,7 +177,8 @@ public class Launcher extends SubsystemBase {
     double flywheelSpeedMetersPerSec = flywheelInputs.velocityMetersPerSec / ballToFlywheelFactor;
 
     // Replan shot using actual flywheel speed
-    var v0_total = getV0Replanned(vectorTurretBaseToTarget, flywheelSpeedMetersPerSec, replannedKey);
+    var v0_total =
+        getV0Replanned(vectorTurretBaseToTarget, flywheelSpeedMetersPerSec, replannedKey);
     long t3 = System.nanoTime();
 
     // Point turret to align velocity vectors

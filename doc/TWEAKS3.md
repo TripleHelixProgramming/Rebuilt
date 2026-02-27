@@ -19,7 +19,7 @@ Timing instrumentation has been added throughout the codebase to identify bottle
 | `Robot.java` | `robotPeriodic()` | >20ms | scheduler, gameState |
 | `Drive.java` | `periodic()` | >5ms | lock, gyroUpdate, gyroLog, modules, disabled, odometry |
 | `Module.java` | `periodic()` | >2ms | updateInputs, log, rest |
-| `Vision.java` | `periodic()` | >5ms | copyInputs, cameraLoop, consumer, summaryLog |
+| `Vision.java` | `periodic()` | >5ms | snapshot, processInputs, cameraLoop, consumer, summaryLog |
 | `Intake.java` | `periodic()` | >2ms | update, log |
 | `Feeder.java` | `periodic()` | >2ms | spindexer, kicker, spindexerLog, kickerLog |
 | `Launcher.java` | `periodic()` | >3ms | update, log, aimLog, ballistics |
@@ -95,10 +95,12 @@ Added protection against `Translation2d.getAngle()` errors when velocity vectors
 | `Module.java` | Added profiling, removed signal methods |
 | `ModuleIO.java` | Removed `refreshSignals()` and `getStatusSignals()` interface methods |
 | `ModuleIOTalonFX.java` | Removed signal caching and refresh code |
-| `Vision.java` | Added profiling to `periodic()` |
+| `Vision.java` | Added profiling, throttled logging |
+| `VisionConstants.java` | Added `kLoggingDivisor` constant |
 | `Intake.java` | Added profiling to `periodic()` |
 | `Feeder.java` | Added profiling to `periodic()` |
-| `IntakeRollerIOTalonFX.java` | Changed to non-blocking status checks |
+| `IntakeRollerIOTalonFX.java` | Changed to non-blocking status checks, moved Logger calls to inputs struct |
+| `IntakeRollerIO.java` | Added follower telemetry fields to inputs |
 | `FlywheelIOTalonFX.java` | Changed to non-blocking status checks |
 | `Launcher.java` | Added profiling, deferred logging, zero-velocity guard |
 | `Hopper.java` | Added profiling to `periodic()` |
@@ -120,6 +122,64 @@ Subsystems added since `performance-tweaks-2` was branched were analyzed for blo
 | `Drive/Gyro` | `GyroIOBoron` | Uses `CanandgyroThread` for non-blocking CAN reads. |
 
 **Conclusion:** All motor controller IO implementations properly use background threading (`SparkOdometryThread` or `CanandgyroThread`) for CAN reads. Pneumatic subsystems use WPILib's DoubleSolenoid which doesn't have blocking CAN concerns.
+
+---
+
+## Phase 4: Throttled Vision Logging
+
+Profiling revealed that `Logger.processInputs()` serialization was a major source of loop overruns, not CAN I/O. Vision logging was particularly expensive due to serializing `PoseObservation` arrays for multiple cameras.
+
+### Changes
+
+**VisionConstants.java:**
+- Added `kLoggingDivisor` constant (default: 1)
+- Set to 2+ to log every Nth cycle, reducing CPU load
+
+**Vision.java:**
+- Added `loopCounter` to track cycles
+- Throttled `Logger.processInputs()` calls based on `kLoggingDivisor`
+- Throttled summary pose logging similarly
+- Split profiling to separate `snapshot` (volatile read) from `processInputs` (serialization)
+
+**Trade-offs:**
+- `kLoggingDivisor = 1`: Full data for replay, higher CPU load
+- `kLoggingDivisor = 2`: Half the vision log data, ~50% reduction in vision logging overhead
+- Higher values lose more replay granularity but further reduce load
+
+**Profiling output now shows:**
+```
+[Vision] snapshot=0ms processInputs=12ms cameraLoop=3ms consumer=0ms summaryLog=2ms total=17ms
+```
+
+---
+
+## Phase 5: Intake Logger Fix
+
+Profiling revealed `[Intake] update=23ms` spikes. Investigation found `Logger.recordOutput()` calls inside `IntakeRollerIOTalonFX.updateInputs()`, which was measured as "update" time rather than "log" time.
+
+### Root Cause
+
+```java
+// In IntakeRollerIOTalonFX.updateInputs() - BEFORE
+Logger.recordOutput("Intake/Follower/Current", followerCurrent.getValue());
+Logger.recordOutput("Intake/Follower/Volts", followerAppliedVolts.getValue());
+```
+
+Each `Logger.recordOutput()` call can take 10-30ms due to serialization overhead, causing the 23ms "update" time.
+
+### Fix
+
+Moved follower data into the `IntakeRollerIOInputs` struct so it gets logged via `Logger.processInputs()` instead:
+
+**IntakeRollerIO.java:**
+- Added `followerAppliedVolts` and `followerCurrentAmps` fields to inputs struct
+
+**IntakeRollerIOTalonFX.java:**
+- Removed `Logger.recordOutput()` calls from `updateInputs()`
+- Populate `inputs.followerAppliedVolts` and `inputs.followerCurrentAmps` instead
+- Removed unused Logger import
+
+This follows the same pattern as the Launcher deferred logging fix - keep IO methods fast by avoiding Logger calls, and let the subsystem's `periodic()` handle logging via `Logger.processInputs()`.
 
 ---
 
