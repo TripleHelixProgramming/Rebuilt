@@ -28,7 +28,6 @@ import frc.lib.CommandZorroController;
 import frc.lib.ControllerSelector;
 import frc.lib.ControllerSelector.DriverConfig;
 import frc.lib.ControllerSelector.OperatorConfig;
-import frc.lib.ControllerSelector.ControllerFunction;
 import frc.lib.ControllerSelector.ControllerType;
 import frc.lib.ControllerSelector.DriverController;
 import frc.lib.ZorroController.Axis;

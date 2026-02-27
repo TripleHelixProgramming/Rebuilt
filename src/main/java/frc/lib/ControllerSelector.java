@@ -7,7 +7,6 @@ import frc.robot.Constants;
 import frc.robot.Constants.Mode;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.IntConsumer;
 import org.littletonrobotics.junction.Logger;
 
 /**
@@ -37,6 +36,17 @@ public class ControllerSelector {
   double getRightXAxis();
   double getRightYAxis();
 }
+
+@FunctionalInterface
+public interface DriverBinding {
+  DriverController bind(int port);
+}
+
+@FunctionalInterface
+public interface OperatorBinding {
+  void bind(int port, DriverController driverController);
+}
+
 
   private static ControllerSelector instance;
 
@@ -99,11 +109,12 @@ public class ControllerSelector {
    * modes in which the configuration is valid, the controller function (DRIVER or OPERATOR), the
    * controller type, and a callback function to bind the controller's commands.
    */
-  protected static abstract class ControllerConfig {
+  public static abstract class ControllerConfig {
     public final Set<Mode> modes;
     public final ControllerFunction controllerFunction;
     public final ControllerType controllerType;
-    public final IntConsumer bindingCallback;
+    public final DriverBinding driverBinding;
+    public final OperatorBinding operatorBinding;
 
     /**
      * Constructs a new ControllerConfig object.
@@ -117,20 +128,20 @@ public class ControllerSelector {
     public ControllerConfig(
         ControllerFunction controllerFunction,
         ControllerType controllerType,
-        IntConsumer bindingCallback,
+        DriverBinding driverBinding,
+        OperatorBinding operatorBinding,
         Mode... modes) {
       this.modes = Set.of(modes);
       this.controllerFunction = controllerFunction;
       this.controllerType = controllerType;
-      this.bindingCallback = bindingCallback;
+      this.driverBinding = driverBinding;
+      this.operatorBinding = operatorBinding;
     }
   }
 
   public static class DriverConfig extends ControllerConfig {
 
     /**
-     * Constructs a new ControllerConfig object.
-     *
      * @param controllerType The type of the controller (e.g., XBOX, ZORRO).
      * @param bindingCallback The callback function that binds the controller's commands. This
      *     function takes the port number of the controller as an argument.
@@ -138,11 +149,12 @@ public class ControllerSelector {
      */
     public DriverConfig(
         ControllerType controllerType,
-        IntConsumer bindingCallback,
+        DriverBinding bindingCallback,
         Mode... modes) {
       super(ControllerFunction.DRIVER,
         controllerType,
         bindingCallback,
+        null,
         modes);
     }
   }
@@ -150,8 +162,6 @@ public class ControllerSelector {
 public static class OperatorConfig extends ControllerConfig {
 
     /**
-     * Constructs a new ControllerConfig object.
-     *
      * @param controllerType The type of the controller (e.g., XBOX, ZORRO).
      * @param bindingCallback The callback function that binds the controller's commands. This
      *     function takes the port number of the controller as an argument.
@@ -159,21 +169,23 @@ public static class OperatorConfig extends ControllerConfig {
      */
     public OperatorConfig(
         ControllerType controllerType,
-        IntConsumer bindingCallback,
+        OperatorBinding bindingCallback,
         Mode... modes) {
-      super(ControllerFunction.DRIVER,
+      super(ControllerFunction.OPERATOR,
         controllerType,
+        null,
         bindingCallback,
         modes);
     }
   }
   
-
   private static final int NUM_CONTROLLER_PORTS = DriverStation.kJoystickPorts;
 
   private final ControllerConfig[] controllerConfigs;
   private final GenericHID[] controllers;
   private final String[] controllerNames;
+
+  private DriverController activeDriverController = null;
 
   /**
    * Constructs a new ControllerSelector object. This is private to enforce the singleton pattern.
@@ -280,7 +292,8 @@ public static class OperatorConfig extends ControllerConfig {
           driverPort = port;
           driverName = controllerName;
           driverType = config.controllerType.name();
-          config.bindingCallback.accept(driverPort);
+          DriverController driverController = config.driverBinding.bind(driverPort);
+          activeDriverController = driverController;
           break; // Found a match, stop searching ports
         }
       }
@@ -312,7 +325,7 @@ public static class OperatorConfig extends ControllerConfig {
           operatorPort = port;
           operatorName = controllerName;
           operatorType = config.controllerType.name();
-          config.bindingCallback.accept(operatorPort);
+          config.operatorBinding.bind(operatorPort, activeDriverController);
           break; // Found a match, stop searching ports
         }
       }
