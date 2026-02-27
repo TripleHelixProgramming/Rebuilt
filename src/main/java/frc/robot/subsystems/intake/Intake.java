@@ -30,13 +30,29 @@ public class Intake extends SubsystemBase {
 
   @Override
   public void periodic() {
+    long t0 = System.nanoTime();
     intakeRollerIO.updateInputs(intakeRollerInputs);
     intakeArmIO.updateInputs(intakeArmInputs);
+    long t1 = System.nanoTime();
 
     Logger.processInputs("IntakeRoller", intakeRollerInputs);
     Logger.processInputs("IntakeArm", intakeArmInputs);
+    long t2 = System.nanoTime();
 
     disconnectedAlert.set(!intakeRollerInputs.connected);
+
+    // Profiling output
+    long totalMs = (t2 - t0) / 1_000_000;
+    if (totalMs > 2) {
+      System.out.println(
+          "[Intake] update="
+              + (t1 - t0) / 1_000_000
+              + "ms log="
+              + (t2 - t1) / 1_000_000
+              + "ms total="
+              + totalMs
+              + "ms");
+    }
   }
 
   public void stop() {
