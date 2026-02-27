@@ -23,6 +23,9 @@ public final class FeederConstants {
                 * radius.in(Meters)
                 / motorReduction);
 
+    // Maximum tangential acceleration (meters / second^2). Tune as needed.
+    public static final double maxTangentialAcceleration = 10.0;
+
     // Encoder
     public static final double encoderPositionFactor = 2.0 * Math.PI / motorReduction; // Meters
     public static final double encoderVelocityFactor = encoderPositionFactor / 60.0; // Meters/sec
@@ -44,6 +47,9 @@ public final class FeederConstants {
             NEOVortexConstants.kFreeSpeed.in(RadiansPerSecond)
                 * radius.in(Meters)
                 / motorReduction);
+
+    // Maximum tangential acceleration (meters / second^2). Tune as needed.
+    public static final double maxTangentialAcceleration = 20.0;
 
     // Encoder
     public static final double encoderPositionFactor = 2.0 * Math.PI / motorReduction; // Meters
