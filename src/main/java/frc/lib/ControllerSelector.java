@@ -33,6 +33,11 @@ import org.littletonrobotics.junction.Logger;
  */
 public class ControllerSelector {
 
+  public interface DriverController {
+  double getRightXAxis();
+  double getRightYAxis();
+}
+
   private static ControllerSelector instance;
 
   /**
@@ -94,7 +99,7 @@ public class ControllerSelector {
    * modes in which the configuration is valid, the controller function (DRIVER or OPERATOR), the
    * controller type, and a callback function to bind the controller's commands.
    */
-  public static class ControllerConfig {
+  protected static abstract class ControllerConfig {
     public final Set<Mode> modes;
     public final ControllerFunction controllerFunction;
     public final ControllerType controllerType;
@@ -120,6 +125,49 @@ public class ControllerSelector {
       this.bindingCallback = bindingCallback;
     }
   }
+
+  public static class DriverConfig extends ControllerConfig {
+
+    /**
+     * Constructs a new ControllerConfig object.
+     *
+     * @param controllerType The type of the controller (e.g., XBOX, ZORRO).
+     * @param bindingCallback The callback function that binds the controller's commands. This
+     *     function takes the port number of the controller as an argument.
+     * @param modes The modes in which this configuration is valid (e.g., REAL, SIM).
+     */
+    public DriverConfig(
+        ControllerType controllerType,
+        IntConsumer bindingCallback,
+        Mode... modes) {
+      super(ControllerFunction.DRIVER,
+        controllerType,
+        bindingCallback,
+        modes);
+    }
+  }
+
+public static class OperatorConfig extends ControllerConfig {
+
+    /**
+     * Constructs a new ControllerConfig object.
+     *
+     * @param controllerType The type of the controller (e.g., XBOX, ZORRO).
+     * @param bindingCallback The callback function that binds the controller's commands. This
+     *     function takes the port number of the controller as an argument.
+     * @param modes The modes in which this configuration is valid (e.g., REAL, SIM).
+     */
+    public OperatorConfig(
+        ControllerType controllerType,
+        IntConsumer bindingCallback,
+        Mode... modes) {
+      super(ControllerFunction.DRIVER,
+        controllerType,
+        bindingCallback,
+        modes);
+    }
+  }
+  
 
   private static final int NUM_CONTROLLER_PORTS = DriverStation.kJoystickPorts;
 

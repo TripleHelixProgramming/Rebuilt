@@ -26,9 +26,11 @@ import frc.lib.AutoOption;
 import frc.lib.AutoSelector;
 import frc.lib.CommandZorroController;
 import frc.lib.ControllerSelector;
-import frc.lib.ControllerSelector.ControllerConfig;
+import frc.lib.ControllerSelector.DriverConfig;
+import frc.lib.ControllerSelector.OperatorConfig;
 import frc.lib.ControllerSelector.ControllerFunction;
 import frc.lib.ControllerSelector.ControllerType;
+import frc.lib.ControllerSelector.DriverController;
 import frc.lib.ZorroController.Axis;
 import frc.robot.Constants.DIOPorts;
 import frc.robot.auto.B_MoveForward1M;
@@ -362,29 +364,26 @@ public class Robot extends LoggedRobot {
   private void configureControlPanelBindings() {
     ControllerSelector.configure(
         // ZORRO is always preferred as driver in REAL and SIM mode
-        new ControllerConfig(
-            ControllerFunction.DRIVER,
+        new DriverConfig(
             ControllerType.ZORRO,
             this::bindZorroDriver,
             Constants.Mode.REAL,
             Constants.Mode.SIM),
         // XBOX is always preferred as operator in REAL and SIM mode
-        new ControllerConfig(
-            ControllerFunction.OPERATOR,
+        new OperatorConfig(
             ControllerType.XBOX,
             this::bindXboxOperator,
             Constants.Mode.REAL,
             Constants.Mode.SIM),
         // XBOX is permitted as driver in REAL and SIM mode
-        new ControllerConfig(
-            ControllerFunction.DRIVER,
+        new DriverConfig(
             ControllerType.XBOX,
             this::bindXboxDriver,
             Constants.Mode.REAL,
             Constants.Mode.SIM));
   }
 
-  public void bindZorroDriver(int port) {
+  public DriverController bindZorroDriver(int port) {
     var zorroDriver = new CommandZorroController(port);
 
     // Drive in field-relative mode while switch E is up
@@ -469,9 +468,14 @@ public class Robot extends LoggedRobot {
                     hopper.idle().withTimeout(Seconds.of(2)).andThen(hopper.getDefaultCommand())),
                 // Condition to check
                 () -> intake.isStowed()));
+
+    return new DriverController() {
+        public double getRightXAxis() { return zorroDriver.getRightXAxis(); }
+        public double getRightYAxis() { return zorroDriver.getRightYAxis(); }
+    };
   }
 
-  public void bindXboxDriver(int port) {
+  public DriverController bindXboxDriver(int port) {
     var xboxDriver = new CommandXboxController(port);
 
     // Drive in field-relative mode while left bumper is released
@@ -562,9 +566,14 @@ public class Robot extends LoggedRobot {
 
     // Switch to X pattern when X button is pressed
     xboxDriver.x().onTrue(Commands.runOnce(drive::stopWithX, drive));
+
+    return new DriverController() {
+        public double getRightXAxis() { return xboxDriver.getRightX(); }
+        public double getRightYAxis() { return xboxDriver.getRightY(); }
+    };
   }
 
-  public void bindXboxOperator(int port) {
+  public void bindXboxOperator(int port, DriverController driver) {
     var xboxOperator = new CommandXboxController(port);
 
     // Intake
@@ -587,15 +596,15 @@ public class Robot extends LoggedRobot {
         .whileTrue(Commands.startEnd(feeder::reverse, () -> {}, feeder).withName("Reverse"));
 
     // Chassis aiming
-    // xboxOperator
-    //     .rightBumper()
-    //     .whileTrue(
-    //         DriveCommands.joystickDriveAtFixedOrientation(
-    //             drive,
-    //             () -> -zorroDriver.getRightYAxis(),
-    //             () -> -zorroDriver.getRightXAxis(),
-    //             () -> launcher.getHorizontalAimAngle(),
-    //             allianceSelector::fieldRotated));
+    xboxOperator
+        .rightBumper()
+        .whileTrue(
+            DriveCommands.joystickDriveAtFixedOrientation(
+                drive,
+                () -> -driver.getRightYAxis(),
+                () -> -driver.getRightXAxis(),
+                () -> launcher.getHorizontalAimAngle(),
+                allianceSelector::fieldRotated));
   }
 
   public void configureAutoOptions() {
