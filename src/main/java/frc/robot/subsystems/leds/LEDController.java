@@ -1,13 +1,14 @@
 package frc.robot.subsystems.leds;
 
-import static edu.wpi.first.units.Units.Centimeters;
+import static edu.wpi.first.units.Units.Seconds;
 
-import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj.LEDPattern;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.lib.AutoOption;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
@@ -76,34 +77,51 @@ public class LEDController extends SubsystemBase {
    * </ul>
    */
   private void displayPoseSeek(Pose2d currentPose, Pose2d targetPose) {
-    var delta = targetPose.minus(currentPose);
+    // var delta = targetPose.minus(currentPose);
 
-    // Heading feedback on MIDDLE
-    var theta = MathUtil.inputModulus(delta.getRotation().getDegrees(), -180, 180);
-    Color headingColor =
-        Math.abs(theta) < LEDConstants.kPoseSeekHeadingToleranceDegrees
-            ? Color.kWhite
-            : theta > 0 ? Color.kMagenta : Color.kCyan;
-    LEDGroup.MIDDLE.applyPattern(LEDPattern.solid(headingColor));
+    // // Heading feedback on MIDDLE
+    // var theta = MathUtil.inputModulus(delta.getRotation().getDegrees(), -180, 180);
+    // Color headingColor =
+    //     Math.abs(theta) < LEDConstants.kPoseSeekHeadingToleranceDegrees
+    //         ? Color.kWhite
+    //         : theta > 0 ? Color.kMagenta : Color.kCyan;
+    // LEDGroup.MIDDLE.applyPattern(LEDPattern.solid(headingColor));
 
-    // X feedback on TOP
-    var x = delta.getTranslation().getMeasureX().in(Centimeters);
-    Color xColor =
-        Math.abs(x) < LEDConstants.kPoseSeekXToleranceCm
-            ? Color.kWhite
-            : x > 0 ? Color.kGreen : Color.kRed;
-    LEDGroup.TOP.applyPattern(LEDPattern.solid(xColor));
+    // // X feedback on TOP
+    // var x = delta.getTranslation().getMeasureX().in(Centimeters);
+    // Color xColor =
+    //     Math.abs(x) < LEDConstants.kPoseSeekXToleranceCm
+    //         ? Color.kWhite
+    //         : x > 0 ? Color.kGreen : Color.kRed;
+    // LEDGroup.TOP.applyPattern(LEDPattern.solid(xColor));
 
-    // Y feedback on BOTTOM
-    var y = delta.getTranslation().getMeasureY().in(Centimeters);
-    if (Math.abs(y) < LEDConstants.kPoseSeekYToleranceCm) {
-      LEDGroup.BOTTOM.applyPattern(LEDPattern.solid(Color.kWhite));
-    } else {
-      LEDGroup yGroup = y > 0 ? LEDGroup.LEFT_BOTTOM : LEDGroup.RIGHT_BOTTOM;
-      LEDGroup otherGroup = y > 0 ? LEDGroup.RIGHT_BOTTOM : LEDGroup.LEFT_BOTTOM;
-      yGroup.applyPattern(LEDPattern.solid(Color.kGreen));
-      otherGroup.applyPattern(LEDPattern.solid(Color.kBlack));
-    }
+    // // Y feedback on BOTTOM
+    // var y = delta.getTranslation().getMeasureY().in(Centimeters);
+    // if (Math.abs(y) < LEDConstants.kPoseSeekYToleranceCm) {
+    //   LEDGroup.BOTTOM.applyPattern(LEDPattern.solid(Color.kWhite));
+    // } else {
+    //   LEDGroup yGroup = y > 0 ? LEDGroup.LEFT_BOTTOM : LEDGroup.RIGHT_BOTTOM;
+    //   LEDGroup otherGroup = y > 0 ? LEDGroup.RIGHT_BOTTOM : LEDGroup.LEFT_BOTTOM;
+    //   yGroup.applyPattern(LEDPattern.solid(Color.kGreen));
+    //   otherGroup.applyPattern(LEDPattern.solid(Color.kBlack));
+    // }
+  }
+
+  public void displayAutoSelection(Optional<AutoOption> maybeAutoOption) {
+    maybeAutoOption.ifPresentOrElse(
+        autoOption ->
+            LEDGroup.ALL.applyPattern(
+                LEDCustomPattern.countingBlocks(
+                    () -> autoOption.getOptionNumber(),
+                    () -> autoOption.getAllianceColor(),
+                    LEDConstants.kLEDsPerBlock,
+                    LEDConstants.kLEDsBetweenBlocks)),
+        () -> LEDGroup.ALL.applyPattern(LEDPattern.solid(Color.kYellow).blink(Seconds.of(0.5))));
+  }
+
+  public void runDisplayAutoSelection(Supplier<Optional<AutoOption>> autoModeOptionalSupplier) {
+    setDefaultCommand(
+        run(() -> displayAutoSelection(autoModeOptionalSupplier.get())).ignoringDisable(true));
   }
 
   /**
@@ -115,26 +133,5 @@ public class LEDController extends SubsystemBase {
    */
   public Command runPoseSeek(Supplier<Pose2d> currentPoseSupplier, Pose2d targetPose) {
     return run(() -> displayPoseSeek(currentPoseSupplier.get(), targetPose));
-  }
-
-  /**
-   * Creates a command to display auto mode selection.
-   *
-   * @param autoNumberSupplier supplies the auto mode number (1-based)
-   * @param allianceColorSupplier supplies the alliance color
-   * @return a command that displays auto selection
-   */
-  public Command runAutoSelection(
-      Supplier<Integer> autoNumberSupplier, Supplier<Color> allianceColorSupplier) {
-    return run(
-        () -> {
-          LEDPattern pattern =
-              LEDCustomPattern.countingBlocks(
-                  autoNumberSupplier,
-                  allianceColorSupplier.get(),
-                  LEDConstants.kLEDsPerBlock,
-                  LEDConstants.kLEDsBetweenBlocks);
-          LEDGroup.ALL.applyPattern(pattern);
-        });
   }
 }

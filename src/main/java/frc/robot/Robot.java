@@ -72,6 +72,7 @@ import frc.robot.subsystems.launcher.Launcher;
 import frc.robot.subsystems.launcher.TurretIO;
 import frc.robot.subsystems.launcher.TurretIOSimSpark;
 import frc.robot.subsystems.launcher.TurretIOSpark;
+import frc.robot.subsystems.leds.LEDController;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionIO;
 import frc.robot.subsystems.vision.VisionIOPhotonVision;
@@ -108,6 +109,7 @@ public class Robot extends LoggedRobot {
   private Feeder feeder;
   private Intake intake;
   private Hopper hopper;
+  private LEDController leds = LEDController.getInstance();
 
   public Robot() {
     // Record metadata
@@ -308,7 +310,9 @@ public class Robot extends LoggedRobot {
 
   /** This function is called once when the robot is disabled. */
   @Override
-  public void disabledInit() {}
+  public void disabledInit() {
+    leds.runDisplayAutoSelection(autoSelector);
+  }
 
   /** This function is called periodically when disabled. */
   @Override

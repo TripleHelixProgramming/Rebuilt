@@ -15,30 +15,32 @@ import edu.wpi.first.wpilibj.LEDWriter;
 public enum LEDGroup implements LEDReader, LEDWriter {
   // Individual segments (for fine-grained control)
   // These define the physical layout - update these when hardware changes
-  RIGHT_BOTTOM(P.RIGHT_BOTTOM),
-  RIGHT_MIDDLE(P.RIGHT_MIDDLE),
-  RIGHT_TOP(P.RIGHT_TOP),
-  LEFT_TOP(P.LEFT_TOP),
-  LEFT_MIDDLE(P.LEFT_MIDDLE),
-  LEFT_BOTTOM(P.LEFT_BOTTOM),
+  TOP_LEFT_LARBOARD(P.TOP_AFT_LARBOARD),
+  // RIGHT_BOTTOM(P.RIGHT_BOTTOM),
+  // RIGHT_MIDDLE(P.RIGHT_MIDDLE),
+  // RIGHT_TOP(P.RIGHT_TOP),
+  // LEFT_TOP(P.LEFT_TOP),
+  // LEFT_MIDDLE(P.LEFT_MIDDLE),
+  // LEFT_BOTTOM(P.LEFT_BOTTOM),
 
-  // Composite groups (built from individual segment portions)
-  LEFT(P.LEFT_TOP, P.LEFT_MIDDLE, P.LEFT_BOTTOM),
-  RIGHT(P.RIGHT_BOTTOM, P.RIGHT_MIDDLE, P.RIGHT_TOP),
-  TOP(P.LEFT_TOP, P.RIGHT_TOP),
-  MIDDLE(P.LEFT_MIDDLE, P.RIGHT_MIDDLE),
-  BOTTOM(P.LEFT_BOTTOM, P.RIGHT_BOTTOM),
-  TOP_AND_BOTTOM(P.LEFT_TOP, P.RIGHT_TOP, P.LEFT_BOTTOM, P.RIGHT_BOTTOM),
-  ALL(P.RIGHT_BOTTOM, P.RIGHT_MIDDLE, P.RIGHT_TOP, P.LEFT_TOP, P.LEFT_MIDDLE, P.LEFT_BOTTOM);
+  // // Composite groups (built from individual segment portions)
+  // LEFT(P.LEFT_TOP, P.LEFT_MIDDLE, P.LEFT_BOTTOM),
+  // RIGHT(P.RIGHT_BOTTOM, P.RIGHT_MIDDLE, P.RIGHT_TOP),
+  // TOP(P.LEFT_TOP, P.RIGHT_TOP),
+  // MIDDLE(P.LEFT_MIDDLE, P.RIGHT_MIDDLE),
+  // BOTTOM(P.LEFT_BOTTOM, P.RIGHT_BOTTOM),
+  // TOP_AND_BOTTOM(P.LEFT_TOP, P.RIGHT_TOP, P.LEFT_BOTTOM, P.RIGHT_BOTTOM),
+  ALL(P.TOP_AFT_LARBOARD);
 
   /** Portion definitions - single source of truth for physical layout. */
   private static final class P {
-    static final Portion RIGHT_BOTTOM = new Portion(LEDStrip.MAIN, 0, 7, true);
-    static final Portion RIGHT_MIDDLE = new Portion(LEDStrip.MAIN, 8, 11, true);
-    static final Portion RIGHT_TOP = new Portion(LEDStrip.MAIN, 12, 19, true);
-    static final Portion LEFT_TOP = new Portion(LEDStrip.MAIN, 20, 27, false);
-    static final Portion LEFT_MIDDLE = new Portion(LEDStrip.MAIN, 28, 31, false);
-    static final Portion LEFT_BOTTOM = new Portion(LEDStrip.MAIN, 32, 39, false);
+    static final Portion TOP_AFT_LARBOARD = new Portion(LEDStrip.MAIN, 0, 11, false);
+    // static final Portion RIGHT_BOTTOM = new Portion(LEDStrip.MAIN, 0, , true);
+    // static final Portion RIGHT_MIDDLE = new Portion(LEDStrip.MAIN, 8, 11, true);
+    // static final Portion RIGHT_TOP = new Portion(LEDStrip.MAIN, 12, 19, true);
+    // static final Portion LEFT_TOP = new Portion(LEDStrip.MAIN, 20, 27, false);
+    // static final Portion LEFT_MIDDLE = new Portion(LEDStrip.MAIN, 28, 31, false);
+    // static final Portion LEFT_BOTTOM = new Portion(LEDStrip.MAIN, 32, 39, false);
   }
 
   /** Defines a portion of a strip. */

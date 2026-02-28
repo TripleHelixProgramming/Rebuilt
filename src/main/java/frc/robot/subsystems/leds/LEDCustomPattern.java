@@ -132,10 +132,11 @@ public final class LEDCustomPattern {
    * @return the counting blocks pattern
    */
   public static LEDPattern countingBlocks(
-      Supplier<Integer> countSupplier, Color color, int blockSize, int gapSize) {
+      Supplier<Integer> countSupplier, Supplier<Color> colorSupplier, int blockSize, int gapSize) {
     int period = blockSize + gapSize;
     return (reader, writer) -> {
       int count = countSupplier.get();
+      var color = colorSupplier.get();
       int maxLed = count * period;
       for (int i = 0; i < reader.getLength(); i++) {
         if (i < maxLed && (i % period) < blockSize) {

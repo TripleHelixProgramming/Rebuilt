@@ -11,7 +11,7 @@ import edu.wpi.first.wpilibj.AddressableLEDBufferView;
  * <p>Modify this enum when the physical LED layout changes between seasons.
  */
 public enum LEDStrip {
-  MAIN(9, 40);
+  MAIN(0, 12);
   // Add more strips here as needed, e.g.:
   // FRONT(8, 60),
   // BACK(7, 30);
