@@ -144,8 +144,8 @@ public class LEDController extends SubsystemBase {
 
   /**
    * Displays the current auto selection on the LEDs. Shows counting blocks in alliance color
-   * representing the auto option number. Blinks yellow if no auto is selected. Sets the last LED
-   * to yellow if there is a mismatch between the driver station alliance and the selected alliance
+   * representing the auto option number. Blinks yellow if no auto is selected. Sets the last LED to
+   * yellow if there is a mismatch between the driver station alliance and the selected alliance
    * color.
    */
   public void displayAutoSelection() {
@@ -166,8 +166,8 @@ public class LEDController extends SubsystemBase {
   }
 
   /**
-   * Displays a progress bar showing the remaining time in the current match phase. The bar fills
-   * in alliance color based on hub state.  When both hubs are active, shows our alliance color.
+   * Displays a progress bar showing the remaining time in the current match phase. The bar fills in
+   * alliance color based on hub state. When both hubs are active, shows our alliance color.
    */
   public void displayHubCountdown() {
     LEDSeries.ALL.applyPattern(hubCountdownPattern);
