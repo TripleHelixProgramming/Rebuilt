@@ -272,11 +272,7 @@ public class Robot extends LoggedRobot {
   /** This function is called periodically during all modes. */
   @Override
   public void robotPeriodic() {
-    long loopStart = System.nanoTime();
-
-    // Optionally switch the thread to high priority to improve loop
-    // timing (see the template project documentation for details)
-    // Threads.setCurrentThreadPriority(true, 99);
+    long loopStart = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Runs the Scheduler. This is responsible for polling buttons, adding
     // newly-scheduled commands, running already-scheduled commands, removing
@@ -284,24 +280,26 @@ public class Robot extends LoggedRobot {
     // This must be called from the robot's periodic block in order for anything in
     // the Command-based framework to work.
     CommandScheduler.getInstance().run();
-    long t1 = System.nanoTime();
+    long t1 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     GameState.logValues();
-    long t2 = System.nanoTime();
+    long t2 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Profiling output
-    long schedulerMs = (t1 - loopStart) / 1_000_000;
-    long gameStateMs = (t2 - t1) / 1_000_000;
-    long totalMs = (t2 - loopStart) / 1_000_000;
-    if (totalMs > 20) {
-      System.out.println(
-          "[Robot] scheduler="
-              + schedulerMs
-              + "ms gameState="
-              + gameStateMs
-              + "ms total="
-              + totalMs
-              + "ms");
+    if (Constants.PROFILING_ENABLED) {
+      long schedulerMs = (t1 - loopStart) / 1_000_000;
+      long gameStateMs = (t2 - t1) / 1_000_000;
+      long totalMs = (t2 - loopStart) / 1_000_000;
+      if (totalMs > 20) {
+        System.out.println(
+            "[Robot] scheduler="
+                + schedulerMs
+                + "ms gameState="
+                + gameStateMs
+                + "ms total="
+                + totalMs
+                + "ms");
+      }
     }
 
     // Return to non-RT thread priority (do not modify the first argument)
