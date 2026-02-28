@@ -57,7 +57,11 @@ public class TurretIOSimSpark implements TurretIO {
         .reverseSoftLimit(Math.PI - rangeOfMotion.div(2).in(Radians))
         .reverseSoftLimitEnabled(true);
 
-    turnConfig.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kPSim, 0.0, kDSim);
+    turnConfig
+        .closedLoop
+        .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
+        .pid(kPSim, 0.0, kDSim)
+        .allowedClosedLoopError(kAllowableError.in(Radians), ClosedLoopSlot.kSlot0);
 
     turnConfig.signals.appliedOutputPeriodMs(20).busVoltagePeriodMs(20).outputCurrentPeriodMs(20);
 
@@ -89,6 +93,8 @@ public class TurretIOSimSpark implements TurretIO {
 
     inputs.absoluteEncoderConnected = true;
     inputs.absolutePosition = new Rotation2d(turnSparkSim.getPosition()).plus(mechanismOffset);
+
+    inputs.isAtSetpoint = controller.isAtSetpoint();
   }
 
   @Override
