@@ -13,6 +13,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
@@ -64,7 +65,7 @@ public class Launcher extends SubsystemBase {
   private double ballisticLogTimer = 0.0;
 
   // Turret desaturation
-  private final PIDController headingController = new PIDController(2.0, 0.0, 0.0);
+  private final PIDController headingController = new PIDController(1.0, 0.0, 0.0);
 
   public Launcher(
       Supplier<Pose2d> chassisPoseSupplier,
@@ -82,6 +83,8 @@ public class Launcher extends SubsystemBase {
     turretDisconnectedAlert = new Alert("Disconnected turret motor", AlertType.kError);
     flywheelDisconnectedAlert = new Alert("Disconnected flywheel motor", AlertType.kError);
     hoodDisconnectedAlert = new Alert("Disconnected hood motor", AlertType.kError);
+
+    headingController.setTolerance(Units.degreesToRadians(1.0));
   }
 
   @Override
@@ -282,6 +285,10 @@ public class Launcher extends SubsystemBase {
 
   public double desaturateTurret() {
     return headingController.calculate(-turretInputs.oversaturationLessMargin, 0);
+  }
+
+  public boolean turretDesaturated() {
+    return headingController.atSetpoint();
   }
 
   @AutoLogOutput(key = "Launcher/IsOnTarget")

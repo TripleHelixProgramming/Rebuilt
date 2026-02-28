@@ -449,7 +449,9 @@ public class Robot extends LoggedRobot {
                         () -> zorroDriver.getHID().getEUp(),
                         allianceSelector::fieldRotated)
                     .withName("Desaturate turret"),
-                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance")));
+                Commands.sequence(
+                    Commands.waitUntil(launcher::turretDesaturated),
+                    Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance"))));
 
     Trigger launcherEnabled = zorroDriver.axisGreaterThan(Axis.kLeftDial.value, 0.5).debounce(0.1);
     launcherEnabled
