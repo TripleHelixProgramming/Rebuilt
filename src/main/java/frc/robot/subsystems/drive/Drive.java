@@ -245,41 +245,31 @@ public class Drive extends SubsystemBase {
   public void runVelocity(ChassisSpeeds speeds) {
 
     // 1️: Convert continuous speeds to module states
-    SwerveModuleState[] states =
-        kinematics.toSwerveModuleStates(speeds);
+    SwerveModuleState[] states = kinematics.toSwerveModuleStates(speeds);
 
     // Log unoptimized setpoints
     Logger.recordOutput("SwerveChassisSpeeds/Setpoints", speeds);
     Logger.recordOutput("SwerveStates/Setpoints", states);
 
     // 2: Desaturate (apply wheel limits FIRST)
-    SwerveDriveKinematics.desaturateWheelSpeeds(
-        states,
-        maxDriveSpeed.in(MetersPerSecond)
-    );
+    SwerveDriveKinematics.desaturateWheelSpeeds(states, maxDriveSpeed.in(MetersPerSecond));
 
     // 3: Reconstruct the ACTUAL chassis speeds after limiting
-    ChassisSpeeds limitedSpeeds =
-        kinematics.toChassisSpeeds(states);
+    ChassisSpeeds limitedSpeeds = kinematics.toChassisSpeeds(states);
 
     // 4: Now discretize the LIMITED speeds
-    ChassisSpeeds discreteSpeeds =
-        ChassisSpeeds.discretize(limitedSpeeds, 0.02);
+    ChassisSpeeds discreteSpeeds = ChassisSpeeds.discretize(limitedSpeeds, 0.02);
 
     // 5: Convert discretized speeds back to module states
-    SwerveModuleState[] finalStates =
-        kinematics.toSwerveModuleStates(discreteSpeeds);
+    SwerveModuleState[] finalStates = kinematics.toSwerveModuleStates(discreteSpeeds);
 
     // (Optional but usually unnecessary)
     // desaturate again for safety
-    SwerveDriveKinematics.desaturateWheelSpeeds(
-        finalStates,
-        maxDriveSpeed.in(MetersPerSecond)
-    );
+    SwerveDriveKinematics.desaturateWheelSpeeds(finalStates, maxDriveSpeed.in(MetersPerSecond));
 
     // 6: Send to modules
     for (int i = 0; i < 4; i++) {
-        modules[i].runSetpoint(finalStates[i]);
+      modules[i].runSetpoint(finalStates[i]);
     }
 
     // Log optimized setpoints (runSetpoint mutates each state)
