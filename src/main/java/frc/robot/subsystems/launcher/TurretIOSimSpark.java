@@ -67,7 +67,7 @@ public class TurretIOSimSpark implements TurretIO {
     turnSparkSim = new SparkMaxSim(turnSpark, gearbox);
 
     turnSim =
-        new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
+        new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.4, motorReduction), gearbox);
 
     turnSim.setState(2.0 * Math.PI - mechanismOffset.getRadians(), 0);
     turnSparkSim.setPosition(turnSim.getAngularPositionRad());
