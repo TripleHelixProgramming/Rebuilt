@@ -72,6 +72,7 @@ public final class LauncherConstants {
     public static final Rotation2d absEncoderOffset = new Rotation2d(5.157);
     public static final Rotation2d mechanismOffset = Rotation2d.kZero;
     public static final Angle rangeOfMotion = Degrees.of(180);
+    public static final Angle margin = Degrees.of(5);
 
     // Position controller
     public static final double kPReal = 0.5;
@@ -87,7 +88,7 @@ public final class LauncherConstants {
 
     // Simulation
     public static final DCMotor gearbox = DCMotor.getNeo550(1);
-    public static final double kPSim = 0.8;
+    public static final double kPSim = 0.5;
     public static final double kDSim = 0.05;
   }
 
