@@ -65,7 +65,7 @@ public class Launcher extends SubsystemBase {
   private double ballisticLogTimer = 0.0;
 
   // Turret desaturation
-  private final PIDController headingController = new PIDController(1.0, 0.0, 0.0);
+  private final PIDController headingController = new PIDController(1.5, 0.0, 0.1);
 
   public Launcher(
       Supplier<Pose2d> chassisPoseSupplier,
@@ -84,7 +84,7 @@ public class Launcher extends SubsystemBase {
     flywheelDisconnectedAlert = new Alert("Disconnected flywheel motor", AlertType.kError);
     hoodDisconnectedAlert = new Alert("Disconnected hood motor", AlertType.kError);
 
-    headingController.setTolerance(Units.degreesToRadians(1.0));
+    headingController.setTolerance(margin.in(Radians));
   }
 
   @Override
@@ -288,7 +288,8 @@ public class Launcher extends SubsystemBase {
   }
 
   public boolean turretDesaturated() {
-    return headingController.atSetpoint();
+    // return headingController.atSetpoint();
+    return Math.abs(turretInputs.oversaturation) < Units.degreesToRadians(8);
   }
 
   @AutoLogOutput(key = "Launcher/IsOnTarget")
