@@ -271,7 +271,7 @@ public class Launcher extends SubsystemBase {
 
   @AutoLogOutput(key = "Launcher/IsOnTarget")
   public boolean isOnTarget() {
-    return turretInputs.isAtSetpoint;
+    return turretInputs.isAtSetpoint && hoodInputs.isAtSetpoint;
   }
 
   private Translation3d getTurretBaseSpeeds(Rotation2d rotation, ChassisSpeeds chassisSpeeds) {
