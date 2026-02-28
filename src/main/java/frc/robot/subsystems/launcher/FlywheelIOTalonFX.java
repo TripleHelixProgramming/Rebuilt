@@ -87,10 +87,14 @@ public class FlywheelIOTalonFX implements FlywheelIO {
     // This avoids blocking CAN calls in the main loop
     inputs.connected =
         connectedDebounce.calculate(
-            flywheelVelocity.getStatus().isOK()
-                && flywheelAcceleration.getStatus().isOK()
-                && flywheelAppliedVolts.getStatus().isOK()
-                && flywheelCurrent.getStatus().isOK());
+            BaseStatusSignal.refreshAll(
+                    flywheelVelocity,
+                    flywheelAcceleration,
+                    flywheelAppliedVolts,
+                    flywheelCurrent,
+                    followerAppliedVolts,
+                    followerCurrent)
+                .isOK());
 
     inputs.appliedVolts = flywheelAppliedVolts.getValueAsDouble();
     inputs.currentAmps = flywheelCurrent.getValueAsDouble();

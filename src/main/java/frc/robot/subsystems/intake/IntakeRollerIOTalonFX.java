@@ -81,10 +81,14 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
     // This avoids blocking CAN calls in the main loop
     inputs.connected =
         connectedDebounce.calculate(
-            intakeVelocity.getStatus().isOK()
-                && intakeAcceleration.getStatus().isOK()
-                && intakeAppliedVolts.getStatus().isOK()
-                && intakeCurrent.getStatus().isOK());
+            BaseStatusSignal.refreshAll(
+                    intakeVelocity,
+                    intakeAcceleration,
+                    intakeAppliedVolts,
+                    intakeCurrent,
+                    followerAppliedVolts,
+                    followerCurrent)
+                .isOK());
 
     inputs.appliedVolts = intakeAppliedVolts.getValueAsDouble();
     inputs.currentAmps = intakeCurrent.getValueAsDouble();
