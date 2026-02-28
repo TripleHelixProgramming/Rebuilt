@@ -9,7 +9,6 @@ import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.*;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -261,7 +260,10 @@ public class Launcher extends SubsystemBase {
 
   @AutoLogOutput(key = "Launcher/TurretPose")
   public Pose2d getTurretPose() {
-    return turretBasePose.toPose2d().plus(new Transform2d(0, 0, turretInputs.relativePosition));
+    return new Pose2d(
+        turretBasePose.getX(),
+        turretBasePose.getY(),
+        turretBasePose.getRotation().toRotation2d().plus(turretInputs.relativePosition));
   }
 
   @AutoLogOutput(key = "Launcher/HorizontalAimAngle")

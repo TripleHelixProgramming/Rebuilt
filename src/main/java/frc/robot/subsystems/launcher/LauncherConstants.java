@@ -86,7 +86,7 @@ public final class LauncherConstants {
 
     // Simulation
     public static final DCMotor gearbox = DCMotor.getNeo550(1);
-    public static final double kPSim = 0.8;
+    public static final double kPSim = 0.08;
     public static final double kDSim = 0.05;
   }
 
