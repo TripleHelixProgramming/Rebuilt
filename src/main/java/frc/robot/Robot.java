@@ -40,10 +40,8 @@ import frc.robot.commands.DriveCommands;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.DriveConstants;
 import frc.robot.subsystems.drive.GyroIO;
-import frc.robot.subsystems.drive.GyroIOBoron;
 import frc.robot.subsystems.drive.ModuleIO;
 import frc.robot.subsystems.drive.ModuleIOSimWPI;
-import frc.robot.subsystems.drive.ModuleIOTalonFX;
 import frc.robot.subsystems.feeder.Feeder;
 import frc.robot.subsystems.feeder.KickerIO;
 import frc.robot.subsystems.feeder.KickerIOSimSpark;
@@ -75,7 +73,6 @@ import frc.robot.subsystems.launcher.TurretIOSpark;
 import frc.robot.subsystems.leds.LEDController;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionIO;
-import frc.robot.subsystems.vision.VisionIOPhotonVision;
 import frc.robot.subsystems.vision.VisionIOPhotonVisionSim;
 import frc.robot.util.CanandgyroThread;
 import frc.robot.util.SparkOdometryThread;
@@ -149,10 +146,14 @@ public class Robot extends LoggedRobot {
             new Vision(
                 drive::addVisionMeasurement,
                 drive::getPose,
-                new VisionIOPhotonVisionSim(cameraFrontRightName, robotToFrontRightCamera, drive::getPose),
-                new VisionIOPhotonVisionSim(cameraFrontLeftName, robotToFrontLeftCamera, drive::getPose),
-                new VisionIOPhotonVisionSim(cameraBackRightName, robotToBackRightCamera, drive::getPose),
-                new VisionIOPhotonVisionSim(cameraBackLeftName, robotToBackLeftCamera, drive::getPose));
+                new VisionIOPhotonVisionSim(
+                    cameraFrontRightName, robotToFrontRightCamera, drive::getPose),
+                new VisionIOPhotonVisionSim(
+                    cameraFrontLeftName, robotToFrontLeftCamera, drive::getPose),
+                new VisionIOPhotonVisionSim(
+                    cameraBackRightName, robotToBackRightCamera, drive::getPose),
+                new VisionIOPhotonVisionSim(
+                    cameraBackLeftName, robotToBackLeftCamera, drive::getPose));
         launcher =
             new Launcher(
                 drive::getPose,
