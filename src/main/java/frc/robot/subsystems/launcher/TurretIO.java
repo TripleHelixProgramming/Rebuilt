@@ -17,6 +17,8 @@ public interface TurretIO {
     public boolean absoluteEncoderConnected = false;
     public Rotation2d absolutePosition = Rotation2d.kZero;
 
+    public double oversaturation;
+    public double oversaturationLessMargin;
     public boolean isAtSetpoint;
   }
 

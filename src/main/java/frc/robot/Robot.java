@@ -436,21 +436,22 @@ public class Robot extends LoggedRobot {
                     drive)
                 .ignoringDisable(true));
 
-    // Aim at target
-    zorroDriver
-        .HIn()
-        .whileTrue(
-            DriveCommands.joystickDriveAtFixedOrientation(
-                drive,
-                () -> -zorroDriver.getRightYAxis(),
-                () -> -zorroDriver.getRightXAxis(),
-                () -> launcher.getHorizontalAimAngle(),
-                allianceSelector::fieldRotated));
-
-    // Index
+    // Desaturate turret and advance feeder
     zorroDriver
         .AIn()
-        .whileTrue(Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance"));
+        .whileTrue(
+            Commands.parallel(
+                DriveCommands.joystickDrive(
+                        drive,
+                        () -> -zorroDriver.getRightYAxis(),
+                        () -> -zorroDriver.getRightXAxis(),
+                        () -> launcher.desaturateTurret(),
+                        () -> zorroDriver.getHID().getEUp(),
+                        allianceSelector::fieldRotated)
+                    .withName("Desaturate turret"),
+                Commands.sequence(
+                    Commands.waitUntil(launcher::turretDesaturated),
+                    Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance"))));
 
     Trigger launcherEnabled = zorroDriver.axisGreaterThan(Axis.kLeftDial.value, 0.5).debounce(0.1);
     launcherEnabled
