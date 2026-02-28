@@ -13,34 +13,31 @@ import edu.wpi.first.wpilibj.LEDWriter;
  * <p>Modify this enum when the physical LED layout changes between seasons.
  */
 public enum LEDSeries implements LEDReader, LEDWriter {
-  // Individual segments (for fine-grained control)
-  // These define the physical layout - update these when hardware changes
-  TOP_LEFT_LARBOARD(P.TOP_AFT_LARBOARD),
-  // RIGHT_BOTTOM(P.RIGHT_BOTTOM),
-  // RIGHT_MIDDLE(P.RIGHT_MIDDLE),
-  // RIGHT_TOP(P.RIGHT_TOP),
-  // LEFT_TOP(P.LEFT_TOP),
-  // LEFT_MIDDLE(P.LEFT_MIDDLE),
-  // LEFT_BOTTOM(P.LEFT_BOTTOM),
+  // Full strip
+  ALL(P.ALL),
 
-  // // Composite views (built from individual segment portions)
-  // LEFT(P.LEFT_TOP, P.LEFT_MIDDLE, P.LEFT_BOTTOM),
-  // RIGHT(P.RIGHT_BOTTOM, P.RIGHT_MIDDLE, P.RIGHT_TOP),
-  // TOP(P.LEFT_TOP, P.RIGHT_TOP),
-  // MIDDLE(P.LEFT_MIDDLE, P.RIGHT_MIDDLE),
-  // BOTTOM(P.LEFT_BOTTOM, P.RIGHT_BOTTOM),
-  // TOP_AND_BOTTOM(P.LEFT_TOP, P.RIGHT_TOP, P.LEFT_BOTTOM, P.RIGHT_BOTTOM),
-  ALL(P.TOP_AFT_LARBOARD);
+  // Pose-seek segments (for displayPoseSeek feedback)
+  // Layout: [Y_LEFT] [ROT_LEFT] [X_CENTER] [ROT_RIGHT] [Y_RIGHT]
+  //         [0-1]    [2-3]      [4-7]      [8-9]       [10-11]
+  POSE_Y_LEFT(P.POSE_Y_LEFT),
+  POSE_Y_RIGHT(P.POSE_Y_RIGHT),
+  POSE_ROTATION_LEFT(P.POSE_ROT_LEFT),
+  POSE_ROTATION_RIGHT(P.POSE_ROT_RIGHT),
+  POSE_ROTATION(P.POSE_ROT_LEFT, P.POSE_ROT_RIGHT),
+  POSE_X_CENTER(P.POSE_X_CENTER);
 
   /** Portion definitions - single source of truth for physical layout. */
   private static final class P {
-    static final Portion TOP_AFT_LARBOARD = new Portion(LEDStrip.MAIN, 0, 11, false);
-    // static final Portion RIGHT_BOTTOM = new Portion(LEDStrip.MAIN, 0, , true);
-    // static final Portion RIGHT_MIDDLE = new Portion(LEDStrip.MAIN, 8, 11, true);
-    // static final Portion RIGHT_TOP = new Portion(LEDStrip.MAIN, 12, 19, true);
-    // static final Portion LEFT_TOP = new Portion(LEDStrip.MAIN, 20, 27, false);
-    // static final Portion LEFT_MIDDLE = new Portion(LEDStrip.MAIN, 28, 31, false);
-    // static final Portion LEFT_BOTTOM = new Portion(LEDStrip.MAIN, 32, 39, false);
+    // Full strip
+    static final Portion ALL = new Portion(LEDStrip.MAIN, 0, 11, false);
+
+    // Pose-seek portions: [Y_LEFT][ROT_LEFT][X_CENTER][ROT_RIGHT][Y_RIGHT]
+    //                     [0-1]  [2-3]     [4-7]     [8-9]      [10-11]
+    static final Portion POSE_Y_LEFT = new Portion(LEDStrip.MAIN, 0, 1, false);
+    static final Portion POSE_ROT_LEFT = new Portion(LEDStrip.MAIN, 2, 3, false);
+    static final Portion POSE_X_CENTER = new Portion(LEDStrip.MAIN, 4, 7, false);
+    static final Portion POSE_ROT_RIGHT = new Portion(LEDStrip.MAIN, 8, 9, false);
+    static final Portion POSE_Y_RIGHT = new Portion(LEDStrip.MAIN, 10, 11, false);
   }
 
   /** Defines a portion of a strip. */
