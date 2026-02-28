@@ -319,7 +319,11 @@ public class Robot extends LoggedRobot {
     autoSelector.disabledPeriodic();
     ControllerSelector.getInstance().scan(false);
     leds.displayAutoSelection();
-    // leds.displayPoseSeek(null, null);
+    var autoOption = autoSelector.get();
+    autoOption.ifPresent(
+        a ->
+            a.getInitialPose()
+                .ifPresent(targetPose -> leds.displayPoseSeek(drive.getPose(), targetPose)));
   }
 
   /** This function is called once when autonomous mode is enabled. */
