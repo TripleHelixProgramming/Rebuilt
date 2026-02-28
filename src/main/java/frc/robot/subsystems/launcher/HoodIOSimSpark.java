@@ -55,7 +55,8 @@ public class HoodIOSimSpark implements HoodIO {
     hoodConfig
         .closedLoop
         .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-        .pid(kPSimPos, 0.0, kDSimPos);
+        .pid(kPSimPos, 0.0, kDSimPos)
+        .allowedClosedLoopError(kAllowableError.in(Radians), ClosedLoopSlot.kSlot0);
 
     hoodConfig
         .softLimit
@@ -106,6 +107,8 @@ public class HoodIOSimSpark implements HoodIO {
     inputs.velocityRadPerSec = maxSim.getVelocity();
     inputs.appliedVolts = maxSim.getAppliedOutput() * maxSim.getBusVoltage();
     inputs.currentAmps = Math.abs(maxSim.getMotorCurrent());
+
+    inputs.isAtSetpoint = controller.isAtSetpoint();
   }
 
   @Override
