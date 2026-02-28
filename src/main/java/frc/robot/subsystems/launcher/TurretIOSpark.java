@@ -43,6 +43,7 @@ public class TurretIOSpark implements TurretIO {
   private final Debouncer absEncoderConnectedDebounce =
       new Debouncer(0.5, Debouncer.DebounceType.kFalling);
   private boolean relativeEncoderSeeded = false;
+  private double oversaturation = 0.0;
 
   public TurretIOSpark() {
     turnSpark = new SparkMax(CAN2.turret, MotorType.kBrushless);
@@ -108,10 +109,13 @@ public class TurretIOSpark implements TurretIO {
     inputs.absoluteEncoderConnected =
         absEncoderConnectedDebounce.calculate(absoluteEncoder.isConnected());
     inputs.absolutePosition = new Rotation2d(absoluteEncoder.get());
+
+    inputs.oversaturation = oversaturation;
   }
 
   @Override
   public void setOpenLoop(Voltage volts) {
+    oversaturation = 0.0;
     controller.setSetpoint(volts.in(Volts), ControlType.kVoltage);
   }
 
@@ -120,16 +124,17 @@ public class TurretIOSpark implements TurretIO {
     double setpoint =
         MathUtil.inputModulus(
             rotation.getRadians() - mechanismOffset.getRadians(), 0.0, 2 * Math.PI);
-    setpoint =
+    double clampedSetpoint =
         MathUtil.clamp(
             setpoint,
             Math.PI - rangeOfMotion.div(2).in(Radians),
             Math.PI + rangeOfMotion.div(2).in(Radians));
+    oversaturation = setpoint - clampedSetpoint;
     var feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
     controller.setSetpoint(
-        setpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
+        clampedSetpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
   }
 }

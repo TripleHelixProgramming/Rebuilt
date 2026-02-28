@@ -426,6 +426,17 @@ public class Robot extends LoggedRobot {
                 () -> launcher.getHorizontalAimAngle(),
                 allianceSelector::fieldRotated));
 
+    zorroDriver
+        .HIn()
+        .whileTrue(
+            DriveCommands.joystickDrive(
+                drive,
+                () -> -zorroDriver.getRightYAxis(),
+                () -> -zorroDriver.getRightXAxis(),
+                () -> launcher.getTurretOversaturation(),
+                () -> zorroDriver.getHID().getEUp(),
+                allianceSelector::fieldRotated));
+
     // Index
     zorroDriver
         .AIn()

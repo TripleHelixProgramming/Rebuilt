@@ -33,6 +33,8 @@ public class TurretIOSimSpark implements TurretIO {
   private final SparkClosedLoopController controller;
   private final SparkMaxSim turnSparkSim;
 
+  private double oversaturation = 0.0;
+
   public TurretIOSimSpark() {
     turnSpark = new SparkMax(CAN2.turret, MotorType.kBrushless);
     controller = turnSpark.getClosedLoopController();
@@ -89,10 +91,13 @@ public class TurretIOSimSpark implements TurretIO {
 
     inputs.absoluteEncoderConnected = true;
     inputs.absolutePosition = new Rotation2d(turnSparkSim.getPosition()).plus(mechanismOffset);
+
+    inputs.oversaturation = oversaturation;
   }
 
   @Override
   public void setOpenLoop(Voltage volts) {
+    oversaturation = 0.0;
     controller.setSetpoint(volts.in(Volts), ControlType.kVoltage);
   }
 
@@ -101,16 +106,17 @@ public class TurretIOSimSpark implements TurretIO {
     double setpoint =
         MathUtil.inputModulus(
             rotation.getRadians() - mechanismOffset.getRadians(), 0.0, 2.0 * Math.PI);
-    setpoint =
+    double clampedSetpoint =
         MathUtil.clamp(
             setpoint,
             Math.PI - rangeOfMotion.div(2).in(Radians),
             Math.PI + rangeOfMotion.div(2).in(Radians));
+    oversaturation = setpoint - clampedSetpoint;
     var feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
     controller.setSetpoint(
-        setpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
+        clampedSetpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
   }
 }
