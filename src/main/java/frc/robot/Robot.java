@@ -321,6 +321,7 @@ public class Robot extends LoggedRobot {
     autoSelector.disabledPeriodic();
     ControllerSelector.getInstance().scan(false);
     leds.displayAutoSelection();
+    // leds.displayPoseSeek(null, null);
   }
 
   /** This function is called once when autonomous mode is enabled. */
@@ -335,6 +336,7 @@ public class Robot extends LoggedRobot {
   @Override
   public void autonomousPeriodic() {
     leds.displayHubCountdown();
+    leds.displayRobotState(() -> true, () -> true);
   }
 
   /** This function is called once when teleop mode is enabled. */
@@ -349,6 +351,7 @@ public class Robot extends LoggedRobot {
   @Override
   public void teleopPeriodic() {
     leds.displayHubCountdown();
+    leds.displayRobotState(() -> true, () -> true);
   }
 
   /** This function is called once when test mode is enabled. */
@@ -363,6 +366,7 @@ public class Robot extends LoggedRobot {
   @Override
   public void testPeriodic() {
     leds.displayHubCountdown();
+    leds.displayRobotState(() -> true, () -> true);
   }
 
   /** This function is called once when the robot is first started up. */
@@ -375,6 +379,7 @@ public class Robot extends LoggedRobot {
   @Override
   public void simulationPeriodic() {
     leds.displayHubCountdown();
+    leds.displayRobotState(() -> true, () -> true);
   }
 
   private void configureControlPanelBindings() {

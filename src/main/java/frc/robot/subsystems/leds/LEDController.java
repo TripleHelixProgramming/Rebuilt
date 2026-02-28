@@ -12,6 +12,7 @@ import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.game.GameState;
 import frc.robot.Robot;
+import java.util.function.Supplier;
 
 /**
  * A subsystem to control the LEDs on the robot.
@@ -103,11 +104,24 @@ public class LEDController extends SubsystemBase {
     }
   }
 
+  // ==================== PRE-ALLOCATED PATTERNS ====================
+
   /** Solid black pattern (LEDs off). */
-  public static LEDPattern solidBlackPattern = LEDPattern.solid(Color.kBlack);
+  public static final LEDPattern solidBlackPattern = LEDPattern.solid(Color.kBlack);
 
   /** Solid yellow pattern. */
-  public static LEDPattern solidYellowPattern = LEDPattern.solid(Color.kYellow);
+  public static final LEDPattern solidYellowPattern = LEDPattern.solid(Color.kYellow);
+
+  /** Solid green pattern. */
+  public static final LEDPattern solidGreenPattern = LEDPattern.solid(Color.kGreen);
+
+  /** Bounce ripple pattern in yellow (spindexing, not on target). */
+  public static final LEDPattern bounceRippleYellowPattern =
+      LEDCustomPattern.bounceRipple(Color.kYellow);
+
+  /** Bounce ripple pattern in green (spindexing, on target). */
+  public static final LEDPattern bounceRippleGreenPattern =
+      LEDCustomPattern.bounceRipple(Color.kGreen);
 
   /**
    * Pattern displaying the selected auto routine as counting blocks in alliance color. The number
@@ -149,18 +163,22 @@ public class LEDController extends SubsystemBase {
    * color.
    */
   public void displayAutoSelection() {
+    // In displayAutoSelection or somewhere you can test:
+    // LEDSeries.Y_AXIS.applyPattern(LEDPattern.solid(Color.kRed));
+    // LEDSeries.X_AXIS.applyPattern(LEDPattern.solid(Color.kBlue));
+
     Robot.autoSelector
         .get()
         .ifPresentOrElse(
-            autoOption -> LEDSeries.ALL.applyPattern(autoSelectionPattern),
-            () -> LEDSeries.ALL.applyPattern(solidYellowPattern.blink(Seconds.of(0.5))));
+            autoOption -> LEDSeries.X_AXIS.applyPattern(autoSelectionPattern),
+            () -> LEDSeries.X_AXIS.applyPattern(solidYellowPattern.blink(Seconds.of(0.5))));
 
     // Display yellow at end pixel if alliance disagreement
     DriverStation.getAlliance()
         .ifPresent(
             alliance -> {
               if (alliance != Robot.allianceSelector.getAllianceColor()) {
-                LEDSeries.ALL.setLED(LEDSeries.ALL.getLength() - 1, Color.kYellow);
+                LEDSeries.X_AXIS.setLED(LEDSeries.X_AXIS.getLength() - 1, Color.kYellow);
               }
             });
   }
@@ -170,7 +188,31 @@ public class LEDController extends SubsystemBase {
    * alliance color based on hub state. When both hubs are active, shows our alliance color.
    */
   public void displayHubCountdown() {
-    LEDSeries.ALL.applyPattern(hubCountdownPattern);
+    LEDSeries.Y_AXIS.applyPattern(hubCountdownPattern);
+  }
+
+  /**
+   * Displays robot state on the X_AXIS LEDs.
+   *
+   * <ul>
+   *   <li><b>Color:</b> Yellow = not locked on target, Green = locked on target
+   *   <li><b>Animation:</b> Solid = spindexer inactive, Ripple = spindexer active
+   * </ul>
+   *
+   * @param isOnTarget supplies true when launcher is locked on target
+   * @param isSpindexing supplies true when spindexer is active
+   */
+  public void displayRobotState(Supplier<Boolean> isOnTarget, Supplier<Boolean> isSpindexing) {
+    boolean onTarget = isOnTarget.get();
+    boolean spindexing = isSpindexing.get();
+
+    LEDPattern pattern;
+    if (onTarget) {
+      pattern = spindexing ? bounceRippleGreenPattern : solidGreenPattern;
+    } else {
+      pattern = spindexing ? bounceRippleYellowPattern : solidYellowPattern;
+    }
+    LEDSeries.X_AXIS.applyPattern(pattern);
   }
 
   /** Clears all LEDs by applying solid black. */
