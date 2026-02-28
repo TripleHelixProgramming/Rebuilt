@@ -3,21 +3,21 @@ package frc.robot.subsystems.leds;
 import static edu.wpi.first.units.Units.Seconds;
 
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.LEDPattern;
 import edu.wpi.first.wpilibj.util.Color;
-import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.lib.AutoOption;
-import java.util.Optional;
-import java.util.function.Supplier;
+import frc.game.GameState;
+import frc.robot.Robot;
 
 /**
  * A subsystem to control the LEDs on the robot.
  *
- * <p>Physical strips are defined in {@link LEDStrip}, logical groups in {@link LEDGroup}, and
+ * <p>Physical strips are defined in {@link LEDStrip}, logical views in {@link LEDSeries}, and
  * custom patterns in {@link LEDCustomPattern}.
  *
- * <p>Apply patterns directly to groups: {@code LEDGroup.ALL.applyPattern(pattern)}
+ * <p>Apply patterns directly to series: {@code LEDSeries.ALL.applyPattern(pattern)}
  *
  * <p>This is a singleton class. Access the instance via {@link #getInstance()}.
  */
@@ -41,30 +41,6 @@ public class LEDController extends SubsystemBase {
     LEDStrip.updateAll();
   }
 
-  // ==================== COMMAND FACTORIES ====================
-
-  /**
-   * Creates a command that continuously applies a pattern to a group.
-   *
-   * @param pattern the pattern to apply
-   * @param group the group to apply to
-   * @return a command that runs the pattern
-   */
-  public Command runPattern(LEDPattern pattern, LEDGroup group) {
-    return run(() -> group.applyPattern(pattern));
-  }
-
-  /**
-   * Creates a command that continuously applies a pattern from a supplier.
-   *
-   * @param patternSupplier supplies the pattern to apply
-   * @param group the group to apply to
-   * @return a command that runs the pattern
-   */
-  public Command runPattern(Supplier<LEDPattern> patternSupplier, LEDGroup group) {
-    return run(() -> group.applyPattern(patternSupplier.get()));
-  }
-
   // ==================== CONTEXT-AWARE DISPLAYS ====================
 
   /**
@@ -85,7 +61,7 @@ public class LEDController extends SubsystemBase {
     //     Math.abs(theta) < LEDConstants.kPoseSeekHeadingToleranceDegrees
     //         ? Color.kWhite
     //         : theta > 0 ? Color.kMagenta : Color.kCyan;
-    // LEDGroup.MIDDLE.applyPattern(LEDPattern.solid(headingColor));
+    // LEDSeries.MIDDLE.applyPattern(LEDPattern.solid(headingColor));
 
     // // X feedback on TOP
     // var x = delta.getTranslation().getMeasureX().in(Centimeters);
@@ -93,45 +69,77 @@ public class LEDController extends SubsystemBase {
     //     Math.abs(x) < LEDConstants.kPoseSeekXToleranceCm
     //         ? Color.kWhite
     //         : x > 0 ? Color.kGreen : Color.kRed;
-    // LEDGroup.TOP.applyPattern(LEDPattern.solid(xColor));
+    // LEDSeries.TOP.applyPattern(LEDPattern.solid(xColor));
 
     // // Y feedback on BOTTOM
     // var y = delta.getTranslation().getMeasureY().in(Centimeters);
     // if (Math.abs(y) < LEDConstants.kPoseSeekYToleranceCm) {
-    //   LEDGroup.BOTTOM.applyPattern(LEDPattern.solid(Color.kWhite));
+    //   LEDSeries.BOTTOM.applyPattern(LEDPattern.solid(Color.kWhite));
     // } else {
-    //   LEDGroup yGroup = y > 0 ? LEDGroup.LEFT_BOTTOM : LEDGroup.RIGHT_BOTTOM;
-    //   LEDGroup otherGroup = y > 0 ? LEDGroup.RIGHT_BOTTOM : LEDGroup.LEFT_BOTTOM;
-    //   yGroup.applyPattern(LEDPattern.solid(Color.kGreen));
-    //   otherGroup.applyPattern(LEDPattern.solid(Color.kBlack));
+    //   LEDSeries yView = y > 0 ? LEDSeries.LEFT_BOTTOM : LEDSeries.RIGHT_BOTTOM;
+    //   LEDSeries otherView = y > 0 ? LEDSeries.RIGHT_BOTTOM : LEDSeries.LEFT_BOTTOM;
+    //   yView.applyPattern(LEDPattern.solid(Color.kGreen));
+    //   otherView.applyPattern(LEDPattern.solid(Color.kBlack));
     // }
   }
 
-  public void displayAutoSelection(Optional<AutoOption> maybeAutoOption) {
-    maybeAutoOption.ifPresentOrElse(
-        autoOption ->
-            LEDGroup.ALL.applyPattern(
-                LEDCustomPattern.countingBlocks(
-                    () -> autoOption.getOptionNumber(),
-                    () -> autoOption.getAllianceColor(),
-                    LEDConstants.kLEDsPerBlock,
-                    LEDConstants.kLEDsBetweenBlocks)),
-        () -> LEDGroup.ALL.applyPattern(LEDPattern.solid(Color.kYellow).blink(Seconds.of(0.5))));
+  public static LEDPattern solidBlackPattern = LEDPattern.solid(Color.kBlack);
+  public static LEDPattern solidYellowPattern = LEDPattern.solid(Color.kYellow);
+
+  public static LEDPattern autoSelectionPattern =
+      LEDCustomPattern.countingBlocks(
+          () -> Robot.autoSelector.get().get().getOptionNumber(),
+          () -> Robot.autoSelector.get().get().getAllianceColor(),
+          LEDConstants.kLEDsPerBlock,
+          LEDConstants.kLEDsBetweenBlocks);
+
+  public static LEDPattern hubCountdownPattern =
+      LEDCustomPattern.progressBar(
+          // Percent full
+          () -> {
+            var t = GameState.getMatchTime();
+            var phase = GameState.getCurrentPhase();
+            return phase.remainingAt(t) / phase.duration();
+          },
+          // Fill color
+          () -> {
+            if (GameState.isMyHubActive() && GameState.getMyAlliance() == Alliance.Red) {
+              return Color.kRed;
+            }
+            return Color.kBlue;
+          },
+          // Background color
+          Color.kBlack);
+
+  public void displayAutoSelection() {
+    Robot.autoSelector
+        .get()
+        .ifPresentOrElse(
+            autoOption -> LEDSeries.ALL.applyPattern(autoSelectionPattern),
+            () -> LEDSeries.ALL.applyPattern(solidYellowPattern.blink(Seconds.of(0.5))));
+
+    // Display yellow at end pixel if alliance disagreement
+    DriverStation.getAlliance()
+        .ifPresent(
+            alliance -> {
+              if (alliance != Robot.allianceSelector.getAllianceColor()) {
+                LEDSeries.ALL.setLED(LEDSeries.ALL.getLength() - 1, Color.kYellow);
+              }
+            });
   }
 
-  public void runDisplayAutoSelection(Supplier<Optional<AutoOption>> autoModeOptionalSupplier) {
-    setDefaultCommand(
-        run(() -> displayAutoSelection(autoModeOptionalSupplier.get())).ignoringDisable(true));
+  public void displayHubCountdown() {
+    LEDSeries.ALL.applyPattern(hubCountdownPattern);
   }
 
-  /**
-   * Creates a command to display pose-seek feedback.
-   *
-   * @param currentPoseSupplier supplies the current pose
-   * @param targetPose the target pose
-   * @return a command that displays pose-seek feedback
-   */
-  public Command runPoseSeek(Supplier<Pose2d> currentPoseSupplier, Pose2d targetPose) {
-    return run(() -> displayPoseSeek(currentPoseSupplier.get(), targetPose));
+  public void clear() {
+    clear(LEDSeries.ALL);
+  }
+
+  public void clear(LEDSeries series, LEDSeries... more) {
+    series.applyPattern(solidBlackPattern);
+    for (var another : more) {
+      another.applyPattern(solidBlackPattern);
+    }
   }
 }

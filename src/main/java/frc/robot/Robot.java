@@ -96,7 +96,7 @@ import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 public class Robot extends LoggedRobot {
   public static final AllianceSelector allianceSelector =
       new AllianceSelector(DIOPorts.allianceColorSelector);
-  private final AutoSelector autoSelector =
+  public static final AutoSelector autoSelector =
       new AutoSelector(DIOPorts.autonomousModeSelector, allianceSelector::getAllianceColor);
   public static final Field2d field = new Field2d();
 
@@ -311,7 +311,7 @@ public class Robot extends LoggedRobot {
   /** This function is called once when the robot is disabled. */
   @Override
   public void disabledInit() {
-    leds.runDisplayAutoSelection(autoSelector);
+    leds.clear();
   }
 
   /** This function is called periodically when disabled. */
@@ -320,6 +320,7 @@ public class Robot extends LoggedRobot {
     allianceSelector.disabledPeriodic();
     autoSelector.disabledPeriodic();
     ControllerSelector.getInstance().scan(false);
+    leds.displayAutoSelection();
   }
 
   /** This function is called once when autonomous mode is enabled. */
@@ -327,11 +328,14 @@ public class Robot extends LoggedRobot {
   public void autonomousInit() {
     drive.setDefaultCommand(Commands.runOnce(drive::stop, drive).withName("Stop"));
     autoSelector.scheduleAuto();
+    leds.clear();
   }
 
   /** This function is called periodically during autonomous. */
   @Override
-  public void autonomousPeriodic() {}
+  public void autonomousPeriodic() {
+    leds.displayHubCountdown();
+  }
 
   /** This function is called once when teleop mode is enabled. */
   @Override
@@ -342,7 +346,9 @@ public class Robot extends LoggedRobot {
 
   /** This function is called periodically during operator control. */
   @Override
-  public void teleopPeriodic() {}
+  public void teleopPeriodic() {
+    leds.displayHubCountdown();
+  }
 
   /** This function is called once when test mode is enabled. */
   @Override
