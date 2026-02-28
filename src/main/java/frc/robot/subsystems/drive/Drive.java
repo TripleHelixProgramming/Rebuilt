@@ -243,22 +243,47 @@ public class Drive extends SubsystemBase {
    * @param speeds Speeds in meters/sec
    */
   public void runVelocity(ChassisSpeeds speeds) {
-    // Calculate module setpoints
-    ChassisSpeeds discreteSpeeds = ChassisSpeeds.discretize(speeds, 0.02);
-    SwerveModuleState[] setpointStates = kinematics.toSwerveModuleStates(discreteSpeeds);
-    SwerveDriveKinematics.desaturateWheelSpeeds(setpointStates, maxDriveSpeed.in(MetersPerSecond));
+
+    // 1️: Convert continuous speeds to module states
+    SwerveModuleState[] states =
+        kinematics.toSwerveModuleStates(speeds);
 
     // Log unoptimized setpoints
-    Logger.recordOutput("SwerveStates/Setpoints", setpointStates);
-    Logger.recordOutput("SwerveChassisSpeeds/Setpoints", discreteSpeeds);
+    Logger.recordOutput("SwerveChassisSpeeds/Setpoints", speeds);
+    Logger.recordOutput("SwerveStates/Setpoints", states);
 
-    // Send setpoints to modules
+    // 2: Desaturate (apply wheel limits FIRST)
+    SwerveDriveKinematics.desaturateWheelSpeeds(
+        states,
+        maxDriveSpeed.in(MetersPerSecond)
+    );
+
+    // 3: Reconstruct the ACTUAL chassis speeds after limiting
+    ChassisSpeeds limitedSpeeds =
+        kinematics.toChassisSpeeds(states);
+
+    // 4: Now discretize the LIMITED speeds
+    ChassisSpeeds discreteSpeeds =
+        ChassisSpeeds.discretize(limitedSpeeds, 0.02);
+
+    // 5: Convert discretized speeds back to module states
+    SwerveModuleState[] finalStates =
+        kinematics.toSwerveModuleStates(discreteSpeeds);
+
+    // (Optional but usually unnecessary)
+    // desaturate again for safety
+    SwerveDriveKinematics.desaturateWheelSpeeds(
+        finalStates,
+        maxDriveSpeed.in(MetersPerSecond)
+    );
+
+    // 6: Send to modules
     for (int i = 0; i < 4; i++) {
-      modules[i].runSetpoint(setpointStates[i]);
+        modules[i].runSetpoint(finalStates[i]);
     }
 
     // Log optimized setpoints (runSetpoint mutates each state)
-    Logger.recordOutput("SwerveStates/SetpointsOptimized", setpointStates);
+    Logger.recordOutput("SwerveStates/SetpointsOptimized", finalStates);
   }
 
   public void followTrajectory(SwerveSample sample) {
