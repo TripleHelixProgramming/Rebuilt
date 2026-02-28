@@ -271,7 +271,7 @@ public class Launcher extends SubsystemBase {
 
   public double getTurretOversaturation() {
     double saturation = turretInputs.oversaturation;
-    if (saturation < 1e-6) return 0.0;
+    if (Math.abs(saturation) < 1e-6) return 0.0;
     return (saturation > 0.0) ? 1.0 : -1.0;
   }
 
