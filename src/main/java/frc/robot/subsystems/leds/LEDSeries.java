@@ -6,13 +6,13 @@ import edu.wpi.first.wpilibj.LEDReader;
 import edu.wpi.first.wpilibj.LEDWriter;
 
 /**
- * Defines logical LED groups on the robot. Each group can span multiple physical strips, composed
- * of one or more portions. Groups implement {@link LEDReader} and {@link LEDWriter} to present a
- * unified virtual buffer that makes all portions appear contiguous.
+ * Defines logical LED series on the robot. Each series can span multiple physical strips,
+ * composed of one or more portions. Series implement {@link LEDReader} and {@link LEDWriter} to
+ * present a unified virtual buffer that makes all portions appear contiguous.
  *
  * <p>Modify this enum when the physical LED layout changes between seasons.
  */
-public enum LEDGroup implements LEDReader, LEDWriter {
+public enum LEDSeries implements LEDReader, LEDWriter {
   // Individual segments (for fine-grained control)
   // These define the physical layout - update these when hardware changes
   TOP_LEFT_LARBOARD(P.TOP_AFT_LARBOARD),
@@ -23,7 +23,7 @@ public enum LEDGroup implements LEDReader, LEDWriter {
   // LEFT_MIDDLE(P.LEFT_MIDDLE),
   // LEFT_BOTTOM(P.LEFT_BOTTOM),
 
-  // // Composite groups (built from individual segment portions)
+  // // Composite views (built from individual segment portions)
   // LEFT(P.LEFT_TOP, P.LEFT_MIDDLE, P.LEFT_BOTTOM),
   // RIGHT(P.RIGHT_BOTTOM, P.RIGHT_MIDDLE, P.RIGHT_TOP),
   // TOP(P.LEFT_TOP, P.RIGHT_TOP),
@@ -58,7 +58,7 @@ public enum LEDGroup implements LEDReader, LEDWriter {
   private final int totalLength;
   private AddressableLEDBufferView[] bufferViews;
 
-  LEDGroup(Portion... portions) {
+  LEDSeries(Portion... portions) {
     this.portions = portions;
     int len = 0;
     for (Portion p : portions) {
@@ -128,7 +128,7 @@ public enum LEDGroup implements LEDReader, LEDWriter {
   // ==================== Buffer View Access ====================
 
   /**
-   * Gets the buffer views for all portions in this group, creating them if necessary.
+   * Gets the buffer views for all portions in this series, creating them if necessary.
    *
    * @return array of buffer views
    */
@@ -145,7 +145,7 @@ public enum LEDGroup implements LEDReader, LEDWriter {
   // ==================== Pattern Application ====================
 
   /**
-   * Applies a pattern to this group as a unified buffer. The pattern sees this group as one
+   * Applies a pattern to this series as a unified buffer. The pattern sees this series as one
    * contiguous strip of LEDs.
    *
    * @param pattern the pattern to apply

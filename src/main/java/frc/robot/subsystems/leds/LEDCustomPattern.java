@@ -1,7 +1,10 @@
 package frc.robot.subsystems.leds;
 
 import edu.wpi.first.wpilibj.LEDPattern;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.util.Color;
+import frc.robot.Robot;
+
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
@@ -91,12 +94,12 @@ public final class LEDCustomPattern {
    * @return the progress bar pattern
    */
   public static LEDPattern progressBar(
-      Supplier<Double> progressSupplier, Color color, Color backgroundColor) {
+      Supplier<Double> progressSupplier, Supplier<Color> colorSupplier, Color backgroundColor) {
     return (reader, writer) -> {
       int length = reader.getLength();
       int filledLeds = (int) (length * Math.max(0, Math.min(1, progressSupplier.get())));
       for (int i = 0; i < length; i++) {
-        writer.setLED(i, i < filledLeds ? color : backgroundColor);
+        writer.setLED(i, i < filledLeds ? colorSupplier.get() : backgroundColor);
       }
     };
   }
@@ -154,7 +157,11 @@ public final class LEDCustomPattern {
    * @param isRedAlliance supplies true for red alliance, false for blue
    * @return red when on red alliance, blue when on blue alliance
    */
-  public static LEDPattern allianceColor(BooleanSupplier isRedAlliance) {
-    return solidIf(isRedAlliance, Color.kRed, Color.kBlue);
+  public static LEDPattern allianceColor() {
+    if (allianceColorPattern == null) {
+      allianceColorPattern = solidIf(() -> Robot.getAlliance() == Alliance.Blue, Color.kBlue, Color.kRed);
+    }
+    return allianceColorPattern;
   }
+  private static LEDPattern allianceColorPattern;
 }
