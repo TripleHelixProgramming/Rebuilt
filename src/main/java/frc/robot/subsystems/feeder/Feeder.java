@@ -69,4 +69,8 @@ public class Feeder extends SubsystemBase {
     spindexerIO.setVelocity(MetersPerSecond.of(2.0));
     kickerIO.setVelocity(MetersPerSecond.of(6.0));
   }
+
+  public boolean isSpinning() {
+    return spindexerInputs.velocityMetersPerSec >= 0.5;
+  }
 }
