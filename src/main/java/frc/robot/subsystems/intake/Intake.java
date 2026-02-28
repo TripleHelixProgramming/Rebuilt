@@ -9,6 +9,7 @@ import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants;
 import org.littletonrobotics.junction.Logger;
 
 public class Intake extends SubsystemBase {
@@ -30,28 +31,30 @@ public class Intake extends SubsystemBase {
 
   @Override
   public void periodic() {
-    long t0 = System.nanoTime();
+    long t0 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
     intakeRollerIO.updateInputs(intakeRollerInputs);
     intakeArmIO.updateInputs(intakeArmInputs);
-    long t1 = System.nanoTime();
+    long t1 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     Logger.processInputs("IntakeRoller", intakeRollerInputs);
     Logger.processInputs("IntakeArm", intakeArmInputs);
-    long t2 = System.nanoTime();
+    long t2 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     disconnectedAlert.set(!intakeRollerInputs.connected);
 
     // Profiling output
-    long totalMs = (t2 - t0) / 1_000_000;
-    if (totalMs > 2) {
-      System.out.println(
-          "[Intake] update="
-              + (t1 - t0) / 1_000_000
-              + "ms log="
-              + (t2 - t1) / 1_000_000
-              + "ms total="
-              + totalMs
-              + "ms");
+    if (Constants.PROFILING_ENABLED) {
+      long totalMs = (t2 - t0) / 1_000_000;
+      if (totalMs > 2) {
+        System.out.println(
+            "[Intake] update="
+                + (t1 - t0) / 1_000_000
+                + "ms log="
+                + (t2 - t1) / 1_000_000
+                + "ms total="
+                + totalMs
+                + "ms");
+      }
     }
   }
 
