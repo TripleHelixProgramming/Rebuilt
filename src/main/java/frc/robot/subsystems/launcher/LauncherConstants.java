@@ -69,13 +69,13 @@ public final class LauncherConstants {
     // Geometry
     public static final Transform3d chassisToTurretBase =
         new Transform3d(Inches.of(-2.271), Inches.of(-4.959), Inches.of(16.331), Rotation3d.kZero);
-    public static final Rotation2d absEncoderOffset = new Rotation2d(2.04);
-    public static final Rotation2d mechanismOffset = Rotation2d.k180deg;
-    public static final Angle rangeOfMotion = Degrees.of(5);
-    public static final Angle margin = Degrees.of(0);
+    public static final Rotation2d absEncoderOffset = new Rotation2d(5.157);
+    public static final Rotation2d mechanismOffset = Rotation2d.kZero;
+    public static final Angle rangeOfMotion = Degrees.of(180);
 
     // Position controller
     public static final double kPReal = 0.5;
+    public static final Angle kAllowableError = Degrees.of(1.0);
 
     // Motor controller
     public static final double motorReduction = 9.0 * 72.0 / 12.0;
@@ -115,6 +115,7 @@ public final class LauncherConstants {
 
   public static final class HoodConstants {
     public static final Rotation2d ballToHoodOffset = new Rotation2d(Degrees.of(0));
+    public static final Angle kAllowableError = Degrees.of(0.5);
 
     // Position controller
     public static final double kPRealPos = 0.35;

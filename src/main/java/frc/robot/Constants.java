@@ -28,6 +28,9 @@ public final class Constants {
   public static final Mode simMode = Mode.SIM;
   public static final Mode currentMode = RobotBase.isReal() ? Mode.REAL : simMode;
 
+  /** Enable to print loop timing when total exceeds 20ms. */
+  public static final boolean PROFILING_ENABLED = false;
+
   public static enum Mode {
     /** Running on a real robot. */
     REAL,

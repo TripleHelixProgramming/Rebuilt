@@ -1,7 +1,10 @@
 package frc.robot.subsystems.leds;
 
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.LEDPattern;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.util.Color;
+import frc.robot.Robot;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
@@ -91,12 +94,12 @@ public final class LEDCustomPattern {
    * @return the progress bar pattern
    */
   public static LEDPattern progressBar(
-      Supplier<Double> progressSupplier, Color color, Color backgroundColor) {
+      Supplier<Double> progressSupplier, Supplier<Color> colorSupplier, Color backgroundColor) {
     return (reader, writer) -> {
       int length = reader.getLength();
       int filledLeds = (int) (length * Math.max(0, Math.min(1, progressSupplier.get())));
       for (int i = 0; i < length; i++) {
-        writer.setLED(i, i < filledLeds ? color : backgroundColor);
+        writer.setLED(i, i < filledLeds ? colorSupplier.get() : backgroundColor);
       }
     };
   }
@@ -149,12 +152,104 @@ public final class LEDCustomPattern {
   }
 
   /**
+   * Creates a bounce ripple pattern that expands from the center outward, then contracts back
+   * inward, like a water drop ripple played forwards and backwards. Includes a comet-like tail that
+   * trails behind the ripple.
+   *
+   * @param color the color to display
+   * @param rippleWidth number of LEDs in the ripple band
+   * @param tailLength number of LEDs in the trailing fade
+   * @param cyclesPerSecond how many full expand-contract cycles per second
+   * @return the bounce ripple pattern
+   */
+  public static LEDPattern bounceRipple(
+      Color color, int rippleWidth, int tailLength, double cyclesPerSecond) {
+    return (reader, writer) -> {
+      int length = reader.getLength();
+      int halfLength = length / 2;
+
+      // Triangle wave for ping-pong motion (0 to 1 to 0)
+      double time = Timer.getFPGATimestamp();
+      double phase = time * cyclesPerSecond;
+      double sawtooth = phase % 1.0; // 0 -> 1
+      double triangleWave = Math.abs(sawtooth * 2 - 1); // 0 -> 1 -> 0
+      boolean expanding = sawtooth < 0.5; // First half = expanding, second half = contracting
+
+      // Calculate ripple position (distance from center)
+      double rippleRadius = triangleWave * halfLength;
+
+      for (int i = 0; i < length; i++) {
+        double distanceFromCenter = Math.abs(i - (length - 1) / 2.0);
+        double distanceFromRipple = Math.abs(distanceFromCenter - rippleRadius);
+
+        double brightness = 0;
+
+        // Main ripple band
+        if (distanceFromRipple < rippleWidth / 2.0) {
+          brightness = 1.0 - (distanceFromRipple / (rippleWidth / 2.0));
+        }
+        // Comet tail - trails behind the ripple
+        else if (tailLength > 0) {
+          // Tail is toward center when expanding, toward edges when contracting
+          boolean inTailZone =
+              expanding
+                  ? distanceFromCenter < rippleRadius // Tail toward center
+                  : distanceFromCenter > rippleRadius; // Tail toward edges
+
+          if (inTailZone) {
+            double tailDistance = distanceFromRipple - rippleWidth / 2.0;
+            if (tailDistance < tailLength) {
+              brightness = 0.6 * (1.0 - tailDistance / tailLength); // Fade from 60% to 0
+            }
+          }
+        }
+
+        if (brightness > 0) {
+          writer.setLED(
+              i,
+              new Color(color.red * brightness, color.green * brightness, color.blue * brightness));
+        } else {
+          writer.setLED(i, Color.kBlack);
+        }
+      }
+    };
+  }
+
+  /**
+   * Creates a bounce ripple pattern with configurable ripple width.
+   *
+   * @param color the color to display
+   * @param rippleWidth number of LEDs in the ripple band
+   * @param cyclesPerSecond how many full expand-contract cycles per second
+   * @return the bounce ripple pattern
+   */
+  public static LEDPattern bounceRipple(Color color, int rippleWidth, double cyclesPerSecond) {
+    return bounceRipple(color, rippleWidth, 3, cyclesPerSecond); // Default 3 LED tail
+  }
+
+  /**
+   * Creates a bounce ripple pattern with default settings (3 LED width, 1.5 cycles per second).
+   *
+   * @param color the color to display
+   * @return the bounce ripple pattern
+   */
+  public static LEDPattern bounceRipple(Color color) {
+    return bounceRipple(color, 3, 1.5);
+  }
+
+  /**
    * Creates a solid pattern showing the current alliance color.
    *
    * @param isRedAlliance supplies true for red alliance, false for blue
    * @return red when on red alliance, blue when on blue alliance
    */
-  public static LEDPattern allianceColor(BooleanSupplier isRedAlliance) {
-    return solidIf(isRedAlliance, Color.kRed, Color.kBlue);
+  public static LEDPattern allianceColor() {
+    if (allianceColorPattern == null) {
+      allianceColorPattern =
+          solidIf(() -> Robot.getAlliance() == Alliance.Blue, Color.kBlue, Color.kRed);
+    }
+    return allianceColorPattern;
   }
+
+  private static LEDPattern allianceColorPattern;
 }

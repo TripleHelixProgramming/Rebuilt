@@ -2,7 +2,7 @@ package frc.robot.subsystems.leds;
 
 /**
  * Constants for LED animations. Physical strip and segment configuration is defined in the {@link
- * LEDStrip} and {@link LEDGroup} enums.
+ * LEDStrip} and {@link LEDSeries} enums.
  */
 public final class LEDConstants {
 

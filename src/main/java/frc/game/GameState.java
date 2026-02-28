@@ -11,7 +11,7 @@ import org.littletonrobotics.junction.Logger;
 
 public class GameState {
 
-  enum GamePhase {
+  public enum GamePhase {
     None("0:00 - 0:00"),
     Autonomous("0:20 - 0:00"),
     Transition("2:20 - 2:10"),
@@ -26,6 +26,14 @@ public class GameState {
 
     final double countDownFrom;
     final double countDownUntil;
+
+    public double duration() {
+      return countDownFrom - countDownUntil;
+    }
+
+    public double remainingAt(double atTime) {
+      return Math.floor(atTime - countDownUntil);
+    }
 
     private GamePhase(String timer) {
       var times = timer.split("-");
@@ -59,11 +67,12 @@ public class GameState {
     return GamePhase.None;
   }
 
-  public static Optional<Alliance> getMyAlliance() {
+  public static Alliance getMyAlliance() {
     if (myAlliance == null) {
-      myAlliance = DriverStation.getAlliance().orElse(null);
+      // myAlliance = DriverStation.getAlliance().orElse(null);
+      myAlliance = Robot.allianceSelector.getAllianceColor();
     }
-    return Optional.ofNullable(myAlliance);
+    return myAlliance;
   }
 
   public static Optional<Alliance> getAutoWinner() {

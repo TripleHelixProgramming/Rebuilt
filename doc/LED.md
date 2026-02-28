@@ -9,21 +9,21 @@ The LED system provides a flexible way to control addressable LED strips on the 
 | Class | Purpose |
 |-------|---------|
 | `LEDStrip` | Physical hardware (PWM ports, buffers) |
-| `LEDGroup` | Logical groupings (segments, composite groups) |
+| `LEDSeries` | Logical groupings (segments, composite series) |
 | `LEDCustomPattern` | Custom pattern factories |
-| `LEDController` | Subsystem with command factories |
-| `LEDConstants` | Tunable constants |
+| `LEDController` | Singleton subsystem with display methods |
+| `LEDConstants` | Animation and tolerance constants |
 
 ### Design Rationale
 
-**Why enums for strips and groups?**
-Enums provide compile-time safety with no string parsing or map lookups at runtime. When you write `LEDGroup.LEFT_TOP`, the compiler validates it exists.
+**Why enums for strips and series?**
+Enums provide compile-time safety with no string parsing or map lookups at runtime. When you write `LEDSeries.ALL`, the compiler validates it exists.
 
-**Why separate LEDStrip from LEDGroup?**
-Physical layout (which PWM port, how many LEDs) changes rarely. Logical groupings (what we call "left side" or "top") are how code interacts with LEDs. Separating them means you can reorganize logical groups without rewiring, or rewire without changing application code.
+**Why separate LEDStrip from LEDSeries?**
+Physical layout (which PWM port, how many LEDs) changes rarely. Logical groupings (what we call "all" or "X_AXIS") are how code interacts with LEDs. Separating them means you can reorganize logical series without rewiring, or rewire without changing application code.
 
 **Why implement LEDReader/LEDWriter?**
-Groups can span multiple physical portions (e.g., `ALL` spans 6 portions). By implementing WPILib's `LEDReader` and `LEDWriter` interfaces, groups present a unified virtual buffer. Patterns see one contiguous strip of LEDs, even if the group spans multiple physical segments.
+Series can span multiple physical portions. By implementing WPILib's `LEDReader` and `LEDWriter` interfaces, series present a unified virtual buffer. Patterns see one contiguous strip of LEDs, even if the series spans multiple physical segments.
 
 ## Architecture
 
@@ -32,13 +32,13 @@ Groups can span multiple physical portions (e.g., `ALL` spans 6 portions). By im
 │                      LEDController                          │
 │  - Singleton subsystem                                      │
 │  - Calls LEDStrip.updateAll() every periodic cycle          │
-│  - Provides command factories                               │
+│  - Provides display methods (displayAutoSelection, etc.)    │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                        LEDGroup                             │
-│  - Enum of logical groups (LEFT, RIGHT, TOP, ALL, etc.)     │
+│                        LEDSeries                            │
+│  - Enum of logical series (Y_AXIS, X_AXIS, ALL, etc.)       │
 │  - Implements LEDReader + LEDWriter for unified buffer      │
 │  - applyPattern() applies any LEDPattern                    │
 └─────────────────────────────────────────────────────────────┘
@@ -52,50 +52,138 @@ Groups can span multiple physical portions (e.g., `ALL` spans 6 portions). By im
 └─────────────────────────────────────────────────────────────┘
 ```
 
+## Current Physical Layout
+
+The robot currently has one LED strip:
+
+| Strip | PWM Port | LED Count |
+|-------|----------|-----------|
+| MAIN  | 0        | 24        |
+
+### Series Configuration
+
+The strip is divided into two primary segments by robot axis:
+
+| Series | LEDs | Description |
+|--------|------|-------------|
+| `ALL` | 0-23 | All LEDs as one series |
+| `Y_AXIS` | 0-11 | Along robot Y axis (pose-seek, hub countdown) |
+| `X_AXIS` | 12-23 | Along robot X axis (auto selection, robot state) |
+
+#### Pose-Seek Segments (within Y_AXIS)
+
+The Y_AXIS segment is further divided for pose-seek feedback:
+
+```
+[Y_LEFT] [ROT_LEFT] [X_CENTER] [ROT_RIGHT] [Y_RIGHT]
+[0-1]    [2-3]      [4-7]      [8-9]       [10-11]
+```
+
+| Series | LEDs | Description |
+|--------|------|-------------|
+| `POSE_Y_LEFT` | 0-1 | Left side Y translation feedback |
+| `POSE_ROTATION_LEFT` | 2-3 | Left rotation feedback |
+| `POSE_X_CENTER` | 4-7 | X translation feedback (center) |
+| `POSE_ROTATION_RIGHT` | 8-9 | Right rotation feedback |
+| `POSE_Y_RIGHT` | 10-11 | Right side Y translation feedback |
+| `POSE_ROTATION` | 2-3, 8-9 | Combined rotation (both sides) |
+
+## Display Functions
+
+The `LEDController` provides high-level display methods for common robot states:
+
+### displayAutoSelection()
+
+Displays the currently selected autonomous routine during disabled mode.
+
+- Shows counting blocks in alliance color (red or blue)
+- Number of blocks corresponds to the auto option number (1, 2, 3, etc.)
+- Blinks yellow if no auto is selected
+- Sets the last LED to yellow if there's a mismatch between driver station alliance and selected alliance
+
+**Used on:** `X_AXIS` (LEDs 12-23)
+
+### displayPoseSeek(currentPose, targetPose)
+
+Provides visual feedback for manually aligning the robot to a target pose. Useful during disabled mode to help drivers position the robot for autonomous.
+
+**Layout:** `[Y_LEFT][ROT_LEFT][X_CENTER][ROT_RIGHT][Y_RIGHT]`
+
+| Segment | Meaning |
+|---------|---------|
+| **X (center)** | Green = drive forward, Red = drive backward, White = correct |
+| **Rotation (inner)** | Magenta = rotate CCW, Cyan = rotate CW, White = correct |
+| **Y (ends)** | Green on side to strafe toward, Red on opposite side, White = correct |
+
+Tolerances are defined in `LEDConstants`:
+- X: 5 cm
+- Y: 6 cm
+- Heading: 3°
+
+**Used on:** `Y_AXIS` segments (LEDs 0-11)
+
+### displayRobotState(isOnTarget, isSpindexing)
+
+Shows launcher and spindexer state during teleop and autonomous.
+
+| State | Color | Animation |
+|-------|-------|-----------|
+| Not on target, spindexer inactive | Yellow | Solid |
+| Not on target, spindexer active | Yellow | Bounce ripple |
+| On target, spindexer inactive | Green | Solid |
+| On target, spindexer active | Green | Bounce ripple |
+
+**Used on:** `X_AXIS` (LEDs 12-23)
+
+### displayHubCountdown()
+
+Shows remaining time in the current match phase as a progress bar.
+
+- Bar fills in alliance color (red or blue based on hub state)
+- Empties as time runs out
+
+**Used on:** `Y_AXIS` (LEDs 0-11)
+
+### clear() / clear(series, ...)
+
+Turns off all LEDs or specific series by applying solid black.
+
 ## Quick Start
 
 ### Basic Usage
 
 ```java
-// Apply a solid color to a group
-LEDGroup.ALL.applyPattern(LEDPattern.solid(Color.kGreen));
+// Apply a solid color to all LEDs
+LEDSeries.ALL.applyPattern(LEDPattern.solid(Color.kGreen));
 
 // Apply a built-in WPILib pattern
-LEDGroup.LEFT.applyPattern(LEDPattern.rainbow(255, 255));
+LEDSeries.ALL.applyPattern(LEDPattern.rainbow(255, 255));
 
 // Apply a custom pattern
-LEDGroup.RIGHT.applyPattern(LEDCustomPattern.scrollingBlocks(Color.kOrange));
+LEDSeries.X_AXIS.applyPattern(LEDCustomPattern.scrollingBlocks(Color.kOrange));
 ```
 
-### Creating Commands
+### Using LEDController
 
-Use `LEDController` to create commands that run patterns:
+The `LEDController` provides pre-built display methods:
 
 ```java
 LEDController leds = LEDController.getInstance();
 
-// Static pattern
-Command solidGreen = leds.runPattern(LEDPattern.solid(Color.kGreen), LEDGroup.ALL);
+// Display auto selection (counting blocks in alliance color)
+leds.displayAutoSelection();
 
-// Dynamic pattern (re-evaluated each cycle)
-Command allianceColor = leds.runPattern(
-    () -> LEDPattern.solid(isRedAlliance() ? Color.kRed : Color.kBlue),
-    LEDGroup.ALL
-);
-```
+// Display pose-seek feedback
+leds.displayPoseSeek(drive.getPose(), targetPose);
 
-### Binding to Triggers
+// Display robot state
+leds.displayRobotState(() -> launcher.isOnTarget(), () -> feeder.isSpinning());
 
-```java
-// Show green while a button is held
-joystick.button(1).whileTrue(
-    leds.runPattern(LEDPattern.solid(Color.kGreen), LEDGroup.ALL)
-);
+// Display hub countdown (progress bar)
+leds.displayHubCountdown();
 
-// Set default pattern
-leds.setDefaultCommand(
-    leds.runPattern(LEDCustomPattern.allianceColor(this::isRedAlliance), LEDGroup.ALL)
-);
+// Clear all LEDs
+leds.clear();
 ```
 
 ## Physical Layout Configuration
@@ -106,7 +194,7 @@ In `LEDStrip.java`, define each physical LED strip:
 
 ```java
 public enum LEDStrip {
-  MAIN(9, 40);      // PWM port 9, 40 LEDs
+  MAIN(0, 24);      // PWM port 0, 24 LEDs
   // FRONT(8, 60),  // Uncomment to add more strips
   // BACK(7, 30);
   ...
@@ -115,37 +203,36 @@ public enum LEDStrip {
 
 ### Defining Portions
 
-In `LEDGroup.java`, the `P` class defines portions - the single source of truth for physical layout:
+In `LEDSeries.java`, the `P` class defines portions - the single source of truth for physical layout:
 
 ```java
 private static final class P {
   // (strip, startIndex, endIndex, reversed)
-  static final Portion RIGHT_BOTTOM = new Portion(LEDStrip.MAIN, 0, 7, true);
-  static final Portion RIGHT_MIDDLE = new Portion(LEDStrip.MAIN, 8, 11, true);
-  static final Portion RIGHT_TOP = new Portion(LEDStrip.MAIN, 12, 19, true);
-  static final Portion LEFT_TOP = new Portion(LEDStrip.MAIN, 20, 27, false);
-  static final Portion LEFT_MIDDLE = new Portion(LEDStrip.MAIN, 28, 31, false);
-  static final Portion LEFT_BOTTOM = new Portion(LEDStrip.MAIN, 32, 39, false);
+  static final Portion ALL = new Portion(LEDStrip.MAIN, 0, 23, false);
+  static final Portion Y_AXIS = new Portion(LEDStrip.MAIN, 0, 11, false);
+  static final Portion X_AXIS = new Portion(LEDStrip.MAIN, 12, 23, false);
+  // Pose-seek portions
+  static final Portion POSE_Y_LEFT = new Portion(LEDStrip.MAIN, 0, 1, false);
+  static final Portion POSE_ROT_LEFT = new Portion(LEDStrip.MAIN, 2, 3, false);
+  static final Portion POSE_X_CENTER = new Portion(LEDStrip.MAIN, 4, 7, false);
+  static final Portion POSE_ROT_RIGHT = new Portion(LEDStrip.MAIN, 8, 9, false);
+  static final Portion POSE_Y_RIGHT = new Portion(LEDStrip.MAIN, 10, 11, false);
 }
 ```
 
 The `reversed` flag controls animation direction. Set `true` if LEDs are wired in the opposite direction from your logical "forward."
 
-### Defining Groups
+### Defining Series
 
-Groups reference portions from `P`:
+Series reference portions from `P`:
 
 ```java
-public enum LEDGroup implements LEDReader, LEDWriter {
-  // Individual segments
-  RIGHT_BOTTOM(P.RIGHT_BOTTOM),
-  LEFT_TOP(P.LEFT_TOP),
-
-  // Composite groups (multiple portions)
-  LEFT(P.LEFT_TOP, P.LEFT_MIDDLE, P.LEFT_BOTTOM),
-  RIGHT(P.RIGHT_BOTTOM, P.RIGHT_MIDDLE, P.RIGHT_TOP),
-  TOP(P.LEFT_TOP, P.RIGHT_TOP),
-  ALL(P.RIGHT_BOTTOM, P.RIGHT_MIDDLE, P.RIGHT_TOP, P.LEFT_TOP, P.LEFT_MIDDLE, P.LEFT_BOTTOM);
+public enum LEDSeries implements LEDReader, LEDWriter {
+  ALL(P.ALL),
+  Y_AXIS(P.Y_AXIS),
+  X_AXIS(P.X_AXIS),
+  POSE_Y_LEFT(P.POSE_Y_LEFT),
+  POSE_ROTATION(P.POSE_ROT_LEFT, P.POSE_ROT_RIGHT),  // Composite series
   ...
 }
 ```
@@ -192,13 +279,13 @@ For patterns that change based on robot state, use suppliers:
 ```java
 public static LEDPattern progressBar(
     Supplier<Double> progressSupplier,
-    Color color,
+    Supplier<Color> colorSupplier,
     Color backgroundColor) {
   return (reader, writer) -> {
     int length = reader.getLength();
     int filled = (int) (length * progressSupplier.get());
     for (int i = 0; i < length; i++) {
-      writer.setLED(i, i < filled ? color : backgroundColor);
+      writer.setLED(i, i < filled ? colorSupplier.get() : backgroundColor);
     }
   };
 }
@@ -219,56 +306,41 @@ LEDPattern.gradient(LEDPattern.GradientType.kContinuous, Color.kRed, Color.kBlue
 | Pattern | Description |
 |---------|-------------|
 | `stackedBlocks(color, blockSize, gapSize)` | Colored blocks with gaps |
-| `scrollingBlocks(color)` | Animated scrolling blocks |
+| `stackedBlocks(color, blockSize, gapSize, gapColor)` | Blocks with colored gaps |
+| `scrollingBlocks(color)` | Animated scrolling blocks (default 3 LED blocks, 2 LED gaps) |
+| `scrollingBlocks(color, blockSize, gapSize)` | Configurable scrolling blocks |
 | `solidIf(condition, trueColor, falseColor)` | Conditional solid color |
-| `progressBar(progress, color, bgColor)` | Fill bar based on 0.0-1.0 value |
+| `progressBar(progress, colorSupplier, bgColor)` | Fill bar based on 0.0-1.0 value |
 | `statusGradient(value, lowColor, highColor)` | Blend between colors |
-| `countingBlocks(count, color, blockSize, gapSize)` | Display N blocks |
-| `allianceColor(isRedAlliance)` | Red or blue based on alliance |
+| `countingBlocks(countSupplier, colorSupplier, blockSize, gapSize)` | Display N blocks |
+| `bounceRipple(color)` | Expanding/contracting ripple with comet tail |
+| `bounceRipple(color, rippleWidth, cyclesPerSecond)` | Configurable bounce ripple |
+| `bounceRipple(color, rippleWidth, tailLength, cyclesPerSecond)` | Full control |
+| `allianceColor()` | Red or blue based on current alliance |
 
-## Typical Use Cases
+### Pre-allocated Patterns in LEDController
 
-### Intake/Outtake Animation
+| Pattern | Description |
+|---------|-------------|
+| `solidBlackPattern` | Solid black (off) |
+| `solidYellowPattern` | Solid yellow |
+| `solidGreenPattern` | Solid green |
+| `bounceRippleYellowPattern` | Yellow bounce ripple (spindexing, not on target) |
+| `bounceRippleGreenPattern` | Green bounce ripple (spindexing, on target) |
+| `autoSelectionPattern` | Counting blocks in alliance color |
+| `hubCountdownPattern` | Progress bar for match phase |
 
-```java
-// Scroll blocks inward during intake
-Command intakeLEDs = leds.runPattern(
-    LEDCustomPattern.scrollingBlocks(Color.kOrange),
-    LEDGroup.ALL
-);
+## Simulation
 
-// Scroll blocks outward during outtake (reverse the pattern)
-Command outtakeLEDs = leds.runPattern(
-    LEDCustomPattern.scrollingBlocks(Color.kOrange).reversed(),
-    LEDGroup.ALL
-);
-```
+When running in simulation mode, LED state can be visualized using the **WPILib Simulation GUI**. The GUI automatically displays `AddressableLED` objects.
 
-### Showing Robot State
+To view LEDs in simulation:
+1. Run robot code in simulation mode
+2. Open the Simulation GUI window
+3. Look for the "Addressable LEDs" widget under Hardware menu
+4. LED colors update in real-time as patterns are applied
 
-```java
-// Show arm position as progress bar
-Command armProgress = leds.runPattern(
-    LEDCustomPattern.progressBar(arm::getPositionRatio, Color.kGreen, Color.kBlack),
-    LEDGroup.LEFT
-);
-
-// Flash when at setpoint
-Command atSetpoint = leds.runPattern(
-    LEDPattern.solid(Color.kGreen).blink(Units.Seconds.of(0.1)),
-    LEDGroup.ALL
-);
-```
-
-### Auto Selection Display
-
-```java
-// Show auto number as counted blocks in alliance color
-Command autoDisplay = leds.runAutoSelection(
-    autoChooser::getSelectedAutoNumber,
-    () -> isRedAlliance() ? Color.kRed : Color.kBlue
-);
-```
+No code changes are required - the built-in simulation support works automatically with the existing `AddressableLED` implementation in `LEDStrip`.
 
 ## Troubleshooting
 
@@ -285,3 +357,6 @@ Check the start/end indices in your `Portion` definitions. Indices are inclusive
 
 ### Colors look wrong
 WPILib uses RGB order. Some LED strips expect GRB. Check your strip's data format.
+
+### Same LEDs lighting up for different series
+Verify that portion definitions in the `P` class have non-overlapping indices for the segments you're using independently.

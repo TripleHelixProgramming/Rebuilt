@@ -1,23 +1,26 @@
 package frc.robot.subsystems.leds;
 
+import static edu.wpi.first.units.Units.Centimeters;
 import static edu.wpi.first.units.Units.Seconds;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.LEDPattern;
 import edu.wpi.first.wpilibj.util.Color;
-import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.lib.AutoOption;
-import java.util.Optional;
+import frc.game.GameState;
+import frc.robot.Robot;
 import java.util.function.Supplier;
 
 /**
  * A subsystem to control the LEDs on the robot.
  *
- * <p>Physical strips are defined in {@link LEDStrip}, logical groups in {@link LEDGroup}, and
+ * <p>Physical strips are defined in {@link LEDStrip}, logical views in {@link LEDSeries}, and
  * custom patterns in {@link LEDCustomPattern}.
  *
- * <p>Apply patterns directly to groups: {@code LEDGroup.ALL.applyPattern(pattern)}
+ * <p>Apply patterns directly to series: {@code LEDSeries.ALL.applyPattern(pattern)}
  *
  * <p>This is a singleton class. Access the instance via {@link #getInstance()}.
  */
@@ -25,6 +28,11 @@ public class LEDController extends SubsystemBase {
 
   private static LEDController instance;
 
+  /**
+   * Returns the singleton instance of the LED controller, creating it if necessary.
+   *
+   * @return the LED controller instance
+   */
   public static synchronized LEDController getInstance() {
     if (instance == null) {
       instance = new LEDController();
@@ -36,102 +44,192 @@ public class LEDController extends SubsystemBase {
     LEDStrip.startAll();
   }
 
+  /** Pushes LED buffer data to all physical strips each cycle. */
   @Override
   public void periodic() {
     LEDStrip.updateAll();
   }
 
-  // ==================== COMMAND FACTORIES ====================
-
-  /**
-   * Creates a command that continuously applies a pattern to a group.
-   *
-   * @param pattern the pattern to apply
-   * @param group the group to apply to
-   * @return a command that runs the pattern
-   */
-  public Command runPattern(LEDPattern pattern, LEDGroup group) {
-    return run(() -> group.applyPattern(pattern));
-  }
-
-  /**
-   * Creates a command that continuously applies a pattern from a supplier.
-   *
-   * @param patternSupplier supplies the pattern to apply
-   * @param group the group to apply to
-   * @return a command that runs the pattern
-   */
-  public Command runPattern(Supplier<LEDPattern> patternSupplier, LEDGroup group) {
-    return run(() -> group.applyPattern(patternSupplier.get()));
-  }
-
   // ==================== CONTEXT-AWARE DISPLAYS ====================
 
   /**
-   * Displays pose-seek feedback on the LEDs. Shows how to move the robot to reach a target pose.
+   * Displays pose-seek feedback on a horizontal LED strip. Shows how to move the robot to reach a
+   * target pose.
+   *
+   * <p>Layout: [Y_LEFT] [ROT_LEFT] [X_CENTER] [ROT_RIGHT] [Y_RIGHT]
+   *
+   * <p>Indices: [0-1] [2-3] [4-7] [8-9] [10-11]
    *
    * <ul>
-   *   <li><b>Heading (MIDDLE):</b> White = correct, Cyan = rotate CW, Magenta = rotate CCW
-   *   <li><b>X (TOP):</b> White = correct, Green = forward, Red = backward
-   *   <li><b>Y (BOTTOM):</b> White = correct, Green on one side = move that direction
+   *   <li><b>Y (ends):</b> Green on side to move toward, red on opposite side. White if correct.
+   *   <li><b>Rotation (inner):</b> Cyan = rotate CW, Magenta = rotate CCW. White if correct.
+   *   <li><b>X (center):</b> Green = forward, Red = backward. White if correct.
    * </ul>
+   *
+   * @param currentPose the robot's current pose
+   * @param targetPose the target pose to reach
    */
-  private void displayPoseSeek(Pose2d currentPose, Pose2d targetPose) {
-    // var delta = targetPose.minus(currentPose);
+  public void displayPoseSeek(Pose2d currentPose, Pose2d targetPose) {
+    var delta = targetPose.minus(currentPose);
 
-    // // Heading feedback on MIDDLE
-    // var theta = MathUtil.inputModulus(delta.getRotation().getDegrees(), -180, 180);
-    // Color headingColor =
-    //     Math.abs(theta) < LEDConstants.kPoseSeekHeadingToleranceDegrees
-    //         ? Color.kWhite
-    //         : theta > 0 ? Color.kMagenta : Color.kCyan;
-    // LEDGroup.MIDDLE.applyPattern(LEDPattern.solid(headingColor));
+    // X feedback on center LEDs
+    var x = delta.getTranslation().getMeasureX().in(Centimeters);
+    Color xColor =
+        Math.abs(x) < LEDConstants.kPoseSeekXToleranceCm
+            ? Color.kWhite
+            : x > 0 ? Color.kGreen : Color.kRed;
+    LEDSeries.POSE_X_CENTER.applyPattern(LEDPattern.solid(xColor));
 
-    // // X feedback on TOP
-    // var x = delta.getTranslation().getMeasureX().in(Centimeters);
-    // Color xColor =
-    //     Math.abs(x) < LEDConstants.kPoseSeekXToleranceCm
-    //         ? Color.kWhite
-    //         : x > 0 ? Color.kGreen : Color.kRed;
-    // LEDGroup.TOP.applyPattern(LEDPattern.solid(xColor));
+    // Heading feedback on rotation LEDs (between center and ends)
+    var theta = MathUtil.inputModulus(delta.getRotation().getDegrees(), -180, 180);
+    Color headingColor =
+        Math.abs(theta) < LEDConstants.kPoseSeekHeadingToleranceDegrees
+            ? Color.kWhite
+            : theta > 0 ? Color.kMagenta : Color.kCyan;
+    LEDSeries.POSE_ROTATION.applyPattern(LEDPattern.solid(headingColor));
 
-    // // Y feedback on BOTTOM
-    // var y = delta.getTranslation().getMeasureY().in(Centimeters);
-    // if (Math.abs(y) < LEDConstants.kPoseSeekYToleranceCm) {
-    //   LEDGroup.BOTTOM.applyPattern(LEDPattern.solid(Color.kWhite));
-    // } else {
-    //   LEDGroup yGroup = y > 0 ? LEDGroup.LEFT_BOTTOM : LEDGroup.RIGHT_BOTTOM;
-    //   LEDGroup otherGroup = y > 0 ? LEDGroup.RIGHT_BOTTOM : LEDGroup.LEFT_BOTTOM;
-    //   yGroup.applyPattern(LEDPattern.solid(Color.kGreen));
-    //   otherGroup.applyPattern(LEDPattern.solid(Color.kBlack));
-    // }
+    // Y feedback on end LEDs (green = move toward that side, red = move away)
+    var y = delta.getTranslation().getMeasureY().in(Centimeters);
+    if (Math.abs(y) < LEDConstants.kPoseSeekYToleranceCm) {
+      LEDSeries.POSE_Y_LEFT.applyPattern(LEDPattern.solid(Color.kWhite));
+      LEDSeries.POSE_Y_RIGHT.applyPattern(LEDPattern.solid(Color.kWhite));
+    } else if (y > 0) {
+      // Need to strafe left
+      LEDSeries.POSE_Y_LEFT.applyPattern(LEDPattern.solid(Color.kGreen));
+      LEDSeries.POSE_Y_RIGHT.applyPattern(LEDPattern.solid(Color.kRed));
+    } else {
+      // Need to strafe right
+      LEDSeries.POSE_Y_LEFT.applyPattern(LEDPattern.solid(Color.kRed));
+      LEDSeries.POSE_Y_RIGHT.applyPattern(LEDPattern.solid(Color.kGreen));
+    }
   }
 
-  public void displayAutoSelection(Optional<AutoOption> maybeAutoOption) {
-    maybeAutoOption.ifPresentOrElse(
-        autoOption ->
-            LEDGroup.ALL.applyPattern(
-                LEDCustomPattern.countingBlocks(
-                    () -> autoOption.getOptionNumber(),
-                    () -> autoOption.getAllianceColor(),
-                    LEDConstants.kLEDsPerBlock,
-                    LEDConstants.kLEDsBetweenBlocks)),
-        () -> LEDGroup.ALL.applyPattern(LEDPattern.solid(Color.kYellow).blink(Seconds.of(0.5))));
-  }
+  // ==================== PRE-ALLOCATED PATTERNS ====================
 
-  public void runDisplayAutoSelection(Supplier<Optional<AutoOption>> autoModeOptionalSupplier) {
-    setDefaultCommand(
-        run(() -> displayAutoSelection(autoModeOptionalSupplier.get())).ignoringDisable(true));
+  /** Solid black pattern (LEDs off). */
+  public static final LEDPattern solidBlackPattern = LEDPattern.solid(Color.kBlack);
+
+  /** Solid yellow pattern. */
+  public static final LEDPattern solidYellowPattern = LEDPattern.solid(Color.kYellow);
+
+  /** Solid green pattern. */
+  public static final LEDPattern solidGreenPattern = LEDPattern.solid(Color.kGreen);
+
+  /** Bounce ripple pattern in yellow (spindexing, not on target). */
+  public static final LEDPattern bounceRippleYellowPattern =
+      LEDCustomPattern.bounceRipple(Color.kYellow);
+
+  /** Bounce ripple pattern in green (spindexing, on target). */
+  public static final LEDPattern bounceRippleGreenPattern =
+      LEDCustomPattern.bounceRipple(Color.kGreen);
+
+  /**
+   * Pattern displaying the selected auto routine as counting blocks in alliance color. The number
+   * of blocks corresponds to the auto option number.
+   */
+  public static LEDPattern autoSelectionPattern =
+      LEDCustomPattern.countingBlocks(
+          () -> Robot.autoSelector.get().get().getOptionNumber(),
+          () -> Robot.autoSelector.get().get().getAllianceColor(),
+          LEDConstants.kLEDsPerBlock,
+          LEDConstants.kLEDsBetweenBlocks);
+
+  /**
+   * Pattern displaying a progress bar for the current match phase. Shows remaining time as a
+   * filling bar in alliance color (red or blue depending on hub state).
+   */
+  public static LEDPattern hubCountdownPattern =
+      LEDCustomPattern.progressBar(
+          // Percent full
+          () -> {
+            var t = GameState.getMatchTime();
+            var phase = GameState.getCurrentPhase();
+            return phase.remainingAt(t) / phase.duration();
+          },
+          // Fill color
+          () -> {
+            if (GameState.isMyHubActive() && GameState.getMyAlliance() == Alliance.Red) {
+              return Color.kRed;
+            }
+            return Color.kBlue;
+          },
+          // Background color
+          Color.kBlack);
+
+  /**
+   * Displays the current auto selection on the LEDs. Shows counting blocks in alliance color
+   * representing the auto option number. Blinks yellow if no auto is selected. Sets the last LED to
+   * yellow if there is a mismatch between the driver station alliance and the selected alliance
+   * color.
+   */
+  public void displayAutoSelection() {
+    // In displayAutoSelection or somewhere you can test:
+    // LEDSeries.Y_AXIS.applyPattern(LEDPattern.solid(Color.kRed));
+    // LEDSeries.X_AXIS.applyPattern(LEDPattern.solid(Color.kBlue));
+
+    Robot.autoSelector
+        .get()
+        .ifPresentOrElse(
+            autoOption -> LEDSeries.X_AXIS.applyPattern(autoSelectionPattern),
+            () -> LEDSeries.X_AXIS.applyPattern(solidYellowPattern.blink(Seconds.of(0.5))));
+
+    // Display yellow at end pixel if alliance disagreement
+    DriverStation.getAlliance()
+        .ifPresent(
+            alliance -> {
+              if (alliance != Robot.allianceSelector.getAllianceColor()) {
+                LEDSeries.X_AXIS.setLED(LEDSeries.X_AXIS.getLength() - 1, Color.kYellow);
+              }
+            });
   }
 
   /**
-   * Creates a command to display pose-seek feedback.
-   *
-   * @param currentPoseSupplier supplies the current pose
-   * @param targetPose the target pose
-   * @return a command that displays pose-seek feedback
+   * Displays a progress bar showing the remaining time in the current match phase. The bar fills in
+   * alliance color based on hub state. When both hubs are active, shows our alliance color.
    */
-  public Command runPoseSeek(Supplier<Pose2d> currentPoseSupplier, Pose2d targetPose) {
-    return run(() -> displayPoseSeek(currentPoseSupplier.get(), targetPose));
+  public void displayHubCountdown() {
+    LEDSeries.Y_AXIS.applyPattern(hubCountdownPattern);
+  }
+
+  /**
+   * Displays robot state on the X_AXIS LEDs.
+   *
+   * <ul>
+   *   <li><b>Color:</b> Yellow = not locked on target, Green = locked on target
+   *   <li><b>Animation:</b> Solid = spindexer inactive, Ripple = spindexer active
+   * </ul>
+   *
+   * @param isOnTarget supplies true when launcher is locked on target
+   * @param isSpindexing supplies true when spindexer is active
+   */
+  public void displayRobotState(Supplier<Boolean> isOnTarget, Supplier<Boolean> isSpindexing) {
+    boolean onTarget = isOnTarget.get();
+    boolean spindexing = isSpindexing.get();
+
+    LEDPattern pattern;
+    if (onTarget) {
+      pattern = spindexing ? bounceRippleGreenPattern : solidGreenPattern;
+    } else {
+      pattern = spindexing ? bounceRippleYellowPattern : solidYellowPattern;
+    }
+    LEDSeries.X_AXIS.applyPattern(pattern);
+  }
+
+  /** Clears all LEDs by applying solid black. */
+  public void clear() {
+    clear(LEDSeries.ALL);
+  }
+
+  /**
+   * Clears the specified LED series by applying solid black.
+   *
+   * @param series the first series to clear
+   * @param more additional series to clear
+   */
+  public void clear(LEDSeries series, LEDSeries... more) {
+    series.applyPattern(solidBlackPattern);
+    for (var another : more) {
+      another.applyPattern(solidBlackPattern);
+    }
   }
 }
