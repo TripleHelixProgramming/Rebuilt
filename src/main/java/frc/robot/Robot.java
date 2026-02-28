@@ -342,6 +342,7 @@ public class Robot extends LoggedRobot {
   public void teleopInit() {
     autoSelector.cancelAuto();
     ControllerSelector.getInstance().scan(true);
+    leds.clear();
   }
 
   /** This function is called periodically during operator control. */
@@ -355,19 +356,26 @@ public class Robot extends LoggedRobot {
   public void testInit() {
     // Cancels all running commands at the start of test mode.
     CommandScheduler.getInstance().cancelAll();
+    leds.clear();
   }
 
   /** This function is called periodically during test mode. */
   @Override
-  public void testPeriodic() {}
+  public void testPeriodic() {
+    leds.displayHubCountdown();
+  }
 
   /** This function is called once when the robot is first started up. */
   @Override
-  public void simulationInit() {}
+  public void simulationInit() {
+    leds.clear();
+  }
 
   /** This function is called periodically whilst in simulation. */
   @Override
-  public void simulationPeriodic() {}
+  public void simulationPeriodic() {
+    leds.displayHubCountdown();
+  }
 
   private void configureControlPanelBindings() {
     ControllerSelector.configure(
