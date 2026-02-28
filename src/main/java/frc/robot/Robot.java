@@ -35,6 +35,7 @@ import frc.robot.auto.B_MoveForward1M;
 import frc.robot.auto.B_Path;
 import frc.robot.auto.R_MoveAndRotate;
 import frc.robot.auto.R_MoveStraight;
+import frc.robot.auto.Test2026;
 import frc.robot.auto.TraversingTheBump;
 import frc.robot.commands.DriveCommands;
 import frc.robot.subsystems.drive.Drive;
@@ -580,6 +581,7 @@ public class Robot extends LoggedRobot {
     autoSelector.addAuto(new AutoOption(Alliance.Blue, 2, new TraversingTheBump(drive)));
     autoSelector.addAuto(new AutoOption(Alliance.Red, 2, new R_MoveAndRotate(drive)));
     autoSelector.addAuto(new AutoOption(Alliance.Blue, 3, new B_Path(drive)));
+    autoSelector.addAuto(new AutoOption(Alliance.Blue, 4, new Test2026(drive)));
   }
 
   public static Alliance getAlliance() {
