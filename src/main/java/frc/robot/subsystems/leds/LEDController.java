@@ -1,7 +1,9 @@
 package frc.robot.subsystems.leds;
 
+import static edu.wpi.first.units.Units.Centimeters;
 import static edu.wpi.first.units.Units.Seconds;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
@@ -25,6 +27,11 @@ public class LEDController extends SubsystemBase {
 
   private static LEDController instance;
 
+  /**
+   * Returns the singleton instance of the LED controller, creating it if necessary.
+   *
+   * @return the LED controller instance
+   */
   public static synchronized LEDController getInstance() {
     if (instance == null) {
       instance = new LEDController();
@@ -36,6 +43,7 @@ public class LEDController extends SubsystemBase {
     LEDStrip.startAll();
   }
 
+  /** Pushes LED buffer data to all physical strips each cycle. */
   @Override
   public void periodic() {
     LEDStrip.updateAll();
@@ -44,48 +52,67 @@ public class LEDController extends SubsystemBase {
   // ==================== CONTEXT-AWARE DISPLAYS ====================
 
   /**
-   * Displays pose-seek feedback on the LEDs. Shows how to move the robot to reach a target pose.
+   * Displays pose-seek feedback on a horizontal LED strip. Shows how to move the robot to reach a
+   * target pose.
+   *
+   * <p>Layout: [Y_LEFT] [ROT_LEFT] [X_CENTER] [ROT_RIGHT] [Y_RIGHT]
+   *
+   * <p>Indices: [0-1] [2-3] [4-7] [8-9] [10-11]
    *
    * <ul>
-   *   <li><b>Heading (MIDDLE):</b> White = correct, Cyan = rotate CW, Magenta = rotate CCW
-   *   <li><b>X (TOP):</b> White = correct, Green = forward, Red = backward
-   *   <li><b>Y (BOTTOM):</b> White = correct, Green on one side = move that direction
+   *   <li><b>Y (ends):</b> Green on side to move toward, red on opposite side. White if correct.
+   *   <li><b>Rotation (inner):</b> Cyan = rotate CW, Magenta = rotate CCW. White if correct.
+   *   <li><b>X (center):</b> Green = forward, Red = backward. White if correct.
    * </ul>
+   *
+   * @param currentPose the robot's current pose
+   * @param targetPose the target pose to reach
    */
-  private void displayPoseSeek(Pose2d currentPose, Pose2d targetPose) {
-    // var delta = targetPose.minus(currentPose);
+  public void displayPoseSeek(Pose2d currentPose, Pose2d targetPose) {
+    var delta = targetPose.minus(currentPose);
 
-    // // Heading feedback on MIDDLE
-    // var theta = MathUtil.inputModulus(delta.getRotation().getDegrees(), -180, 180);
-    // Color headingColor =
-    //     Math.abs(theta) < LEDConstants.kPoseSeekHeadingToleranceDegrees
-    //         ? Color.kWhite
-    //         : theta > 0 ? Color.kMagenta : Color.kCyan;
-    // LEDSeries.MIDDLE.applyPattern(LEDPattern.solid(headingColor));
+    // X feedback on center LEDs
+    var x = delta.getTranslation().getMeasureX().in(Centimeters);
+    Color xColor =
+        Math.abs(x) < LEDConstants.kPoseSeekXToleranceCm
+            ? Color.kWhite
+            : x > 0 ? Color.kGreen : Color.kRed;
+    LEDSeries.POSE_X_CENTER.applyPattern(LEDPattern.solid(xColor));
 
-    // // X feedback on TOP
-    // var x = delta.getTranslation().getMeasureX().in(Centimeters);
-    // Color xColor =
-    //     Math.abs(x) < LEDConstants.kPoseSeekXToleranceCm
-    //         ? Color.kWhite
-    //         : x > 0 ? Color.kGreen : Color.kRed;
-    // LEDSeries.TOP.applyPattern(LEDPattern.solid(xColor));
+    // Heading feedback on rotation LEDs (between center and ends)
+    var theta = MathUtil.inputModulus(delta.getRotation().getDegrees(), -180, 180);
+    Color headingColor =
+        Math.abs(theta) < LEDConstants.kPoseSeekHeadingToleranceDegrees
+            ? Color.kWhite
+            : theta > 0 ? Color.kMagenta : Color.kCyan;
+    LEDSeries.POSE_ROTATION.applyPattern(LEDPattern.solid(headingColor));
 
-    // // Y feedback on BOTTOM
-    // var y = delta.getTranslation().getMeasureY().in(Centimeters);
-    // if (Math.abs(y) < LEDConstants.kPoseSeekYToleranceCm) {
-    //   LEDSeries.BOTTOM.applyPattern(LEDPattern.solid(Color.kWhite));
-    // } else {
-    //   LEDSeries yView = y > 0 ? LEDSeries.LEFT_BOTTOM : LEDSeries.RIGHT_BOTTOM;
-    //   LEDSeries otherView = y > 0 ? LEDSeries.RIGHT_BOTTOM : LEDSeries.LEFT_BOTTOM;
-    //   yView.applyPattern(LEDPattern.solid(Color.kGreen));
-    //   otherView.applyPattern(LEDPattern.solid(Color.kBlack));
-    // }
+    // Y feedback on end LEDs (green = move toward that side, red = move away)
+    var y = delta.getTranslation().getMeasureY().in(Centimeters);
+    if (Math.abs(y) < LEDConstants.kPoseSeekYToleranceCm) {
+      LEDSeries.POSE_Y_LEFT.applyPattern(LEDPattern.solid(Color.kWhite));
+      LEDSeries.POSE_Y_RIGHT.applyPattern(LEDPattern.solid(Color.kWhite));
+    } else if (y > 0) {
+      // Need to strafe left
+      LEDSeries.POSE_Y_LEFT.applyPattern(LEDPattern.solid(Color.kGreen));
+      LEDSeries.POSE_Y_RIGHT.applyPattern(LEDPattern.solid(Color.kRed));
+    } else {
+      // Need to strafe right
+      LEDSeries.POSE_Y_LEFT.applyPattern(LEDPattern.solid(Color.kRed));
+      LEDSeries.POSE_Y_RIGHT.applyPattern(LEDPattern.solid(Color.kGreen));
+    }
   }
 
+  /** Solid black pattern (LEDs off). */
   public static LEDPattern solidBlackPattern = LEDPattern.solid(Color.kBlack);
+
+  /** Solid yellow pattern. */
   public static LEDPattern solidYellowPattern = LEDPattern.solid(Color.kYellow);
 
+  /**
+   * Pattern displaying the selected auto routine as counting blocks in alliance color. The number
+   * of blocks corresponds to the auto option number.
+   */
   public static LEDPattern autoSelectionPattern =
       LEDCustomPattern.countingBlocks(
           () -> Robot.autoSelector.get().get().getOptionNumber(),
@@ -93,6 +120,10 @@ public class LEDController extends SubsystemBase {
           LEDConstants.kLEDsPerBlock,
           LEDConstants.kLEDsBetweenBlocks);
 
+  /**
+   * Pattern displaying a progress bar for the current match phase. Shows remaining time as a
+   * filling bar in alliance color (red or blue depending on hub state).
+   */
   public static LEDPattern hubCountdownPattern =
       LEDCustomPattern.progressBar(
           // Percent full
@@ -111,6 +142,12 @@ public class LEDController extends SubsystemBase {
           // Background color
           Color.kBlack);
 
+  /**
+   * Displays the current auto selection on the LEDs. Shows counting blocks in alliance color
+   * representing the auto option number. Blinks yellow if no auto is selected. Sets the last LED to
+   * yellow if there is a mismatch between the driver station alliance and the selected alliance
+   * color.
+   */
   public void displayAutoSelection() {
     Robot.autoSelector
         .get()
@@ -128,14 +165,25 @@ public class LEDController extends SubsystemBase {
             });
   }
 
+  /**
+   * Displays a progress bar showing the remaining time in the current match phase. The bar fills in
+   * alliance color based on hub state. When both hubs are active, shows our alliance color.
+   */
   public void displayHubCountdown() {
     LEDSeries.ALL.applyPattern(hubCountdownPattern);
   }
 
+  /** Clears all LEDs by applying solid black. */
   public void clear() {
     clear(LEDSeries.ALL);
   }
 
+  /**
+   * Clears the specified LED series by applying solid black.
+   *
+   * @param series the first series to clear
+   * @param more additional series to clear
+   */
   public void clear(LEDSeries series, LEDSeries... more) {
     series.applyPattern(solidBlackPattern);
     for (var another : more) {
