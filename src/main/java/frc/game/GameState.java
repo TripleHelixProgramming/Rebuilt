@@ -27,8 +27,13 @@ public class GameState {
     final double countDownFrom;
     final double countDownUntil;
 
-    public double duration() { return countDownFrom - countDownUntil; }
-    public double remainingAt(double atTime) { return Math.floor(atTime - countDownUntil); }
+    public double duration() {
+      return countDownFrom - countDownUntil;
+    }
+
+    public double remainingAt(double atTime) {
+      return Math.floor(atTime - countDownUntil);
+    }
 
     private GamePhase(String timer) {
       var times = timer.split("-");

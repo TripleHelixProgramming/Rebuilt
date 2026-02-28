@@ -6,9 +6,9 @@ import edu.wpi.first.wpilibj.LEDReader;
 import edu.wpi.first.wpilibj.LEDWriter;
 
 /**
- * Defines logical LED series on the robot. Each series can span multiple physical strips,
- * composed of one or more portions. Series implement {@link LEDReader} and {@link LEDWriter} to
- * present a unified virtual buffer that makes all portions appear contiguous.
+ * Defines logical LED series on the robot. Each series can span multiple physical strips, composed
+ * of one or more portions. Series implement {@link LEDReader} and {@link LEDWriter} to present a
+ * unified virtual buffer that makes all portions appear contiguous.
  *
  * <p>Modify this enum when the physical LED layout changes between seasons.
  */

@@ -4,8 +4,8 @@ import static edu.wpi.first.units.Units.Seconds;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.LEDPattern;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.LEDPattern;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.game.GameState;
@@ -86,41 +86,46 @@ public class LEDController extends SubsystemBase {
   public static LEDPattern solidBlackPattern = LEDPattern.solid(Color.kBlack);
   public static LEDPattern solidYellowPattern = LEDPattern.solid(Color.kYellow);
 
-  public static LEDPattern autoSelectionPattern = LEDCustomPattern.countingBlocks(
-    () -> Robot.autoSelector.get().get().getOptionNumber(),
-    () -> Robot.autoSelector.get().get().getAllianceColor(),
-    LEDConstants.kLEDsPerBlock,
-    LEDConstants.kLEDsBetweenBlocks);
+  public static LEDPattern autoSelectionPattern =
+      LEDCustomPattern.countingBlocks(
+          () -> Robot.autoSelector.get().get().getOptionNumber(),
+          () -> Robot.autoSelector.get().get().getAllianceColor(),
+          LEDConstants.kLEDsPerBlock,
+          LEDConstants.kLEDsBetweenBlocks);
 
-  public static LEDPattern hubCountdownPattern = LEDCustomPattern.progressBar(
-    // Percent full
-    () -> {
-      var t = GameState.getMatchTime();
-      var phase = GameState.getCurrentPhase();
-      return phase.remainingAt(t) / phase.duration();
-    },
-    // Fill color
-    () -> {
-      if (GameState.isMyHubActive() && GameState.getMyAlliance() == Alliance.Red) {
-        return Color.kRed;
-      }
-      return Color.kBlue;
-    },
-    // Background color
-    Color.kBlack);
-
+  public static LEDPattern hubCountdownPattern =
+      LEDCustomPattern.progressBar(
+          // Percent full
+          () -> {
+            var t = GameState.getMatchTime();
+            var phase = GameState.getCurrentPhase();
+            return phase.remainingAt(t) / phase.duration();
+          },
+          // Fill color
+          () -> {
+            if (GameState.isMyHubActive() && GameState.getMyAlliance() == Alliance.Red) {
+              return Color.kRed;
+            }
+            return Color.kBlue;
+          },
+          // Background color
+          Color.kBlack);
 
   public void displayAutoSelection() {
-    Robot.autoSelector.get().ifPresentOrElse(
-        autoOption -> LEDSeries.ALL.applyPattern(autoSelectionPattern),
-        () -> LEDSeries.ALL.applyPattern(solidYellowPattern.blink(Seconds.of(0.5))));
+    Robot.autoSelector
+        .get()
+        .ifPresentOrElse(
+            autoOption -> LEDSeries.ALL.applyPattern(autoSelectionPattern),
+            () -> LEDSeries.ALL.applyPattern(solidYellowPattern.blink(Seconds.of(0.5))));
 
     // Display yellow at end pixel if alliance disagreement
-    DriverStation.getAlliance().ifPresent(alliance -> {
-      if (alliance != Robot.allianceSelector.getAllianceColor()) {
-        LEDSeries.ALL.setLED(LEDSeries.ALL.getLength()-1, Color.kYellow);
-      }
-    });
+    DriverStation.getAlliance()
+        .ifPresent(
+            alliance -> {
+              if (alliance != Robot.allianceSelector.getAllianceColor()) {
+                LEDSeries.ALL.setLED(LEDSeries.ALL.getLength() - 1, Color.kYellow);
+              }
+            });
   }
 
   public void displayHubCountdown() {
@@ -128,10 +133,10 @@ public class LEDController extends SubsystemBase {
   }
 
   public void clear() {
-      clear(LEDSeries.ALL);
+    clear(LEDSeries.ALL);
   }
 
-  public void clear(LEDSeries series, LEDSeries ... more) {
+  public void clear(LEDSeries series, LEDSeries... more) {
     series.applyPattern(solidBlackPattern);
     for (var another : more) {
       another.applyPattern(solidBlackPattern);

@@ -1,10 +1,9 @@
 package frc.robot.subsystems.leds;
 
-import edu.wpi.first.wpilibj.LEDPattern;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.LEDPattern;
 import edu.wpi.first.wpilibj.util.Color;
 import frc.robot.Robot;
-
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
@@ -159,9 +158,11 @@ public final class LEDCustomPattern {
    */
   public static LEDPattern allianceColor() {
     if (allianceColorPattern == null) {
-      allianceColorPattern = solidIf(() -> Robot.getAlliance() == Alliance.Blue, Color.kBlue, Color.kRed);
+      allianceColorPattern =
+          solidIf(() -> Robot.getAlliance() == Alliance.Blue, Color.kBlue, Color.kRed);
     }
     return allianceColorPattern;
   }
+
   private static LEDPattern allianceColorPattern;
 }
