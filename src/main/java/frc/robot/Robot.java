@@ -336,7 +336,7 @@ public class Robot extends LoggedRobot {
   @Override
   public void autonomousPeriodic() {
     leds.displayHubCountdown();
-    leds.displayRobotState(() -> true, () -> true);
+    leds.displayRobotState(() -> launcher.isOnTarget(), () -> feeder.isSpinning());
   }
 
   /** This function is called once when teleop mode is enabled. */
@@ -351,7 +351,7 @@ public class Robot extends LoggedRobot {
   @Override
   public void teleopPeriodic() {
     leds.displayHubCountdown();
-    leds.displayRobotState(() -> true, () -> true);
+    leds.displayRobotState(() -> launcher.isOnTarget(), () -> feeder.isSpinning());
   }
 
   /** This function is called once when test mode is enabled. */
@@ -366,7 +366,7 @@ public class Robot extends LoggedRobot {
   @Override
   public void testPeriodic() {
     leds.displayHubCountdown();
-    leds.displayRobotState(() -> true, () -> true);
+    leds.displayRobotState(() -> launcher.isOnTarget(), () -> feeder.isSpinning());
   }
 
   /** This function is called once when the robot is first started up. */
@@ -379,7 +379,7 @@ public class Robot extends LoggedRobot {
   @Override
   public void simulationPeriodic() {
     leds.displayHubCountdown();
-    leds.displayRobotState(() -> true, () -> true);
+    leds.displayRobotState(() -> launcher.isOnTarget(), () -> feeder.isSpinning());
   }
 
   private void configureControlPanelBindings() {
