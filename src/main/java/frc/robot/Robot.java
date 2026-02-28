@@ -415,17 +415,6 @@ public class Robot extends LoggedRobot {
                     drive)
                 .ignoringDisable(true));
 
-    // Aim at target
-    zorroDriver
-        .HIn()
-        .whileTrue(
-            DriveCommands.joystickDriveAtFixedOrientation(
-                drive,
-                () -> -zorroDriver.getRightYAxis(),
-                () -> -zorroDriver.getRightXAxis(),
-                () -> launcher.getHorizontalAimAngle(),
-                allianceSelector::fieldRotated));
-
     zorroDriver
         .HIn()
         .whileTrue(
@@ -433,7 +422,7 @@ public class Robot extends LoggedRobot {
                 drive,
                 () -> -zorroDriver.getRightYAxis(),
                 () -> -zorroDriver.getRightXAxis(),
-                () -> launcher.getTurretOversaturation(),
+                () -> launcher.desaturateTurret(),
                 () -> zorroDriver.getHID().getEUp(),
                 allianceSelector::fieldRotated));
 

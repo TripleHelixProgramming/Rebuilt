@@ -18,6 +18,7 @@ public interface TurretIO {
     public Rotation2d absolutePosition = Rotation2d.kZero;
 
     public double oversaturation;
+    public double oversaturationLessMargin;
   }
 
   public default void updateInputs(TurretIOInputs inputs) {}

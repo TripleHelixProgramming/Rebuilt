@@ -72,6 +72,7 @@ public final class LauncherConstants {
     public static final Rotation2d absEncoderOffset = new Rotation2d(2.04);
     public static final Rotation2d mechanismOffset = Rotation2d.k180deg;
     public static final Angle rangeOfMotion = Degrees.of(5);
+    public static final Angle margin = Degrees.of(0);
 
     // Position controller
     public static final double kPReal = 0.5;

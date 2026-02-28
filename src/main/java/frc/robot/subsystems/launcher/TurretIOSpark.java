@@ -44,6 +44,7 @@ public class TurretIOSpark implements TurretIO {
       new Debouncer(0.5, Debouncer.DebounceType.kFalling);
   private boolean relativeEncoderSeeded = false;
   private double oversaturation = 0.0;
+  private double oversaturationLessMargin = 0.0;
 
   public TurretIOSpark() {
     turnSpark = new SparkMax(CAN2.turret, MotorType.kBrushless);
@@ -111,11 +112,13 @@ public class TurretIOSpark implements TurretIO {
     inputs.absolutePosition = new Rotation2d(absoluteEncoder.get());
 
     inputs.oversaturation = oversaturation;
+    inputs.oversaturationLessMargin = oversaturationLessMargin;
   }
 
   @Override
   public void setOpenLoop(Voltage volts) {
     oversaturation = 0.0;
+    oversaturationLessMargin = 0.0;
     controller.setSetpoint(volts.in(Volts), ControlType.kVoltage);
   }
 
@@ -129,8 +132,14 @@ public class TurretIOSpark implements TurretIO {
             setpoint,
             Math.PI - rangeOfMotion.div(2).in(Radians),
             Math.PI + rangeOfMotion.div(2).in(Radians));
+    double clampedSetpointWithMargin =
+        MathUtil.clamp(
+            setpoint,
+            Math.PI - rangeOfMotion.div(2).in(Radians) + margin.in(Radians),
+            Math.PI + rangeOfMotion.div(2).in(Radians) - margin.in(Radians));
     oversaturation = setpoint - clampedSetpoint;
-    var feedforwardVolts =
+    oversaturationLessMargin = setpoint - clampedSetpointWithMargin;
+    double feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);

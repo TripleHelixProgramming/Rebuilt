@@ -6,6 +6,7 @@ import static frc.robot.subsystems.launcher.LauncherConstants.FlywheelConstants.
 import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.ballToHoodOffset;
 import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.*;
 
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -60,6 +61,9 @@ public class Launcher extends SubsystemBase {
   private double fuelSpawnTimer = 0.0;
   private double ballisticSimTimer = 0.0;
   private double ballisticLogTimer = 0.0;
+
+  // Turret desaturation
+  private final PIDController headingController = new PIDController(2.0, 0.0, 0.0);
 
   public Launcher(
       Supplier<Pose2d> chassisPoseSupplier,
@@ -271,10 +275,8 @@ public class Launcher extends SubsystemBase {
     return horizontalAimAngle;
   }
 
-  public double getTurretOversaturation() {
-    double saturation = turretInputs.oversaturation;
-    if (Math.abs(saturation) < 1e-6) return 0.0;
-    return (saturation > 0.0) ? 1.0 : -1.0;
+  public double desaturateTurret() {
+    return headingController.calculate(-turretInputs.oversaturationLessMargin, 0);
   }
 
   // @AutoLogOutput(key = "Turret/IsOnTarget")
