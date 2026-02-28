@@ -75,6 +75,7 @@ public final class LauncherConstants {
 
     // Position controller
     public static final double kPReal = 0.5;
+    public static final Angle kAllowableError = Degrees.of(1.0);
 
     // Motor controller
     public static final double motorReduction = 9.0 * 72.0 / 12.0;

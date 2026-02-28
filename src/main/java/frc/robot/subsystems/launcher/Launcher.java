@@ -269,12 +269,10 @@ public class Launcher extends SubsystemBase {
     return horizontalAimAngle;
   }
 
-  // @AutoLogOutput(key = "Turret/IsOnTarget")
-  // public boolean isOnTarget() {
-  //   return turretInputs.position.minus(turretOrientationSetpoint).getMeasure().abs(Radians)
-  //           * dynamicTargetToTurretBase.getNorm()
-  //       < (hubWidth.in(Meters) / 2.0);
-  // }
+  @AutoLogOutput(key = "Launcher/IsOnTarget")
+  public boolean isOnTarget() {
+    return turretInputs.isAtSetpoint;
+  }
 
   private Translation3d getTurretBaseSpeeds(Rotation2d rotation, ChassisSpeeds chassisSpeeds) {
     double vx = chassisSpeeds.vxMetersPerSecond;
