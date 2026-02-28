@@ -15,13 +15,13 @@ package frc.robot.subsystems.drive;
 
 import static frc.robot.subsystems.drive.DriveConstants.*;
 
-import com.ctre.phoenix6.BaseStatusSignal;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.Preferences;
+import frc.robot.Constants;
 import org.littletonrobotics.junction.Logger;
 
 public class Module {
@@ -54,8 +54,11 @@ public class Module {
   }
 
   public void periodic() {
+    long t0 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
     io.updateInputs(inputs);
+    long t1 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
     Logger.processInputs("Drive/Module" + Integer.toString(index), inputs);
+    long t2 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Calculate positions for odometry
     int sampleCount = inputs.odometryTimestamps.length; // All signals are sampled together
@@ -69,6 +72,24 @@ public class Module {
     // Update alerts
     driveDisconnectedAlert.set(!inputs.driveConnected);
     turnDisconnectedAlert.set(!inputs.turnConnected);
+    long t3 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+
+    // Profiling output
+    if (Constants.PROFILING_ENABLED) {
+      long totalMs = (t3 - t0) / 1_000_000;
+      if (totalMs > 2) {
+        System.out.println(
+            "[Module"
+                + index
+                + "] updateInputs="
+                + (t1 - t0) / 1_000_000
+                + "ms log="
+                + (t2 - t1) / 1_000_000
+                + "ms rest="
+                + (t3 - t2) / 1_000_000
+                + "ms");
+      }
+    }
   }
 
   /** Runs the module with the specified setpoint state. Mutates the state to optimize it. */
@@ -144,15 +165,5 @@ public class Module {
     Rotation2d newTurnZero = inputs.turnZero.minus(inputs.turnPosition);
     io.setTurnZero(newTurnZero);
     Preferences.setDouble(zeroRotationKey + index, newTurnZero.getRadians());
-  }
-
-  /** Refreshes the status signals (if applicable) before updating inputs. */
-  public void refreshSignals() {
-    io.refreshSignals();
-  }
-
-  /** Returns the status signals for batched refresh. */
-  public BaseStatusSignal[] getStatusSignals() {
-    return io.getStatusSignals();
   }
 }

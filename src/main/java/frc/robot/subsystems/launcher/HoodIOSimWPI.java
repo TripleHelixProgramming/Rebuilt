@@ -27,6 +27,8 @@ public class HoodIOSimWPI implements HoodIO {
         new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
 
     hoodSim.setState(0, 0.0);
+
+    positionController.setTolerance(kAllowableError.in(Radians));
   }
 
   @Override
@@ -51,6 +53,8 @@ public class HoodIOSimWPI implements HoodIO {
     inputs.velocityRadPerSec = hoodSim.getAngularVelocityRadPerSec();
     inputs.appliedVolts = appliedVolts;
     inputs.currentAmps = Math.abs(hoodSim.getCurrentDrawAmps());
+
+    inputs.isAtSetpoint = positionController.atSetpoint();
 
     if (hoodSim.getAngularPositionRad() > maxPosRad) {
       hoodSim.setState(maxPosRad, 0);

@@ -95,4 +95,8 @@ public class VisionConstants {
   public static boolean kLogSummaryPoses = false;
   public static boolean kLogAcceptedPoses = true;
   public static boolean kLogRejectedPoses = false;
+
+  // Logging frequency (1 = every cycle, 2 = every other cycle, etc.)
+  // Higher values reduce CPU load but lose data granularity for replay
+  public static int kLoggingDivisor = 2;
 }

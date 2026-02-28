@@ -22,7 +22,6 @@ import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.Constants.CANBusPorts.CAN2;
-import org.littletonrobotics.junction.Logger;
 
 public class IntakeRollerIOTalonFX implements IntakeRollerIO {
   private final TalonFX intakeMotorLeader;
@@ -78,10 +77,17 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
 
   @Override
   public void updateInputs(IntakeRollerIOInputs inputs) {
+    // No explicit refresh - Phoenix 6 auto-updates signals at configured frequency (50Hz)
+    // This avoids blocking CAN calls in the main loop
     inputs.connected =
         connectedDebounce.calculate(
             BaseStatusSignal.refreshAll(
-                    intakeVelocity, intakeAcceleration, intakeAppliedVolts, intakeCurrent)
+                    intakeVelocity,
+                    intakeAcceleration,
+                    intakeAppliedVolts,
+                    intakeCurrent,
+                    followerAppliedVolts,
+                    followerCurrent)
                 .isOK());
 
     inputs.appliedVolts = intakeAppliedVolts.getValueAsDouble();
@@ -89,9 +95,10 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
     inputs.velocityMetersPerSec =
         intakeVelocity.getValue().in(RadiansPerSecond) * rollerRadius.in(Meters) / motorReduction;
 
-    BaseStatusSignal.refreshAll(followerCurrent, followerAppliedVolts);
-    Logger.recordOutput("Intake/Follower/Current", followerCurrent.getValue());
-    Logger.recordOutput("Intake/Follower/Volts", followerAppliedVolts.getValue());
+    // Follower data goes into inputs struct to be logged via processInputs()
+    // instead of recordOutput() which can block for 10-30ms
+    inputs.followerAppliedVolts = followerAppliedVolts.getValueAsDouble();
+    inputs.followerCurrentAmps = followerCurrent.getValueAsDouble();
   }
 
   @Override

@@ -75,6 +75,7 @@ import frc.robot.subsystems.launcher.Launcher;
 import frc.robot.subsystems.launcher.TurretIO;
 import frc.robot.subsystems.launcher.TurretIOSimSpark;
 import frc.robot.subsystems.launcher.TurretIOSpark;
+import frc.robot.subsystems.leds.LEDController;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.VisionIO;
 import frc.robot.subsystems.vision.VisionIOPhotonVision;
@@ -98,7 +99,7 @@ import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 public class Robot extends LoggedRobot {
   public static final AllianceSelector allianceSelector =
       new AllianceSelector(DIOPorts.allianceColorSelector);
-  private final AutoSelector autoSelector =
+  public static final AutoSelector autoSelector =
       new AutoSelector(DIOPorts.autonomousModeSelector, allianceSelector::getAllianceColor);
   public static final Field2d field = new Field2d();
 
@@ -111,6 +112,7 @@ public class Robot extends LoggedRobot {
   private Feeder feeder;
   private Intake intake;
   private Hopper hopper;
+  private LEDController leds = LEDController.getInstance();
 
   public Robot() {
     // Record metadata
@@ -273,9 +275,7 @@ public class Robot extends LoggedRobot {
   /** This function is called periodically during all modes. */
   @Override
   public void robotPeriodic() {
-    // Optionally switch the thread to high priority to improve loop
-    // timing (see the template project documentation for details)
-    // Threads.setCurrentThreadPriority(true, 99);
+    long loopStart = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Runs the Scheduler. This is responsible for polling buttons, adding
     // newly-scheduled commands, running already-scheduled commands, removing
@@ -283,8 +283,27 @@ public class Robot extends LoggedRobot {
     // This must be called from the robot's periodic block in order for anything in
     // the Command-based framework to work.
     CommandScheduler.getInstance().run();
+    long t1 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     GameState.logValues();
+    long t2 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+
+    // Profiling output
+    if (Constants.PROFILING_ENABLED) {
+      long schedulerMs = (t1 - loopStart) / 1_000_000;
+      long gameStateMs = (t2 - t1) / 1_000_000;
+      long totalMs = (t2 - loopStart) / 1_000_000;
+      if (totalMs > 20) {
+        System.out.println(
+            "[Robot] scheduler="
+                + schedulerMs
+                + "ms gameState="
+                + gameStateMs
+                + "ms total="
+                + totalMs
+                + "ms");
+      }
+    }
 
     // Return to non-RT thread priority (do not modify the first argument)
     // Threads.setCurrentThreadPriority(false, 10);
@@ -292,7 +311,9 @@ public class Robot extends LoggedRobot {
 
   /** This function is called once when the robot is disabled. */
   @Override
-  public void disabledInit() {}
+  public void disabledInit() {
+    leds.clear();
+  }
 
   /** This function is called periodically when disabled. */
   @Override
@@ -300,6 +321,12 @@ public class Robot extends LoggedRobot {
     allianceSelector.disabledPeriodic();
     autoSelector.disabledPeriodic();
     ControllerSelector.getInstance().scan(false);
+    leds.displayAutoSelection();
+    var autoOption = autoSelector.get();
+    autoOption.ifPresent(
+        a ->
+            a.getInitialPose()
+                .ifPresent(targetPose -> leds.displayPoseSeek(drive.getPose(), targetPose)));
   }
 
   /** This function is called once when autonomous mode is enabled. */
@@ -307,41 +334,58 @@ public class Robot extends LoggedRobot {
   public void autonomousInit() {
     drive.setDefaultCommand(Commands.runOnce(drive::stop, drive).withName("Stop"));
     autoSelector.scheduleAuto();
+    leds.clear();
   }
 
   /** This function is called periodically during autonomous. */
   @Override
-  public void autonomousPeriodic() {}
+  public void autonomousPeriodic() {
+    leds.displayHubCountdown();
+    leds.displayRobotState(() -> launcher.isOnTarget(), () -> feeder.isSpinning());
+  }
 
   /** This function is called once when teleop mode is enabled. */
   @Override
   public void teleopInit() {
     autoSelector.cancelAuto();
     ControllerSelector.getInstance().scan(true);
+    leds.clear();
   }
 
   /** This function is called periodically during operator control. */
   @Override
-  public void teleopPeriodic() {}
+  public void teleopPeriodic() {
+    leds.displayHubCountdown();
+    leds.displayRobotState(() -> launcher.isOnTarget(), () -> feeder.isSpinning());
+  }
 
   /** This function is called once when test mode is enabled. */
   @Override
   public void testInit() {
     // Cancels all running commands at the start of test mode.
     CommandScheduler.getInstance().cancelAll();
+    leds.clear();
   }
 
   /** This function is called periodically during test mode. */
   @Override
-  public void testPeriodic() {}
+  public void testPeriodic() {
+    leds.displayHubCountdown();
+    leds.displayRobotState(() -> launcher.isOnTarget(), () -> feeder.isSpinning());
+  }
 
   /** This function is called once when the robot is first started up. */
   @Override
-  public void simulationInit() {}
+  public void simulationInit() {
+    leds.clear();
+  }
 
   /** This function is called periodically whilst in simulation. */
   @Override
-  public void simulationPeriodic() {}
+  public void simulationPeriodic() {
+    leds.displayHubCountdown();
+    leds.displayRobotState(() -> launcher.isOnTarget(), () -> feeder.isSpinning());
+  }
 
   private void configureControlPanelBindings() {
     ControllerSelector.configure(

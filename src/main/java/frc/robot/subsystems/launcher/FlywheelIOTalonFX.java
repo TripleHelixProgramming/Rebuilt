@@ -81,10 +81,19 @@ public class FlywheelIOTalonFX implements FlywheelIO {
 
   @Override
   public void updateInputs(FlywheelIOInputs inputs) {
+    BaseStatusSignal.refreshAll(flywheelVelocity);
+
+    // No explicit refresh - Phoenix 6 auto-updates signals at configured frequency (50Hz)
+    // This avoids blocking CAN calls in the main loop
     inputs.connected =
         connectedDebounce.calculate(
             BaseStatusSignal.refreshAll(
-                    flywheelVelocity, flywheelAcceleration, flywheelAppliedVolts, flywheelCurrent)
+                    flywheelVelocity,
+                    flywheelAcceleration,
+                    flywheelAppliedVolts,
+                    flywheelCurrent,
+                    followerAppliedVolts,
+                    followerCurrent)
                 .isOK());
 
     inputs.appliedVolts = flywheelAppliedVolts.getValueAsDouble();
@@ -93,7 +102,6 @@ public class FlywheelIOTalonFX implements FlywheelIO {
         (flywheelVelocity.getValue().in(RadiansPerSecond) * wheelRadius.in(Meters))
             / motorReduction;
 
-    BaseStatusSignal.refreshAll(followerCurrent, followerAppliedVolts);
     Logger.recordOutput("Flywheel/Follower/Current", followerCurrent.getValue());
     Logger.recordOutput("Flywheel/Follower/Volts", followerAppliedVolts.getValue());
   }
