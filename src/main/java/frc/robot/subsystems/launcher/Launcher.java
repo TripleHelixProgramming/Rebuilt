@@ -6,6 +6,7 @@ import static frc.robot.subsystems.launcher.LauncherConstants.FlywheelConstants.
 import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.ballToHoodOffset;
 import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.*;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -169,8 +170,13 @@ public class Launcher extends SubsystemBase {
     turretBasePose = new Pose3d(chassisPoseSupplier.get()).plus(chassisToTurretBase);
     vectorTurretBaseToTarget = target.minus(turretBasePose.getTranslation());
 
+    // Compute distance-based impact angle
+    double horizontalDistance =
+        Math.hypot(vectorTurretBaseToTarget.getX(), vectorTurretBaseToTarget.getY());
+    Rotation2d dynamicImpactAngle = getImpactAngle(horizontalDistance);
+
     // Set flywheel speed assuming a motionless robot
-    var v0_nominal = getV0Nominal(vectorTurretBaseToTarget, impactAngle, nominalKey);
+    var v0_nominal = getV0Nominal(vectorTurretBaseToTarget, dynamicImpactAngle, nominalKey);
     var flywheelSetpoint = MetersPerSecond.of(flywheelSetpointfromBallistics(v0_nominal.getNorm()));
     flywheelIO.setVelocity(flywheelSetpoint);
     long t1 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
@@ -320,6 +326,18 @@ public class Launcher extends SubsystemBase {
     cachedBaseSpeeds = baseSpeeds;
 
     return baseSpeeds;
+  }
+
+  private Rotation2d getImpactAngle(double horizontalDistanceMeters) {
+    double t =
+        (horizontalDistanceMeters - impactAngleCloseDistance.in(Meters))
+            / (impactAngleFarDistance.in(Meters) - impactAngleCloseDistance.in(Meters));
+    t = MathUtil.clamp(t, 0.0, 1.0);
+
+    double angleDeg =
+        impactAngleClose.getDegrees()
+            + t * (impactAngleFar.getDegrees() - impactAngleClose.getDegrees());
+    return Rotation2d.fromDegrees(angleDeg);
   }
 
   private Translation3d getV0Nominal(Translation3d d, Rotation2d impactAngle, String key) {
