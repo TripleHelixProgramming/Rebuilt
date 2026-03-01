@@ -187,8 +187,16 @@ public class ModuleIOTalonFX implements ModuleIO {
 
   @Override
   public void updateInputs(ModuleIOInputs inputs) {
-    // No explicit refresh - Phoenix 6 auto-updates signals at configured frequency (50Hz)
-    // This avoids blocking CAN calls in the main loop
+    BaseStatusSignal.refreshAll(
+        driveVelocity,
+        driveAppliedVolts,
+        driveCurrent,
+        turnAbsolutePosition,
+        turnVelocity,
+        turnAppliedVolts,
+        turnCurrent, 
+        drivePosition, 
+        turnPosition);
 
     // Update drive inputs
     inputs.driveConnected =
