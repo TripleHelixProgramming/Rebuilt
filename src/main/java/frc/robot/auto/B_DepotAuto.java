@@ -5,24 +5,23 @@ import choreo.auto.AutoTrajectory;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.feeder.Feeder;
-import frc.robot.subsystems.hopper.Hopper;
 import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.launcher.Launcher;
 
 public class B_DepotAuto extends AutoMode {
-  Hopper hopper;
+  // Hopper hopper;
   Feeder feeder;
   Intake intake;
   Launcher launcher;
 
   public B_DepotAuto(
       Drive drivetrain,
-      Hopper hopperSubsystem,
+      // Hopper hopperSubsystem,
       Feeder feederSubsystem,
       Intake intakeSubsystem,
       Launcher launcherSubsystem) {
     super(drivetrain);
-    hopper = hopperSubsystem;
+    // hopper = hopperSubsystem;
     feeder = feederSubsystem;
     intake = intakeSubsystem;
     launcher = launcherSubsystem;
