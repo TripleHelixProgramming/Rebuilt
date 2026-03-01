@@ -148,10 +148,6 @@ public class Drive extends SubsystemBase {
   public void periodic() {
     long startNanos = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
-    // No explicit refresh - Phoenix 6 auto-updates signals at configured frequency (50Hz)
-    // Position signals for odometry are handled by PhoenixOdometryThread at 250Hz
-    // This avoids blocking CAN calls in the main loop
-
     odometryLock.lock(); // Prevents odometry updates while reading data
     long t1 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
     gyroIO.updateInputs(gyroInputs);
