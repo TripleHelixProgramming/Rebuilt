@@ -6,13 +6,14 @@ import static frc.robot.subsystems.launcher.LauncherConstants.FlywheelConstants.
 import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.ballToHoodOffset;
 import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.*;
 
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
@@ -63,6 +64,9 @@ public class Launcher extends SubsystemBase {
   private double ballisticSimTimer = 0.0;
   private double ballisticLogTimer = 0.0;
 
+  // Turret desaturation
+  private final PIDController headingController = new PIDController(1.5, 0.0, 0.1);
+
   public Launcher(
       Supplier<Pose2d> chassisPoseSupplier,
       Supplier<ChassisSpeeds> chassisSpeedsSupplier,
@@ -79,6 +83,8 @@ public class Launcher extends SubsystemBase {
     turretDisconnectedAlert = new Alert("Disconnected turret motor", AlertType.kError);
     flywheelDisconnectedAlert = new Alert("Disconnected flywheel motor", AlertType.kError);
     hoodDisconnectedAlert = new Alert("Disconnected hood motor", AlertType.kError);
+
+    headingController.setTolerance(margin.in(Radians));
   }
 
   @Override
@@ -266,12 +272,24 @@ public class Launcher extends SubsystemBase {
 
   @AutoLogOutput(key = "Launcher/TurretPose")
   public Pose2d getTurretPose() {
-    return turretBasePose.toPose2d().plus(new Transform2d(0, 0, turretInputs.relativePosition));
+    return new Pose2d(
+        turretBasePose.getX(),
+        turretBasePose.getY(),
+        turretBasePose.getRotation().toRotation2d().plus(turretInputs.relativePosition));
   }
 
   @AutoLogOutput(key = "Launcher/HorizontalAimAngle")
   public Rotation2d getHorizontalAimAngle() {
     return horizontalAimAngle;
+  }
+
+  public double desaturateTurret() {
+    return headingController.calculate(-turretInputs.oversaturationLessMargin, 0);
+  }
+
+  public boolean turretDesaturated() {
+    // return headingController.atSetpoint();
+    return Math.abs(turretInputs.oversaturation) < Units.degreesToRadians(8);
   }
 
   @AutoLogOutput(key = "Launcher/IsOnTarget")
