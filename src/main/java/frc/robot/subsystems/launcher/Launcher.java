@@ -84,7 +84,7 @@ public class Launcher extends SubsystemBase {
     flywheelDisconnectedAlert = new Alert("Disconnected flywheel motor", AlertType.kError);
     hoodDisconnectedAlert = new Alert("Disconnected hood motor", AlertType.kError);
 
-    headingController.setTolerance(margin.in(Radians));
+    headingController.setTolerance(marginRad);
   }
 
   @Override
