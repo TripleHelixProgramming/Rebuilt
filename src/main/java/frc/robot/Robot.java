@@ -637,9 +637,7 @@ public class Robot extends LoggedRobot {
     // Intake
     xboxOperator.b().and(() -> hopper.isDeployed()).whileTrue(intake.getDeployCommand());
 
-    xboxOperator
-        .y()
-        .whileTrue(Commands.startEnd(intake::reverse, () -> {}, intake).withName("Reverse roller"));
+    xboxOperator.y().and(() -> hopper.isDeployed()).whileTrue(intake.getReverseCommand());
 
     // Feeder
     xboxOperator

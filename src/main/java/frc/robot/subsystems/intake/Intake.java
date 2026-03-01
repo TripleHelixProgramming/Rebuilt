@@ -63,16 +63,8 @@ public class Intake extends SubsystemBase {
     intakeArmIO.retract();
   }
 
-  public void runRoller() {
-    intakeRollerIO.setVelocity(MetersPerSecond.of(6));
-  }
-
   public void deployArm() {
     intakeArmIO.deploy();
-  }
-
-  public void reverse() {
-    intakeRollerIO.setVelocity(MetersPerSecond.of(-6));
   }
 
   public Boolean isDeployed() {
@@ -92,7 +84,17 @@ public class Intake extends SubsystemBase {
     return Commands.sequence(
             Commands.runOnce(this::deployArm, this),
             this.idle().withTimeout(0.5),
-            Commands.startEnd(this::runRoller, () -> {}, this))
+            Commands.startEnd(
+                () -> intakeRollerIO.setVelocity(MetersPerSecond.of(4)), () -> {}, this))
         .withName("Intake");
+  }
+
+  public Command getReverseCommand() {
+    return Commands.sequence(
+            Commands.runOnce(this::deployArm, this),
+            this.idle().withTimeout(0.5),
+            Commands.startEnd(
+                () -> intakeRollerIO.setVelocity(MetersPerSecond.of(-4)), () -> {}, this))
+        .withName("Reverse");
   }
 }
