@@ -486,7 +486,7 @@ public class Robot extends LoggedRobot {
                         .withName("Aim at hub")));
 
     // Intake
-    zorroDriver.FDown().whileTrue(intake.getDeployCommand());
+    zorroDriver.HIn().whileTrue(intake.getDeployCommand());
     // zorroDriver.HIn().and(() -> hopper.isDeployed()).onTrue(intake.getDeployCommand());
     // zorroDriver.HIn().negate().and(() -> hopper.isDeployed()).onTrue(intake.getDefaultCommand());
 
