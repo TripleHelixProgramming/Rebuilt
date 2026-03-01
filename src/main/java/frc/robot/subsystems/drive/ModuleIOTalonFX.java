@@ -194,8 +194,8 @@ public class ModuleIOTalonFX implements ModuleIO {
         turnAbsolutePosition,
         turnVelocity,
         turnAppliedVolts,
-        turnCurrent, 
-        drivePosition, 
+        turnCurrent,
+        drivePosition,
         turnPosition);
 
     // Update drive inputs
