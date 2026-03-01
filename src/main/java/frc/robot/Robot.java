@@ -401,15 +401,33 @@ public class Robot extends LoggedRobot {
   public DriverController bindZorroDriver(int port) {
     var zorroDriver = new CommandZorroController(port);
 
+    var controller = new DriverController() {
+      public double getXAxisInput() {
+        return -zorroDriver.getRightYAxis();
+      }
+
+      public double getYAxisInput() {
+        return -zorroDriver.getRightXAxis();
+      }
+
+      public double getRotationInput() {
+        return -zorroDriver.getLeftXAxis();
+      }
+
+      public boolean getFieldRelativeInput() {
+        return zorroDriver.getHID().getEUp();
+      }
+    };
+
     // Drive in field-relative mode while switch E is up
     // Drive in robot-relative mode while switch E is down
     drive.setDefaultCommand(
         DriveCommands.joystickDrive(
             drive,
-            () -> -zorroDriver.getRightYAxis(),
-            () -> -zorroDriver.getRightXAxis(),
-            () -> -zorroDriver.getLeftXAxis(),
-            () -> zorroDriver.getHID().getEUp(),
+            () -> controller.getXAxisInput(),
+            () -> controller.getYAxisInput(),
+            () -> controller.getRotationInput(),
+            () -> controller.getFieldRelativeInput(),
             allianceSelector::fieldRotated));
 
     // Reset gyro to 0° when button G is pressed
@@ -435,10 +453,10 @@ public class Robot extends LoggedRobot {
             Commands.parallel(
                 DriveCommands.joystickDrive(
                         drive,
-                        () -> -zorroDriver.getRightYAxis(),
-                        () -> -zorroDriver.getRightXAxis(),
+                        () -> controller.getXAxisInput(),
+                        () -> controller.getYAxisInput(),
                         () -> launcher.desaturateTurret(),
-                        () -> zorroDriver.getHID().getEUp(),
+                        () -> controller.getFieldRelativeInput(),
                         allianceSelector::fieldRotated)
                     .withName("Desaturate turret"),
                 Commands.sequence(
@@ -485,29 +503,39 @@ public class Robot extends LoggedRobot {
                 // Condition to check
                 () -> intake.isStowed()));
 
-    return new DriverController() {
-      public double getRightXAxis() {
-        return zorroDriver.getRightXAxis();
-      }
-
-      public double getRightYAxis() {
-        return zorroDriver.getRightYAxis();
-      }
-    };
+    return controller;
   }
 
   public DriverController bindXboxDriver(int port) {
     var xboxDriver = new CommandXboxController(port);
+
+    var controller = new DriverController() {
+      public double getXAxisInput() {
+        return -xboxDriver.getLeftY();
+      }
+
+      public double getYAxisInput() {
+        return -xboxDriver.getLeftX();
+      }
+
+      public double getRotationInput() {
+        return -xboxDriver.getRightX();
+      }
+
+      public boolean getFieldRelativeInput() {
+        return !xboxDriver.getHID().getLeftBumperButton();
+      }
+    };
 
     // Drive in field-relative mode while left bumper is released
     // Drive in robot-relative mode while left bumper is pressed
     drive.setDefaultCommand(
         DriveCommands.joystickDrive(
             drive,
-            () -> -xboxDriver.getLeftY(),
-            () -> -xboxDriver.getLeftX(),
-            () -> -xboxDriver.getRightX(),
-            () -> !xboxDriver.getHID().getLeftBumperButton(),
+            () -> controller.getXAxisInput(),
+            () -> controller.getYAxisInput(),
+            () -> controller.getRotationInput(),
+            () -> controller.getFieldRelativeInput(),
             allianceSelector::fieldRotated));
 
     // Reset gyro to 0° when B button is pressed
@@ -588,15 +616,7 @@ public class Robot extends LoggedRobot {
     // Switch to X pattern when X button is pressed
     xboxDriver.x().onTrue(Commands.runOnce(drive::stopWithX, drive));
 
-    return new DriverController() {
-      public double getRightXAxis() {
-        return xboxDriver.getRightX();
-      }
-
-      public double getRightYAxis() {
-        return xboxDriver.getRightY();
-      }
-    };
+    return controller;
   }
 
   public void bindXboxOperator(int port, DriverController driver) {
@@ -621,16 +641,22 @@ public class Robot extends LoggedRobot {
         .x()
         .whileTrue(Commands.startEnd(feeder::reverse, () -> {}, feeder).withName("Reverse"));
 
-    // Chassis aiming
+    // Desaturate turret and advance feeder
     xboxOperator
         .rightBumper()
         .whileTrue(
-            DriveCommands.joystickDriveAtFixedOrientation(
-                drive,
-                () -> -driver.getRightYAxis(),
-                () -> -driver.getRightXAxis(),
-                () -> launcher.getHorizontalAimAngle(),
-                allianceSelector::fieldRotated));
+            Commands.parallel(
+                DriveCommands.joystickDrive(
+                        drive,
+                        () -> driver.getXAxisInput(),
+                        () -> driver.getYAxisInput(),
+                        () -> launcher.desaturateTurret(),
+                        () -> driver.getFieldRelativeInput(),
+                        allianceSelector::fieldRotated)
+                    .withName("Desaturate turret"),
+                Commands.sequence(
+                    Commands.waitUntil(launcher::turretDesaturated),
+                    Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance"))));
   }
 
   public void configureAutoOptions() {
