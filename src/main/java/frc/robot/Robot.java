@@ -411,15 +411,15 @@ public class Robot extends LoggedRobot {
     var controller =
         new DriverController() {
           public double getXTranslationInput() {
-            return -zorroDriver.getRightYAxis();
+            return -zorroDriver.getLeftYAxis();
           }
 
           public double getYTranslationInput() {
-            return -zorroDriver.getRightXAxis();
+            return -zorroDriver.getLeftXAxis();
           }
 
           public double getRotationInput() {
-            return -zorroDriver.getLeftXAxis();
+            return -zorroDriver.getRightXAxis();
           }
 
           public boolean getFieldRelativeInput() {
