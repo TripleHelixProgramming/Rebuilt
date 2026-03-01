@@ -402,11 +402,11 @@ public class Robot extends LoggedRobot {
     var zorroDriver = new CommandZorroController(port);
 
     var controller = new DriverController() {
-      public double getXAxisInput() {
+      public double getXTranslationInput() {
         return -zorroDriver.getRightYAxis();
       }
 
-      public double getYAxisInput() {
+      public double getYTranslationInput() {
         return -zorroDriver.getRightXAxis();
       }
 
@@ -424,8 +424,8 @@ public class Robot extends LoggedRobot {
     drive.setDefaultCommand(
         DriveCommands.joystickDrive(
             drive,
-            () -> controller.getXAxisInput(),
-            () -> controller.getYAxisInput(),
+            () -> controller.getXTranslationInput(),
+            () -> controller.getYTranslationInput(),
             () -> controller.getRotationInput(),
             () -> controller.getFieldRelativeInput(),
             allianceSelector::fieldRotated));
@@ -453,8 +453,8 @@ public class Robot extends LoggedRobot {
             Commands.parallel(
                 DriveCommands.joystickDrive(
                         drive,
-                        () -> controller.getXAxisInput(),
-                        () -> controller.getYAxisInput(),
+                        () -> controller.getXTranslationInput(),
+                        () -> controller.getYTranslationInput(),
                         () -> launcher.desaturateTurret(),
                         () -> controller.getFieldRelativeInput(),
                         allianceSelector::fieldRotated)
@@ -510,11 +510,11 @@ public class Robot extends LoggedRobot {
     var xboxDriver = new CommandXboxController(port);
 
     var controller = new DriverController() {
-      public double getXAxisInput() {
+      public double getXTranslationInput() {
         return -xboxDriver.getLeftY();
       }
 
-      public double getYAxisInput() {
+      public double getYTranslationInput() {
         return -xboxDriver.getLeftX();
       }
 
@@ -532,8 +532,8 @@ public class Robot extends LoggedRobot {
     drive.setDefaultCommand(
         DriveCommands.joystickDrive(
             drive,
-            () -> controller.getXAxisInput(),
-            () -> controller.getYAxisInput(),
+            () -> controller.getXTranslationInput(),
+            () -> controller.getYTranslationInput(),
             () -> controller.getRotationInput(),
             () -> controller.getFieldRelativeInput(),
             allianceSelector::fieldRotated));
@@ -648,8 +648,8 @@ public class Robot extends LoggedRobot {
             Commands.parallel(
                 DriveCommands.joystickDrive(
                         drive,
-                        () -> driver.getXAxisInput(),
-                        () -> driver.getYAxisInput(),
+                        () -> driver.getXTranslationInput(),
+                        () -> driver.getYTranslationInput(),
                         () -> launcher.desaturateTurret(),
                         () -> driver.getFieldRelativeInput(),
                         allianceSelector::fieldRotated)

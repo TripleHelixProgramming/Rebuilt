@@ -33,9 +33,9 @@ import org.littletonrobotics.junction.Logger;
 public class ControllerSelector {
 
   public interface DriverController {
-    double getXAxisInput();
+    double getXTranslationInput();
 
-    double getYAxisInput();
+    double getYTranslationInput();
 
     double getRotationInput();
 
