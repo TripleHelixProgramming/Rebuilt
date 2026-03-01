@@ -43,6 +43,8 @@ public class TurretIOSpark implements TurretIO {
   private final Debouncer absEncoderConnectedDebounce =
       new Debouncer(0.5, Debouncer.DebounceType.kFalling);
   private boolean relativeEncoderSeeded = false;
+  private double oversaturation = 0.0;
+  private double oversaturationLessMargin = 0.0;
 
   public TurretIOSpark() {
     turnSpark = new SparkMax(CAN2.turret, MotorType.kBrushless);
@@ -74,7 +76,11 @@ public class TurretIOSpark implements TurretIO {
         .reverseSoftLimit(Math.PI - rangeOfMotion.div(2).in(Radians))
         .reverseSoftLimitEnabled(true);
 
-    turnConfig.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kPReal, 0.0, 0.0);
+    turnConfig
+        .closedLoop
+        .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
+        .pid(kPReal, 0.0, 0.0)
+        .allowedClosedLoopError(kAllowableError.in(Radians), ClosedLoopSlot.kSlot0);
 
     turnConfig.signals.appliedOutputPeriodMs(20).busVoltagePeriodMs(20).outputCurrentPeriodMs(20);
 
@@ -108,10 +114,16 @@ public class TurretIOSpark implements TurretIO {
     inputs.absoluteEncoderConnected =
         absEncoderConnectedDebounce.calculate(absoluteEncoder.isConnected());
     inputs.absolutePosition = new Rotation2d(absoluteEncoder.get());
+
+    inputs.oversaturation = oversaturation;
+    inputs.oversaturationLessMargin = oversaturationLessMargin;
+    inputs.isAtSetpoint = controller.isAtSetpoint();
   }
 
   @Override
   public void setOpenLoop(Voltage volts) {
+    oversaturation = 0.0;
+    oversaturationLessMargin = 0.0;
     controller.setSetpoint(volts.in(Volts), ControlType.kVoltage);
   }
 
@@ -120,16 +132,23 @@ public class TurretIOSpark implements TurretIO {
     double setpoint =
         MathUtil.inputModulus(
             rotation.getRadians() - mechanismOffset.getRadians(), 0.0, 2 * Math.PI);
-    setpoint =
+    double clampedSetpoint =
         MathUtil.clamp(
             setpoint,
             Math.PI - rangeOfMotion.div(2).in(Radians),
             Math.PI + rangeOfMotion.div(2).in(Radians));
-    var feedforwardVolts =
+    double clampedSetpointWithMargin =
+        MathUtil.clamp(
+            setpoint,
+            Math.PI - rangeOfMotion.div(2).in(Radians) + margin.in(Radians),
+            Math.PI + rangeOfMotion.div(2).in(Radians) - margin.in(Radians));
+    oversaturation = setpoint - clampedSetpoint;
+    oversaturationLessMargin = setpoint - clampedSetpointWithMargin;
+    double feedforwardVolts =
         RobotConstants.kNominalVoltage
             * angularVelocity.in(RadiansPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
     controller.setSetpoint(
-        setpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
+        clampedSetpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
   }
 }

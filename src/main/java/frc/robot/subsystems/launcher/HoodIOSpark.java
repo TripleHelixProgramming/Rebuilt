@@ -59,7 +59,8 @@ public class HoodIOSpark implements HoodIO {
         .closedLoop
         .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
         .pid(kPRealPos, 0.0, 0.0, ClosedLoopSlot.kSlot0)
-        .pid(kPRealVel, 0.0, 0.0, ClosedLoopSlot.kSlot1);
+        .pid(kPRealVel, 0.0, 0.0, ClosedLoopSlot.kSlot1)
+        .allowedClosedLoopError(kAllowableError.in(Radians), ClosedLoopSlot.kSlot0);
 
     hoodConfig
         .softLimit
@@ -89,6 +90,8 @@ public class HoodIOSpark implements HoodIO {
     inputs.appliedVolts = sparkInputs.getAppliedVolts();
     inputs.currentAmps = sparkInputs.getOutputCurrent();
     inputs.connected = connectedDebounce.calculate(sparkInputs.isConnected());
+
+    inputs.isAtSetpoint = hoodController.isAtSetpoint();
   }
 
   @Override

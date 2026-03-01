@@ -4,7 +4,6 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
-import frc.game.Field.Region;
 import frc.robot.Robot;
 import java.util.List;
 import java.util.Optional;
@@ -12,7 +11,7 @@ import org.littletonrobotics.junction.Logger;
 
 public class GameState {
 
-  enum GamePhase {
+  public enum GamePhase {
     None("0:00 - 0:00"),
     Autonomous("0:20 - 0:00"),
     Transition("2:20 - 2:10"),
@@ -27,6 +26,14 @@ public class GameState {
 
     final double countDownFrom;
     final double countDownUntil;
+
+    public double duration() {
+      return countDownFrom - countDownUntil;
+    }
+
+    public double remainingAt(double atTime) {
+      return Math.floor(atTime - countDownUntil);
+    }
 
     private GamePhase(String timer) {
       var times = timer.split("-");
@@ -60,11 +67,12 @@ public class GameState {
     return GamePhase.None;
   }
 
-  public static Optional<Alliance> getMyAlliance() {
+  public static Alliance getMyAlliance() {
     if (myAlliance == null) {
-      myAlliance = DriverStation.getAlliance().orElse(null);
+      // myAlliance = DriverStation.getAlliance().orElse(null);
+      myAlliance = Robot.allianceSelector.getAllianceColor();
     }
-    return Optional.ofNullable(myAlliance);
+    return myAlliance;
   }
 
   public static Optional<Alliance> getAutoWinner() {
@@ -125,7 +133,7 @@ public class GameState {
 
   public static Pose3d getTarget(Pose2d robotPose) {
     if (Robot.getAlliance() == Alliance.Red) {
-      if (Region.RedZone.contains(robotPose)) {
+      if (robotPose.getMeasureX().gt(Field.redHubCenter.getMeasureX())) {
         return Field.redHubCenter;
       }
       if (robotPose.getMeasureY().gt(Field.centerField_y_pos)) {
@@ -133,7 +141,7 @@ public class GameState {
       }
       return Field.redRightTarget;
     }
-    if (Region.BlueZone.contains(robotPose)) {
+    if (robotPose.getMeasureX().lt(Field.blueHubCenter.getMeasureX())) {
       return Field.blueHubCenter;
     }
     if (robotPose.getMeasureY().gt(Field.centerField_y_pos)) {

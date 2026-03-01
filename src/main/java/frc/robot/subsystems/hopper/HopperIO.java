@@ -1,12 +1,12 @@
-package frc.robot.subsystems.intake;
+package frc.robot.subsystems.hopper;
 
-import edu.wpi.first.wpilibj.DoubleSolenoid.Value;
+import edu.wpi.first.wpilibj.DoubleSolenoid;
 import org.littletonrobotics.junction.AutoLog;
 
 public interface HopperIO {
   @AutoLog
   public static class HopperIOInputs {
-    public Value isDeployed = Value.kReverse;
+    public DoubleSolenoid.Value isDeployed = DoubleSolenoid.Value.kReverse;
   }
 
   public default void updateInputs(HopperIOInputs inputs) {}

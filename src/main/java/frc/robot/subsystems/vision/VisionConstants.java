@@ -10,6 +10,7 @@ package frc.robot.subsystems.vision;
 import static edu.wpi.first.units.Units.*;
 
 import edu.wpi.first.apriltag.AprilTagFields;
+import edu.wpi.first.math.geometry.Quaternion;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.units.measure.Angle;
@@ -26,20 +27,40 @@ public class VisionConstants {
   public static AprilTagFields defaultAprilTagFieldLayout = AprilTagFields.k2026RebuiltAndymark;
 
   // Camera names, must match names configured on coprocessor
-  public static String cameraFrontRightName = "OV2311_TH_1";
-  public static String cameraFrontLeftName = "OV2311_TH_5";
-  public static String cameraBackRightName = "OV2311_TH_6";
-  public static String cameraBackLeftName = "OV2311_TH_7";
+  public static String cameraFrontRightName = "OV2311_TH_2026_FR";
+  public static String cameraFrontLeftName = "OV2311_TH_2026_FL";
+  public static String cameraBackRightName = "OV2311_TH_2026_RR";
+  public static String cameraBackLeftName = "OV2311_TH_2026_RL";
 
   // Robot to camera transforms
   public static Transform3d robotToFrontRightCamera =
-      new Transform3d(0.248, -0.318, 0.513, new Rotation3d(0.0, 0.0, 0.0));
+      new Transform3d(
+          Inches.of(-10.572),
+          Inches.of(-12.337),
+          Inches.of(16.688),
+          // pitch 20 degrees up, yaw 55 degrees right
+          new Rotation3d(new Quaternion(0.8735, -0.0802, -0.1540, -0.4547)));
   public static Transform3d robotToFrontLeftCamera =
-      new Transform3d(0.222, 0.331, 0.513, new Rotation3d(0.0, 0, Math.PI / 2.0));
+      new Transform3d(
+          Inches.of(-10.572),
+          Inches.of(12.337),
+          Inches.of(16.688),
+          // pitch 20 degrees up, yaw 55 degrees left
+          new Rotation3d(new Quaternion(0.8735, 0.0802, -0.1540, 0.4547)));
   public static Transform3d robotToBackRightCamera =
-      new Transform3d(-0.375, -0.331, 0.513, new Rotation3d(0.0, 0.0, 3.0 * Math.PI / 2.0));
+      new Transform3d(
+          Inches.of(-13.1623),
+          Inches.of(-12.1623),
+          Inches.of(20.26674),
+          // pitch 15 degrees up, yaw 135 degrees right
+          new Rotation3d(new Quaternion(-0.3794, 0.1206, 0.0500, 0.9160)));
   public static Transform3d robotToBackLeftCamera =
-      new Transform3d(-0.401, 0.318, 0.513, new Rotation3d(0.0, 0.0, Math.PI));
+      new Transform3d(
+          Inches.of(-13.1623),
+          Inches.of(12.1623),
+          Inches.of(20.26674),
+          // pitch 15 degrees up, yaw 135 degrees left
+          new Rotation3d(new Quaternion(0.3794, 0.1206, -0.0500, 0.9160)));
 
   public static Distance minRobotWidth = Inches.of(36.875);
 
@@ -74,4 +95,8 @@ public class VisionConstants {
   public static boolean kLogSummaryPoses = false;
   public static boolean kLogAcceptedPoses = true;
   public static boolean kLogRejectedPoses = false;
+
+  // Logging frequency (1 = every cycle, 2 = every other cycle, etc.)
+  // Higher values reduce CPU load but lose data granularity for replay
+  public static int kLoggingDivisor = 2;
 }

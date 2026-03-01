@@ -17,7 +17,6 @@ import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.drive.DriveConstants.*;
 
 import choreo.trajectory.SwerveSample;
-import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.CANBus;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
@@ -86,9 +85,6 @@ public class Drive extends SubsystemBase {
   private SwerveModulePosition[] moduleDeltas = new SwerveModulePosition[4];
   private ChassisSpeeds chassisSpeeds;
 
-  // Cached array of all module signals for batched refresh
-  private BaseStatusSignal[] allModuleSignals;
-
   // PID controllers for following Choreo trajectories
   private final PIDController xController = new PIDController(5.0, 0.0, 0.0);
   private final PIDController yController = new PIDController(5.0, 0.0, 0.0);
@@ -146,36 +142,22 @@ public class Drive extends SubsystemBase {
                 (voltage) -> runCharacterization(voltage.in(Volts)), null, this));
 
     headingController.enableContinuousInput(-Math.PI, Math.PI);
-
-    // Collect all module signals for batched refresh
-    int totalSignals = 0;
-    for (var module : modules) {
-      totalSignals += module.getStatusSignals().length;
-    }
-    allModuleSignals = new BaseStatusSignal[totalSignals];
-    int signalIndex = 0;
-    for (var module : modules) {
-      for (var signal : module.getStatusSignals()) {
-        allModuleSignals[signalIndex++] = signal;
-      }
-    }
   }
 
   @Override
   public void periodic() {
-    long startNanos = System.nanoTime();
-
-    // Refresh all module signals in a single batched CAN call
-    if (allModuleSignals.length > 0) {
-      BaseStatusSignal.refreshAll(allModuleSignals);
-    }
+    long startNanos = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     odometryLock.lock(); // Prevents odometry updates while reading data
+    long t1 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
     gyroIO.updateInputs(gyroInputs);
+    long t2 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
     Logger.processInputs("Drive/Gyro", gyroInputs);
+    long t3 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
     for (var module : modules) {
       module.periodic();
     }
+    long t4 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
     odometryLock.unlock();
 
     // Stop moving when disabled
@@ -190,6 +172,7 @@ public class Drive extends SubsystemBase {
       Logger.recordOutput("SwerveStates/Setpoints", emptyModuleStates);
       Logger.recordOutput("SwerveStates/SetpointsOptimized", emptyModuleStates);
     }
+    long t5 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Update odometry
     double[] sampleTimestamps =
@@ -223,10 +206,33 @@ public class Drive extends SubsystemBase {
 
       chassisSpeeds = kinematics.toChassisSpeeds(getModuleStates());
     }
+    long t6 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Update gyro alert
     gyroDisconnectedAlert.set(!gyroInputs.connected && Constants.currentMode != Mode.SIM);
-    Logger.recordOutput("Drive/Millis", (System.nanoTime() - startNanos) / 1_000_000L);
+
+    // Profiling output
+    if (Constants.PROFILING_ENABLED) {
+      long totalMs = (t6 - startNanos) / 1_000_000;
+      if (totalMs > 5) {
+        System.out.println(
+            "[Drive] lock="
+                + (t1 - startNanos) / 1_000_000
+                + "ms gyroUpdate="
+                + (t2 - t1) / 1_000_000
+                + "ms gyroLog="
+                + (t3 - t2) / 1_000_000
+                + "ms modules="
+                + (t4 - t3) / 1_000_000
+                + "ms disabled="
+                + (t5 - t4) / 1_000_000
+                + "ms odometry="
+                + (t6 - t5) / 1_000_000
+                + "ms total="
+                + totalMs
+                + "ms");
+      }
+    }
   }
 
   /**
@@ -235,22 +241,37 @@ public class Drive extends SubsystemBase {
    * @param speeds Speeds in meters/sec
    */
   public void runVelocity(ChassisSpeeds speeds) {
-    // Calculate module setpoints
-    ChassisSpeeds discreteSpeeds = ChassisSpeeds.discretize(speeds, 0.02);
-    SwerveModuleState[] setpointStates = kinematics.toSwerveModuleStates(discreteSpeeds);
-    SwerveDriveKinematics.desaturateWheelSpeeds(setpointStates, maxDriveSpeed.in(MetersPerSecond));
+
+    // 1️: Convert continuous speeds to module states
+    SwerveModuleState[] states = kinematics.toSwerveModuleStates(speeds);
 
     // Log unoptimized setpoints
-    Logger.recordOutput("SwerveStates/Setpoints", setpointStates);
-    Logger.recordOutput("SwerveChassisSpeeds/Setpoints", discreteSpeeds);
+    Logger.recordOutput("SwerveChassisSpeeds/Setpoints", speeds);
+    Logger.recordOutput("SwerveStates/Setpoints", states);
 
-    // Send setpoints to modules
+    // 2: Desaturate (apply wheel limits FIRST)
+    SwerveDriveKinematics.desaturateWheelSpeeds(states, maxDriveSpeed.in(MetersPerSecond));
+
+    // 3: Reconstruct the ACTUAL chassis speeds after limiting
+    ChassisSpeeds limitedSpeeds = kinematics.toChassisSpeeds(states);
+
+    // 4: Now discretize the LIMITED speeds
+    ChassisSpeeds discreteSpeeds = ChassisSpeeds.discretize(limitedSpeeds, 0.02);
+
+    // 5: Convert discretized speeds back to module states
+    SwerveModuleState[] finalStates = kinematics.toSwerveModuleStates(discreteSpeeds);
+
+    // (Optional but usually unnecessary)
+    // desaturate again for safety
+    SwerveDriveKinematics.desaturateWheelSpeeds(finalStates, maxDriveSpeed.in(MetersPerSecond));
+
+    // 6: Send to modules
     for (int i = 0; i < 4; i++) {
-      modules[i].runSetpoint(setpointStates[i]);
+      modules[i].runSetpoint(finalStates[i]);
     }
 
     // Log optimized setpoints (runSetpoint mutates each state)
-    Logger.recordOutput("SwerveStates/SetpointsOptimized", setpointStates);
+    Logger.recordOutput("SwerveStates/SetpointsOptimized", finalStates);
   }
 
   public void followTrajectory(SwerveSample sample) {
