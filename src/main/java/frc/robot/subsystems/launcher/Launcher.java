@@ -6,19 +6,21 @@ import static frc.robot.subsystems.launcher.LauncherConstants.FlywheelConstants.
 import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.ballToHoodOffset;
 import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.*;
 
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.StartEndCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants;
 import frc.robot.Robot;
 import java.util.ArrayList;
 import java.util.function.Supplier;
@@ -62,6 +64,9 @@ public class Launcher extends SubsystemBase {
   private double ballisticSimTimer = 0.0;
   private double ballisticLogTimer = 0.0;
 
+  // Turret desaturation
+  private final PIDController headingController = new PIDController(1.5, 0.0, 0.1);
+
   public Launcher(
       Supplier<Pose2d> chassisPoseSupplier,
       Supplier<ChassisSpeeds> chassisSpeedsSupplier,
@@ -78,21 +83,23 @@ public class Launcher extends SubsystemBase {
     turretDisconnectedAlert = new Alert("Disconnected turret motor", AlertType.kError);
     flywheelDisconnectedAlert = new Alert("Disconnected flywheel motor", AlertType.kError);
     hoodDisconnectedAlert = new Alert("Disconnected hood motor", AlertType.kError);
+
+    headingController.setTolerance(margin.in(Radians));
   }
 
   @Override
   public void periodic() {
-    long t0 = System.nanoTime();
+    long t0 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     turretIO.updateInputs(turretInputs);
     flywheelIO.updateInputs(flywheelInputs);
     hoodIO.updateInputs(hoodInputs);
-    long t1 = System.nanoTime();
+    long t1 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     Logger.processInputs("Turret", turretInputs);
     Logger.processInputs("Flywheel", flywheelInputs);
     Logger.processInputs("Hood", hoodInputs);
-    long t2 = System.nanoTime();
+    long t2 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     turretDisconnectedAlert.set(!turretInputs.motorControllerConnected);
     flywheelDisconnectedAlert.set(!flywheelInputs.connected);
@@ -103,7 +110,7 @@ public class Launcher extends SubsystemBase {
       logCachedAimData();
       hasCachedAimData = false;
     }
-    long t3 = System.nanoTime();
+    long t3 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Update and plot ball trajectories
     if (logFuelTrajectories) {
@@ -127,23 +134,25 @@ public class Launcher extends SubsystemBase {
         ballisticLogTimer = 0.0;
       }
     }
-    long t4 = System.nanoTime();
+    long t4 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Profiling output
-    long totalMs = (t4 - t0) / 1_000_000;
-    if (totalMs > 3) {
-      System.out.println(
-          "[Launcher] update="
-              + (t1 - t0) / 1_000_000
-              + "ms log="
-              + (t2 - t1) / 1_000_000
-              + "ms aimLog="
-              + (t3 - t2) / 1_000_000
-              + "ms ballistics="
-              + (t4 - t3) / 1_000_000
-              + "ms total="
-              + totalMs
-              + "ms");
+    if (Constants.PROFILING_ENABLED) {
+      long totalMs = (t4 - t0) / 1_000_000;
+      if (totalMs > 3) {
+        System.out.println(
+            "[Launcher] update="
+                + (t1 - t0) / 1_000_000
+                + "ms log="
+                + (t2 - t1) / 1_000_000
+                + "ms aimLog="
+                + (t3 - t2) / 1_000_000
+                + "ms ballistics="
+                + (t4 - t3) / 1_000_000
+                + "ms total="
+                + totalMs
+                + "ms");
+      }
     }
   }
 
@@ -154,7 +163,7 @@ public class Launcher extends SubsystemBase {
   }
 
   public void aim(Translation3d target) {
-    long aimStart = System.nanoTime();
+    long aimStart = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Get vector from static target to turret
     turretBasePose = new Pose3d(chassisPoseSupplier.get()).plus(chassisToTurretBase);
@@ -163,7 +172,7 @@ public class Launcher extends SubsystemBase {
     // Set flywheel speed assuming a motionless robot
     var v0_nominal = getV0Nominal(vectorTurretBaseToTarget, impactAngle, nominalKey);
     flywheelIO.setVelocity(MetersPerSecond.of(ballToFlywheelFactor * v0_nominal.getNorm()));
-    long t1 = System.nanoTime();
+    long t1 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Get translation velocities (m/s) of the turret caused by motion of the chassis
     var robotRelative = chassisSpeedsSupplier.get();
@@ -171,7 +180,7 @@ public class Launcher extends SubsystemBase {
         ChassisSpeeds.fromRobotRelativeSpeeds(
             robotRelative, turretBasePose.toPose2d().getRotation());
     var v_base = getTurretBaseSpeeds(turretBasePose.toPose2d().getRotation(), fieldRelative);
-    long t2 = System.nanoTime();
+    long t2 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Get actual flywheel speed
     double flywheelSpeedMetersPerSec = flywheelInputs.velocityMetersPerSec / ballToFlywheelFactor;
@@ -179,7 +188,7 @@ public class Launcher extends SubsystemBase {
     // Replan shot using actual flywheel speed
     var v0_total =
         getV0Replanned(vectorTurretBaseToTarget, flywheelSpeedMetersPerSec, replannedKey);
-    long t3 = System.nanoTime();
+    long t3 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Point turret to align velocity vectors
     var v0_flywheel = v0_total.minus(v_base);
@@ -201,7 +210,7 @@ public class Launcher extends SubsystemBase {
         RadiansPerSecond.of(robotRelative.omegaRadiansPerSecond).unaryMinus().times(2.0));
     Rotation2d hoodSetpoint = new Rotation2d(v0_horizontal, v0_flywheel.getZ());
     hoodIO.setPosition(hoodSetpoint.minus(ballToHoodOffset), RadiansPerSecond.of(0));
-    long t4 = System.nanoTime();
+    long t4 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Get actual hood & turret position
     Rotation2d hoodPosition = hoodInputs.position.plus(ballToHoodOffset);
@@ -224,7 +233,7 @@ public class Launcher extends SubsystemBase {
     cachedActualD = vectorTurretBaseToTarget;
     cachedActualV = v0_actual;
     hasCachedAimData = true;
-    long t5 = System.nanoTime();
+    long t5 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Spawn simulated fuel
     fuelSpawnTimer += Robot.defaultPeriodSecs;
@@ -240,28 +249,33 @@ public class Launcher extends SubsystemBase {
     }
 
     // Profiling output for aim()
-    long totalUs = (t5 - aimStart) / 1_000;
-    if (totalUs > 500) {
-      System.out.println(
-          "[Launcher.aim] v0nom="
-              + (t1 - aimStart) / 1_000
-              + "us baseSpeeds="
-              + (t2 - t1) / 1_000
-              + "us v0replan="
-              + (t3 - t2) / 1_000
-              + "us setPos="
-              + (t4 - t3) / 1_000
-              + "us rest="
-              + (t5 - t4) / 1_000
-              + "us total="
-              + totalUs
-              + "us");
+    if (Constants.PROFILING_ENABLED) {
+      long totalUs = (t5 - aimStart) / 1_000;
+      if (totalUs > 500) {
+        System.out.println(
+            "[Launcher.aim] v0nom="
+                + (t1 - aimStart) / 1_000
+                + "us baseSpeeds="
+                + (t2 - t1) / 1_000
+                + "us v0replan="
+                + (t3 - t2) / 1_000
+                + "us setPos="
+                + (t4 - t3) / 1_000
+                + "us rest="
+                + (t5 - t4) / 1_000
+                + "us total="
+                + totalUs
+                + "us");
+      }
     }
   }
 
   @AutoLogOutput(key = "Launcher/TurretPose")
   public Pose2d getTurretPose() {
-    return turretBasePose.toPose2d().plus(new Transform2d(0, 0, turretInputs.relativePosition));
+    return new Pose2d(
+        turretBasePose.getX(),
+        turretBasePose.getY(),
+        turretBasePose.getRotation().toRotation2d().plus(turretInputs.relativePosition));
   }
 
   @AutoLogOutput(key = "Launcher/HorizontalAimAngle")
@@ -269,12 +283,19 @@ public class Launcher extends SubsystemBase {
     return horizontalAimAngle;
   }
 
-  // @AutoLogOutput(key = "Turret/IsOnTarget")
-  // public boolean isOnTarget() {
-  //   return turretInputs.position.minus(turretOrientationSetpoint).getMeasure().abs(Radians)
-  //           * dynamicTargetToTurretBase.getNorm()
-  //       < (hubWidth.in(Meters) / 2.0);
-  // }
+  public double desaturateTurret() {
+    return headingController.calculate(-turretInputs.oversaturationLessMargin, 0);
+  }
+
+  public boolean turretDesaturated() {
+    // return headingController.atSetpoint();
+    return Math.abs(turretInputs.oversaturation) < Units.degreesToRadians(8);
+  }
+
+  @AutoLogOutput(key = "Launcher/IsOnTarget")
+  public boolean isOnTarget() {
+    return turretInputs.isAtSetpoint && hoodInputs.isAtSetpoint;
+  }
 
   private Translation3d getTurretBaseSpeeds(Rotation2d rotation, ChassisSpeeds chassisSpeeds) {
     double vx = chassisSpeeds.vxMetersPerSecond;
