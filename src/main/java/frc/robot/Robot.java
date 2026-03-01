@@ -401,23 +401,24 @@ public class Robot extends LoggedRobot {
   public DriverController bindZorroDriver(int port) {
     var zorroDriver = new CommandZorroController(port);
 
-    var controller = new DriverController() {
-      public double getXTranslationInput() {
-        return -zorroDriver.getRightYAxis();
-      }
+    var controller =
+        new DriverController() {
+          public double getXTranslationInput() {
+            return -zorroDriver.getRightYAxis();
+          }
 
-      public double getYTranslationInput() {
-        return -zorroDriver.getRightXAxis();
-      }
+          public double getYTranslationInput() {
+            return -zorroDriver.getRightXAxis();
+          }
 
-      public double getRotationInput() {
-        return -zorroDriver.getLeftXAxis();
-      }
+          public double getRotationInput() {
+            return -zorroDriver.getLeftXAxis();
+          }
 
-      public boolean getFieldRelativeInput() {
-        return zorroDriver.getHID().getEUp();
-      }
-    };
+          public boolean getFieldRelativeInput() {
+            return zorroDriver.getHID().getEUp();
+          }
+        };
 
     // Drive in field-relative mode while switch E is up
     // Drive in robot-relative mode while switch E is down
@@ -509,23 +510,24 @@ public class Robot extends LoggedRobot {
   public DriverController bindXboxDriver(int port) {
     var xboxDriver = new CommandXboxController(port);
 
-    var controller = new DriverController() {
-      public double getXTranslationInput() {
-        return -xboxDriver.getLeftY();
-      }
+    var controller =
+        new DriverController() {
+          public double getXTranslationInput() {
+            return -xboxDriver.getLeftY();
+          }
 
-      public double getYTranslationInput() {
-        return -xboxDriver.getLeftX();
-      }
+          public double getYTranslationInput() {
+            return -xboxDriver.getLeftX();
+          }
 
-      public double getRotationInput() {
-        return -xboxDriver.getRightX();
-      }
+          public double getRotationInput() {
+            return -xboxDriver.getRightX();
+          }
 
-      public boolean getFieldRelativeInput() {
-        return !xboxDriver.getHID().getLeftBumperButton();
-      }
-    };
+          public boolean getFieldRelativeInput() {
+            return !xboxDriver.getHID().getLeftBumperButton();
+          }
+        };
 
     // Drive in field-relative mode while left bumper is released
     // Drive in robot-relative mode while left bumper is pressed
