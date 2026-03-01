@@ -471,10 +471,7 @@ public class Robot extends LoggedRobot {
     // Switch to X pattern when button D is pressed
     // zorroDriver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
 
-    zorroDriver
-        .DIn()
-        .and(() -> hopper.isDeployed())
-        .onTrue(Commands.startEnd(intake::intakeFuel, () -> {}, intake).withName("Intake"));
+    zorroDriver.DIn().and(() -> hopper.isDeployed()).onTrue(intake.getDeployCommand());
 
     zorroDriver.DIn().negate().and(() -> hopper.isDeployed()).onTrue(intake.getDefaultCommand());
 
@@ -591,11 +588,6 @@ public class Robot extends LoggedRobot {
 
   public void bindXboxOperator(int port) {
     var xboxOperator = new CommandXboxController(port);
-
-    // intake
-    xboxOperator
-        .rightBumper()
-        .whileTrue(Commands.startEnd(intake::intakeFuel, () -> {}, intake).withName("Intaking"));
   }
 
   public void configureAutoOptions() {

@@ -56,8 +56,7 @@ public class R_DepotAuto extends AutoMode {
                     redStartToDepot.cmd(),
                     Commands.sequence(
                         // Commands.runOnce(hopper::deploy, hopper),
-                        Commands.startEnd(intake::intakeFuel, () -> {}, intake)
-                            .withTimeout(10.0)))));
+                        intake.getDeployCommand().withTimeout(10.0)))));
 
     redStartToDepot
         .done()

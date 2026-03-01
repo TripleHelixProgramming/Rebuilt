@@ -57,8 +57,7 @@ public class B_LeftTrenchAuto extends AutoMode {
                     blueLeftNeutralZone.cmd(),
                     Commands.sequence(
                         // Commands.runOnce(hopper::deploy, hopper),
-                        Commands.startEnd(intake::intakeFuel, () -> {}, intake)
-                            .withTimeout(10.0)))));
+                        intake.getDeployCommand().withTimeout(10.0)))));
 
     blueLeftNeutralZone
         .done()
@@ -66,8 +65,7 @@ public class B_LeftTrenchAuto extends AutoMode {
             Commands.sequence(
                 Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
                 Commands.parallel(
-                    blueLeftTransitionToNZ.cmd(),
-                    Commands.startEnd(intake::intakeFuel, () -> {}, intake).withTimeout(8.0))));
+                    blueLeftTransitionToNZ.cmd(), intake.getDeployCommand().withTimeout(8.0))));
 
     blueLeftTransitionToNZ
         .done()
