@@ -32,11 +32,14 @@ import frc.lib.ControllerSelector.DriverController;
 import frc.lib.ControllerSelector.OperatorConfig;
 import frc.lib.ZorroController.Axis;
 import frc.robot.Constants.DIOPorts;
-import frc.robot.auto.B_MoveForward1M;
-import frc.robot.auto.B_Path;
-import frc.robot.auto.R_MoveAndRotate;
-import frc.robot.auto.R_MoveStraight;
-import frc.robot.auto.TraversingTheBump;
+import frc.robot.auto.B_DepotAuto;
+import frc.robot.auto.B_LeftTrenchAuto;
+import frc.robot.auto.B_OutpostAuto;
+import frc.robot.auto.B_RightTrenchAuto;
+import frc.robot.auto.R_DepotAuto;
+import frc.robot.auto.R_LeftTrenchAuto;
+import frc.robot.auto.R_OutpostAuto;
+import frc.robot.auto.R_RightTrenchAuto;
 import frc.robot.commands.DriveCommands;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.DriveConstants;
@@ -331,6 +334,14 @@ public class Robot extends LoggedRobot {
   @Override
   public void autonomousInit() {
     drive.setDefaultCommand(Commands.runOnce(drive::stop, drive).withName("Stop"));
+    launcher.setDefaultCommand(
+        launcher
+            .initializeHoodCommand()
+            .andThen(
+                new RunCommand(
+                        () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()),
+                        launcher)
+                    .withName("Aim at hub")));
     autoSelector.scheduleAuto();
     leds.clear();
   }
@@ -345,6 +356,8 @@ public class Robot extends LoggedRobot {
   /** This function is called once when teleop mode is enabled. */
   @Override
   public void teleopInit() {
+    launcher.setDefaultCommand(
+        Commands.startEnd(launcher::stop, () -> {}, launcher).withName("Stop"));
     autoSelector.cancelAuto();
     ControllerSelector.getInstance().scan(true);
     leds.clear();
@@ -479,12 +492,9 @@ public class Robot extends LoggedRobot {
                         .withName("Aim at hub")));
 
     // Intake
-    zorroDriver
-        .DIn()
-        .and(() -> hopper.isDeployed())
-        .onTrue(Commands.startEnd(intake::intakeFuel, () -> {}, intake).withName("Intake"));
+    zorroDriver.HIn().and(() -> hopper.isDeployed()).onTrue(intake.getDeployCommand());
 
-    zorroDriver.DIn().negate().and(() -> hopper.isDeployed()).onTrue(intake.getDefaultCommand());
+    zorroDriver.HIn().negate().and(() -> hopper.isDeployed()).onTrue(intake.getDefaultCommand());
 
     // Hopper
     zorroDriver
@@ -625,10 +635,7 @@ public class Robot extends LoggedRobot {
     var xboxOperator = new CommandXboxController(port);
 
     // Intake
-    xboxOperator
-        .b()
-        .and(() -> hopper.isDeployed())
-        .whileTrue(Commands.startEnd(intake::intakeFuel, () -> {}, intake).withName("Intake"));
+    xboxOperator.b().and(() -> hopper.isDeployed()).whileTrue(intake.getDeployCommand());
 
     xboxOperator
         .y()
@@ -662,11 +669,28 @@ public class Robot extends LoggedRobot {
   }
 
   public void configureAutoOptions() {
-    autoSelector.addAuto(new AutoOption(Alliance.Blue, 1, new B_MoveForward1M(drive)));
-    autoSelector.addAuto(new AutoOption(Alliance.Red, 1, new R_MoveStraight(drive)));
-    autoSelector.addAuto(new AutoOption(Alliance.Blue, 2, new TraversingTheBump(drive)));
-    autoSelector.addAuto(new AutoOption(Alliance.Red, 2, new R_MoveAndRotate(drive)));
-    autoSelector.addAuto(new AutoOption(Alliance.Blue, 3, new B_Path(drive)));
+    autoSelector.addAuto(
+        new AutoOption(
+            Alliance.Blue, 1, new B_LeftTrenchAuto(drive, hopper, feeder, intake, launcher)));
+    autoSelector.addAuto(
+        new AutoOption(
+            Alliance.Red, 1, new R_LeftTrenchAuto(drive, hopper, feeder, intake, launcher)));
+    autoSelector.addAuto(
+        new AutoOption(
+            Alliance.Blue, 2, new B_RightTrenchAuto(drive, hopper, feeder, intake, launcher)));
+    autoSelector.addAuto(
+        new AutoOption(
+            Alliance.Red, 2, new R_RightTrenchAuto(drive, hopper, feeder, intake, launcher)));
+    autoSelector.addAuto(
+        new AutoOption(Alliance.Blue, 3, new B_DepotAuto(drive, hopper, feeder, intake, launcher)));
+    autoSelector.addAuto(
+        new AutoOption(Alliance.Red, 3, new R_DepotAuto(drive, hopper, feeder, intake, launcher)));
+    autoSelector.addAuto(
+        new AutoOption(
+            Alliance.Blue, 4, new B_OutpostAuto(drive, hopper, feeder, intake, launcher)));
+    autoSelector.addAuto(
+        new AutoOption(
+            Alliance.Red, 4, new R_OutpostAuto(drive, hopper, feeder, intake, launcher)));
   }
 
   public static Alliance getAlliance() {
