@@ -1,6 +1,5 @@
 package frc.robot;
 
-import static edu.wpi.first.units.Units.Seconds;
 import static frc.robot.subsystems.vision.VisionConstants.*;
 
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -14,7 +13,6 @@ import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.ConditionalCommand;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
@@ -55,10 +53,6 @@ import frc.robot.subsystems.feeder.KickerIOSpark;
 import frc.robot.subsystems.feeder.SpindexerIO;
 import frc.robot.subsystems.feeder.SpindexerIOSimSpark;
 import frc.robot.subsystems.feeder.SpindexerIOSpark;
-import frc.robot.subsystems.hopper.Hopper;
-import frc.robot.subsystems.hopper.HopperIO;
-import frc.robot.subsystems.hopper.HopperIOReal;
-import frc.robot.subsystems.hopper.HopperIOSim;
 import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.intake.IntakeArmIO;
 import frc.robot.subsystems.intake.IntakeArmIOReal;
@@ -512,7 +506,8 @@ public class Robot extends LoggedRobot {
     //             // If intake is deployed, retract it first before retracting hopper
     //             Commands.parallel(
     //                 intake.getDefaultCommand(),
-    //                 hopper.idle().withTimeout(Seconds.of(2)).andThen(hopper.getDefaultCommand())),
+    //
+    // hopper.idle().withTimeout(Seconds.of(2)).andThen(hopper.getDefaultCommand())),
     //             // Condition to check
     //             () -> intake.isStowed()));
 
@@ -672,27 +667,21 @@ public class Robot extends LoggedRobot {
 
   public void configureAutoOptions() {
     autoSelector.addAuto(
-        new AutoOption(
-            Alliance.Blue, 1, new B_LeftTrenchAuto(drive, feeder, intake, launcher)));
+        new AutoOption(Alliance.Blue, 1, new B_LeftTrenchAuto(drive, feeder, intake, launcher)));
     autoSelector.addAuto(
-        new AutoOption(
-            Alliance.Red, 1, new R_LeftTrenchAuto(drive, feeder, intake, launcher)));
+        new AutoOption(Alliance.Red, 1, new R_LeftTrenchAuto(drive, feeder, intake, launcher)));
     autoSelector.addAuto(
-        new AutoOption(
-            Alliance.Blue, 2, new B_RightTrenchAuto(drive, feeder, intake, launcher)));
+        new AutoOption(Alliance.Blue, 2, new B_RightTrenchAuto(drive, feeder, intake, launcher)));
     autoSelector.addAuto(
-        new AutoOption(
-            Alliance.Red, 2, new R_RightTrenchAuto(drive, feeder, intake, launcher)));
+        new AutoOption(Alliance.Red, 2, new R_RightTrenchAuto(drive, feeder, intake, launcher)));
     autoSelector.addAuto(
         new AutoOption(Alliance.Blue, 3, new B_DepotAuto(drive, feeder, intake, launcher)));
     autoSelector.addAuto(
         new AutoOption(Alliance.Red, 3, new R_DepotAuto(drive, feeder, intake, launcher)));
     autoSelector.addAuto(
-        new AutoOption(
-            Alliance.Blue, 4, new B_OutpostAuto(drive, feeder, intake, launcher)));
+        new AutoOption(Alliance.Blue, 4, new B_OutpostAuto(drive, feeder, intake, launcher)));
     autoSelector.addAuto(
-        new AutoOption(
-            Alliance.Red, 4, new R_OutpostAuto(drive, feeder, intake, launcher)));
+        new AutoOption(Alliance.Red, 4, new R_OutpostAuto(drive, feeder, intake, launcher)));
   }
 
   public static Alliance getAlliance() {
