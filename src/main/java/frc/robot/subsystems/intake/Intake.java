@@ -64,7 +64,7 @@ public class Intake extends SubsystemBase {
   }
 
   public void runRoller() {
-    intakeRollerIO.setVelocity(MetersPerSecond.of(4));
+    intakeRollerIO.setVelocity(MetersPerSecond.of(6));
   }
 
   public void deployArm() {
@@ -87,7 +87,7 @@ public class Intake extends SubsystemBase {
   public Command getDeployCommand() {
     return Commands.sequence(
             Commands.runOnce(this::deployArm, this),
-            this.idle().withTimeout(1.0),
+            this.idle().withTimeout(0.5),
             Commands.startEnd(this::runRoller, () -> {}, this))
         .withName("Intake");
   }

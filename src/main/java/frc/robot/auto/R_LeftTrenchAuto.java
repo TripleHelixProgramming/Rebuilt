@@ -10,6 +10,7 @@ import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.launcher.Launcher;
 
 public class R_LeftTrenchAuto extends AutoMode {
+  Drive drive;
   Hopper hopper;
   Feeder feeder;
   Intake intake;
@@ -22,6 +23,7 @@ public class R_LeftTrenchAuto extends AutoMode {
       Intake intakeSubsystem,
       Launcher launcherSubsystem) {
     super(drivetrain);
+    drive = drivetrain;
     hopper = hopperSubsystem;
     feeder = feederSubsystem;
     intake = intakeSubsystem;
@@ -63,9 +65,10 @@ public class R_LeftTrenchAuto extends AutoMode {
         .done()
         .onTrue(
             Commands.sequence(
+                Commands.runOnce(drive::stop, drive),
                 Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
                 Commands.parallel(
-                    redLeftTransitionToNZ.cmd(), intake.getDeployCommand().withTimeout(8.0))));
+                    redLeftTransitionToNZ.cmd(), intake.getDeployCommand().withTimeout(5.0))));
 
     redLeftTransitionToNZ
         .done()

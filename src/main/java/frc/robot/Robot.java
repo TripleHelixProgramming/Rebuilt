@@ -333,6 +333,7 @@ public class Robot extends LoggedRobot {
   @Override
   public void autonomousInit() {
     drive.setDefaultCommand(Commands.runOnce(drive::stop, drive).withName("Stop"));
+    launcher.setDefaultCommand(launcher.getDefaultCommand());
     autoSelector.scheduleAuto();
     leds.clear();
   }
@@ -347,6 +348,8 @@ public class Robot extends LoggedRobot {
   /** This function is called once when teleop mode is enabled. */
   @Override
   public void teleopInit() {
+    launcher.setDefaultCommand(
+        Commands.startEnd(launcher::stop, () -> {}, launcher).withName("Stop"));
     autoSelector.cancelAuto();
     ControllerSelector.getInstance().scan(true);
     leds.clear();
@@ -440,15 +443,15 @@ public class Robot extends LoggedRobot {
                 .ignoringDisable(true));
 
     // Aim at target
-    zorroDriver
-        .HIn()
-        .whileTrue(
-            DriveCommands.joystickDriveAtFixedOrientation(
-                drive,
-                () -> -zorroDriver.getRightYAxis(),
-                () -> -zorroDriver.getRightXAxis(),
-                () -> launcher.getHorizontalAimAngle(),
-                allianceSelector::fieldRotated));
+    // zorroDriver
+    //     .HIn()
+    //     .whileTrue(
+    //         DriveCommands.joystickDriveAtFixedOrientation(
+    //             drive,
+    //             () -> -zorroDriver.getRightYAxis(),
+    //             () -> -zorroDriver.getRightXAxis(),
+    //             () -> launcher.getHorizontalAimAngle(),
+    //             allianceSelector::fieldRotated));
 
     // Index
     zorroDriver
@@ -471,9 +474,9 @@ public class Robot extends LoggedRobot {
     // Switch to X pattern when button D is pressed
     // zorroDriver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
 
-    zorroDriver.DIn().and(() -> hopper.isDeployed()).onTrue(intake.getDeployCommand());
+    zorroDriver.HIn().and(() -> hopper.isDeployed()).onTrue(intake.getDeployCommand());
 
-    zorroDriver.DIn().negate().and(() -> hopper.isDeployed()).onTrue(intake.getDefaultCommand());
+    zorroDriver.HIn().negate().and(() -> hopper.isDeployed()).onTrue(intake.getDefaultCommand());
 
     zorroDriver
         .FDown()
