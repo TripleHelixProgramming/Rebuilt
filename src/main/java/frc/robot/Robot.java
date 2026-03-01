@@ -333,7 +333,14 @@ public class Robot extends LoggedRobot {
   @Override
   public void autonomousInit() {
     drive.setDefaultCommand(Commands.runOnce(drive::stop, drive).withName("Stop"));
-    launcher.setDefaultCommand(launcher.getDefaultCommand());
+    launcher.setDefaultCommand(
+        launcher
+            .initializeHoodCommand()
+            .andThen(
+                new RunCommand(
+                        () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()),
+                        launcher)
+                    .withName("Aim at hub")));
     autoSelector.scheduleAuto();
     leds.clear();
   }
