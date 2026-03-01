@@ -411,15 +411,15 @@ public class Robot extends LoggedRobot {
     var controller =
         new DriverController() {
           public double getXTranslationInput() {
-            return -zorroDriver.getRightYAxis();
+            return -zorroDriver.getLeftYAxis();
           }
 
           public double getYTranslationInput() {
-            return -zorroDriver.getRightXAxis();
+            return -zorroDriver.getLeftXAxis();
           }
 
           public double getRotationInput() {
-            return -zorroDriver.getLeftXAxis();
+            return -zorroDriver.getRightXAxis();
           }
 
           public boolean getFieldRelativeInput() {
@@ -486,7 +486,7 @@ public class Robot extends LoggedRobot {
                         .withName("Aim at hub")));
 
     // Intake
-    zorroDriver.FDown().whileTrue(intake.getDeployCommand());
+    zorroDriver.HIn().whileTrue(intake.getDeployCommand());
     // zorroDriver.HIn().and(() -> hopper.isDeployed()).onTrue(intake.getDeployCommand());
     // zorroDriver.HIn().negate().and(() -> hopper.isDeployed()).onTrue(intake.getDefaultCommand());
 
