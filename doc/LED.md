@@ -113,7 +113,7 @@ Provides visual feedback for manually aligning the robot to a target pose. Usefu
 |---------|---------|
 | **X (center)** | Green = drive forward, Red = drive backward, White = correct |
 | **Rotation (inner)** | Magenta = rotate CCW, Cyan = rotate CW, White = correct |
-| **Y (ends)** | Green on side to strafe toward, Red on opposite side, White = correct |
+| **Y (ends)** | Green on side to move toward, Red on opposite side, White = correct |
 
 Tolerances are defined in `LEDConstants`:
 - X: 5 cm

@@ -72,15 +72,19 @@ public class LEDController extends SubsystemBase {
   public void displayPoseSeek(Pose2d currentPose, Pose2d targetPose) {
     var delta = targetPose.minus(currentPose);
 
-    // X feedback on center LEDs
-    var x = delta.getTranslation().getMeasureX().in(Centimeters);
+    // Transform field-relative delta to robot-relative coordinates
+    var robotRelativeDelta =
+        delta.getTranslation().rotateBy(currentPose.getRotation().unaryMinus());
+
+    // X feedback on center LEDs (robot-relative: positive = forward)
+    var x = robotRelativeDelta.getMeasureX().in(Centimeters);
     Color xColor =
         Math.abs(x) < LEDConstants.kPoseSeekXToleranceCm
             ? Color.kWhite
             : x > 0 ? Color.kGreen : Color.kRed;
     LEDSeries.POSE_X_CENTER.applyPattern(LEDPattern.solid(xColor));
 
-    // Heading feedback on rotation LEDs (between center and ends)
+    // Heading feedback on rotation LEDs (angular error is frame-independent)
     var theta = MathUtil.inputModulus(delta.getRotation().getDegrees(), -180, 180);
     Color headingColor =
         Math.abs(theta) < LEDConstants.kPoseSeekHeadingToleranceDegrees
@@ -88,17 +92,17 @@ public class LEDController extends SubsystemBase {
             : theta > 0 ? Color.kMagenta : Color.kCyan;
     LEDSeries.POSE_ROTATION.applyPattern(LEDPattern.solid(headingColor));
 
-    // Y feedback on end LEDs (green = move toward that side, red = move away)
-    var y = delta.getTranslation().getMeasureY().in(Centimeters);
+    // Y feedback on end LEDs (robot-relative: positive = move left)
+    var y = robotRelativeDelta.getMeasureY().in(Centimeters);
     if (Math.abs(y) < LEDConstants.kPoseSeekYToleranceCm) {
       LEDSeries.POSE_Y_LEFT.applyPattern(LEDPattern.solid(Color.kWhite));
       LEDSeries.POSE_Y_RIGHT.applyPattern(LEDPattern.solid(Color.kWhite));
     } else if (y > 0) {
-      // Need to strafe left
+      // Need to move left
       LEDSeries.POSE_Y_LEFT.applyPattern(LEDPattern.solid(Color.kGreen));
       LEDSeries.POSE_Y_RIGHT.applyPattern(LEDPattern.solid(Color.kRed));
     } else {
-      // Need to strafe right
+      // Need to move right
       LEDSeries.POSE_Y_LEFT.applyPattern(LEDPattern.solid(Color.kRed));
       LEDSeries.POSE_Y_RIGHT.applyPattern(LEDPattern.solid(Color.kGreen));
     }
@@ -148,10 +152,10 @@ public class LEDController extends SubsystemBase {
           },
           // Fill color
           () -> {
-            if (GameState.isMyHubActive() && GameState.getMyAlliance() == Alliance.Red) {
-              return Color.kRed;
+            if (GameState.isMyHubActive()) {
+              return GameState.getMyAlliance() == Alliance.Blue ? Color.kBlue : Color.kRed;
             }
-            return Color.kBlue;
+            return GameState.getMyAlliance() == Alliance.Blue ? Color.kRed : Color.kBlue;
           },
           // Background color
           Color.kBlack);
