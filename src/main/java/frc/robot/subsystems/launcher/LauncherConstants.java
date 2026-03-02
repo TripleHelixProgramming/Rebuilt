@@ -18,10 +18,15 @@ import frc.robot.Constants.MotorConstants.NEO550Constants;
 public final class LauncherConstants {
 
   // Geometry
-  public static final Rotation2d impactAngle = Rotation2d.fromDegrees(50);
   public static final Distance fuelRadius = Inches.of(3);
   public static final Distance ceilingHeight = Feet.of(11).plus(Inches.of(2));
   public static final double g = 9.81;
+
+  // Distance-based impact angle: steeper at close range, shallower at far range
+  public static final Distance impactAngleCloseDistance = Meters.of(2.0);
+  public static final Distance impactAngleFarDistance = Meters.of(6.0);
+  public static final Rotation2d impactAngleClose = Rotation2d.fromDegrees(55);
+  public static final Rotation2d impactAngleFar = Rotation2d.fromDegrees(40);
 
   // Logging / simulation periods
   public static final boolean logFuelTrajectories;
@@ -93,7 +98,12 @@ public final class LauncherConstants {
   }
 
   public static final class FlywheelConstants {
-    public static final double ballToFlywheelFactor = 1.6;
+
+    public static final class FlywheelScaling {
+      public static final double exponent = 1.8;
+      public static final double coefficient = 0.335;
+    }
+
     public static final Distance wheelRadius = Inches.of(1.5);
 
     // Velocity Controller
