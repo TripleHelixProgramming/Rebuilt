@@ -137,10 +137,11 @@ Shows launcher and spindexer state during teleop and autonomous.
 
 ### displayHubCountdown()
 
-Shows remaining time in the current match phase as a progress bar.
+Shows remaining time in the current match phase as a progress bar with urgent mode.
 
 - Bar fills in alliance color (red or blue based on hub state)
 - Empties as time runs out
+- **Urgent mode (final 5 seconds):** Bar resets to full and counts down while flashing at 4Hz
 
 **Used on:** `Y_AXIS` (LEDs 0-11)
 
@@ -316,6 +317,7 @@ LEDPattern.gradient(LEDPattern.GradientType.kContinuous, Color.kRed, Color.kBlue
 | `bounceRipple(color)` | Expanding/contracting ripple with comet tail |
 | `bounceRipple(color, rippleWidth, cyclesPerSecond)` | Configurable bounce ripple |
 | `bounceRipple(color, rippleWidth, tailLength, cyclesPerSecond)` | Full control |
+| `urgentCountdown(remaining, total, threshold, color, bg, blink)` | Progress bar with urgent flashing mode |
 | `allianceColor()` | Red or blue based on current alliance |
 
 ### Pre-allocated Patterns in LEDController
@@ -327,8 +329,8 @@ LEDPattern.gradient(LEDPattern.GradientType.kContinuous, Color.kRed, Color.kBlue
 | `solidGreenPattern` | Solid green |
 | `bounceRippleYellowPattern` | Yellow bounce ripple (spindexing, not on target) |
 | `bounceRippleGreenPattern` | Green bounce ripple (spindexing, on target) |
-| `autoSelectionPattern` | Counting blocks in alliance color |
-| `hubCountdownPattern` | Progress bar for match phase |
+| `autoSelectionPattern` | Counting blocks in alliance color for auto selection |
+| `hubCountdownPattern` | Urgent countdown progress bar with flashing in final 5 seconds |
 
 ## Simulation
 
