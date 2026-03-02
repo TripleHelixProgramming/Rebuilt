@@ -109,51 +109,56 @@ When multiple tags are visible, we get more accurate poses:
 
 ### Camera Configuration
 
-We use **4 PhotonVision cameras** positioned around the robot:
+We use **4 OV2311 PhotonVision cameras** mounted on the rear of the robot, all angled upward to see AprilTags on the field:
 
 ```
-         Front
-    ┌─────────────────┐
-    │  FL         FR  │   FL = Front-Left
-    │   ◢         ◣   │   FR = Front-Right
-    │                 │   BL = Back-Left
-    │   ◥         ◤   │   BR = Back-Right
-    │  BL         BR  │
-    └─────────────────┘
-         Back
+                   Front
+    ┌─────────────────────────────┐
+    │                             │
+    │                             │
+    │                             │
+    │    RL ◤             ◥ RR    │   FR = Front-Right (rear-mounted, looking back-right)
+    │       ╲             ╱       │   FL = Front-Left (rear-mounted, looking back-left)
+    │        ╲           ╱        │   RR = Rear-Right (rear-mounted, looking further back-right)
+    │    FL ◤ ╲         ╱ ◥ FR    │   RL = Rear-Left (rear-mounted, looking further back-left)
+    └─────────────────────────────┘
+                   Back
+          (all cameras face rearward)
 ```
 
 ### Why Multiple Cameras?
 
-- **360° coverage**: Always see some tags regardless of heading
+- **Wide rear coverage**: All cameras face rearward with overlapping fields of view
 - **Redundancy**: If one camera is blocked, others still work
 - **Multi-tag**: More cameras = more simultaneous tag detections
 
 ### Camera Specifications
 
-Typical FRC cameras (e.g., Arducam OV9281):
-- **Resolution**: 1280×720 or 1920×1080
-- **Frame rate**: 30-90 FPS
-- **Field of view**: 70-100°
+OV2311 cameras:
+- **Resolution**: 1600×1200
+- **Frame rate**: Up to 60 FPS
+- **Field of view**: ~80°
 - **Global shutter**: Prevents motion blur
 
 ### Camera Mounting
 
-Each camera position must be precisely measured:
+Each camera position is precisely measured using quaternions for rotation. The cameras are mounted at the rear of the robot, pitched upward to see tags:
 
 ```java
-// Example: Front-left camera position relative to robot center
-new Transform3d(
-    new Translation3d(
-        Inches.of(10.5),   // Forward from center
-        Inches.of(11.25),  // Left from center
-        Inches.of(8.0)     // Up from floor
-    ),
-    new Rotation3d(
-        0,                         // Roll
-        Math.toRadians(-28.125),   // Pitch (angled down)
-        Math.toRadians(30)         // Yaw (angled outward)
-    )
+// Front-Right camera: rear-mounted, pitched 20° up, yawed 55° right
+robotToFrontRightCamera = new Transform3d(
+    Inches.of(-10.572),   // Behind center
+    Inches.of(-12.337),   // Right of center
+    Inches.of(16.688),    // Up from floor
+    new Rotation3d(new Quaternion(0.8735, -0.0802, -0.1540, -0.4547))
+);
+
+// Rear-Right camera: further back, pitched 15° up, yawed 135° right
+robotToBackRightCamera = new Transform3d(
+    Inches.of(-13.1623),  // Further behind center
+    Inches.of(-12.1623),  // Right of center
+    Inches.of(20.26674),  // Higher up
+    new Rotation3d(new Quaternion(-0.3794, 0.1206, 0.0500, 0.9160))
 );
 ```
 
@@ -237,6 +242,31 @@ Each camera might see different tags at different times. We need to:
 1. **Collect all observations** from all cameras
 2. **Assign confidence** based on distance, ambiguity, tag count
 3. **Fuse with odometry** using Kalman filter
+
+### Sigmoid-Based Pose Scoring
+
+Before fusing vision observations with odometry, each observation is scored using a series of tests. Each test uses a **normalized sigmoid function** to produce a score between 0 and 1:
+
+```java
+// Sigmoid function with tunable midpoint and steepness
+double normalizedSigmoid(double x, double midpoint, double steepness) {
+    return 1.0 / (1.0 + Math.exp(-steepness * (x - midpoint)));
+}
+```
+
+The scoring tests include:
+
+| Test | What it Checks | Penalty Condition |
+|------|---------------|-------------------|
+| `unambiguous` | Single-tag pose ambiguity ratio | Ambiguity > 0.15 |
+| `pitchError` | Robot pitch (should be ~0) | Pose shows robot tilted forward/back |
+| `rollError` | Robot roll (should be ~0) | Pose shows robot tilted sideways |
+| `heightError` | Robot elevation (should be ~0) | Pose shows robot floating/underground |
+| `withinBoundaries` | Position inside field | Pose outside field boundaries |
+| `moreThanZeroTags` | At least one tag visible | No tags detected |
+| `distanceToTags` | Proximity to detected tags | Tags far away (>4m) |
+
+The final score is the product of all individual test scores. Low-scoring observations are rejected or given higher standard deviations, preventing bad measurements from corrupting the pose estimate.
 
 ### Standard Deviation Calculation
 
