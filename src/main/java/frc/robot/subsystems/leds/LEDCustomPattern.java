@@ -107,6 +107,53 @@ public final class LEDCustomPattern {
   }
 
   /**
+   * Creates a countdown progress bar that enters "urgent" mode in the final seconds. In urgent
+   * mode, the bar resets to full and counts down while flashing.
+   *
+   * @param remainingSecondsSupplier supplies remaining time in seconds
+   * @param totalDurationSupplier supplies the total phase duration in seconds
+   * @param urgencyThresholdSeconds seconds remaining to trigger urgent mode (e.g., 5.0)
+   * @param colorSupplier the fill color
+   * @param backgroundColor the background color
+   * @param blinkPeriodSeconds blink interval in urgent mode (e.g., 0.25 for fast flash)
+   * @return the urgent countdown pattern
+   */
+  public static LEDPattern urgentCountdown(
+      Supplier<Double> remainingSecondsSupplier,
+      Supplier<Double> totalDurationSupplier,
+      double urgencyThresholdSeconds,
+      Supplier<Color> colorSupplier,
+      Color backgroundColor,
+      double blinkPeriodSeconds) {
+    return (reader, writer) -> {
+      int length = reader.getLength();
+      double remaining = Math.max(0, remainingSecondsSupplier.get());
+      double totalDuration = totalDurationSupplier.get();
+
+      double progress;
+      boolean urgent = remaining <= urgencyThresholdSeconds && remaining > 0;
+
+      if (urgent) {
+        // Reset to full, count down over urgency period
+        progress = remaining / urgencyThresholdSeconds;
+      } else {
+        progress = totalDuration > 0 ? remaining / totalDuration : 0;
+      }
+
+      // Blink in urgent mode
+      boolean showFill =
+          !urgent || ((int) (Timer.getFPGATimestamp() / blinkPeriodSeconds)) % 2 == 0;
+
+      int filledLeds = (int) Math.ceil(length * Math.max(0, Math.min(1, progress)));
+      Color fillColor = showFill ? colorSupplier.get() : backgroundColor;
+
+      for (int i = 0; i < length; i++) {
+        writer.setLED(i, i < filledLeds ? fillColor : backgroundColor);
+      }
+    };
+  }
+
+  /**
    * Creates a pattern showing status as a color gradient based on a value.
    *
    * @param valueSupplier supplies a value from 0.0 to 1.0
