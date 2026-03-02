@@ -140,16 +140,17 @@ public class LEDController extends SubsystemBase {
 
   /**
    * Pattern displaying a progress bar for the current match phase. Shows remaining time as a
-   * filling bar in alliance color (red or blue depending on hub state).
+   * filling bar in alliance color (red or blue depending on hub state). In the final 5 seconds,
+   * resets to full and counts down while flashing.
    */
   public static LEDPattern hubCountdownPattern =
-      LEDCustomPattern.progressBar(
-          // Percent full
-          () -> {
-            var t = GameState.getMatchTime();
-            var phase = GameState.getCurrentPhase();
-            return phase.remainingAt(t) / phase.duration();
-          },
+      LEDCustomPattern.urgentCountdown(
+          // Remaining seconds
+          () -> GameState.getCurrentPhase().remainingAt(GameState.getMatchTime()),
+          // Total phase duration
+          () -> GameState.getCurrentPhase().duration(),
+          // Urgency threshold (5 seconds)
+          5.0,
           // Fill color
           () -> {
             if (GameState.isMyHubActive()) {
@@ -158,7 +159,9 @@ public class LEDController extends SubsystemBase {
             return GameState.getMyAlliance() == Alliance.Blue ? Color.kRed : Color.kBlue;
           },
           // Background color
-          Color.kBlack);
+          Color.kBlack,
+          // Blink period (0.25s = 4Hz flash)
+          0.25);
 
   /**
    * Displays the current auto selection on the LEDs. Shows counting blocks in alliance color
