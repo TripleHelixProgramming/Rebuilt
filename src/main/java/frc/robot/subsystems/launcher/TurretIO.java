@@ -19,7 +19,6 @@ public interface TurretIO {
 
     public double oversaturation;
     public double oversaturationLessMargin;
-    public boolean isAtSetpoint;
   }
 
   public default void updateInputs(TurretIOInputs inputs) {}
