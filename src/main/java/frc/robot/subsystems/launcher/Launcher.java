@@ -335,8 +335,7 @@ public class Launcher extends SubsystemBase {
     t = MathUtil.clamp(t, 0.0, 1.0);
 
     double angleDeg =
-        impactAngleClose.getDegrees()
-            + t * (impactAngleFar.getDegrees() - impactAngleClose.getDegrees());
+        MathUtil.interpolate(impactAngleClose.getDegrees(), impactAngleFar.getDegrees(), t);
     return Rotation2d.fromDegrees(angleDeg);
   }
 
