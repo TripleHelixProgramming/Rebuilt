@@ -9,8 +9,33 @@ import java.util.List;
 import java.util.Optional;
 import org.littletonrobotics.junction.Logger;
 
+/**
+ * Tracks the current game phase and determines scoring availability based on the 2026 game rules.
+ *
+ * <p>The 2026 "Rebuilt" game features alternating scoring periods called "Shifts" during teleop.
+ * The alliance that wins autonomous gains a scoring advantage during even-numbered shifts, while
+ * the alliance that loses autonomous scores during odd-numbered shifts.
+ *
+ * <h2>Game Phases</h2>
+ *
+ * <ul>
+ *   <li><b>Autonomous (0:20-0:00)</b>: Both alliances can score. Winner determined by game data.
+ *   <li><b>Transition (2:20-2:10)</b>: Brief period after auto ends. Both hubs active.
+ *   <li><b>Shift 1 (2:10-1:45)</b>: Hub active for alliance that LOST autonomous.
+ *   <li><b>Shift 2 (1:45-1:20)</b>: Hub active for alliance that WON autonomous.
+ *   <li><b>Shift 3 (1:20-0:55)</b>: Hub active for alliance that LOST autonomous.
+ *   <li><b>Shift 4 (0:55-0:30)</b>: Hub active for alliance that WON autonomous.
+ *   <li><b>End Game (0:30-0:00)</b>: Both alliances can score. Climb period.
+ * </ul>
+ *
+ * <p>Use {@link #isMyHubActive()} to determine if your alliance can currently score.
+ */
 public class GameState {
 
+  /**
+   * Represents the phases of a match in the 2026 "Rebuilt" game. Shifts alternate scoring
+   * availability between the autonomous winner and loser alliances.
+   */
   public enum GamePhase {
     None("0:00 - 0:00"),
     Autonomous("0:20 - 0:00"),

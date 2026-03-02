@@ -339,7 +339,34 @@ public class Launcher extends SubsystemBase {
     return Rotation2d.fromDegrees(angleDeg);
   }
 
+  /**
+   * Calculates the initial velocity required to hit a target with a specified impact angle.
+   *
+   * <p><b>Physics Derivation:</b>
+   *
+   * <p>Standard projectile motion equations (no air resistance):
+   *
+   * <ul>
+   *   <li>Horizontal: dr = v_0r * t
+   *   <li>Vertical: dz = v_0z * t - 0.5 * g * t²
+   * </ul>
+   *
+   * <p>At impact, the velocity vector angle is: tan(impactAngle) = v_z / v_r = (v_0z - g*t) / v_0r
+   *
+   * <p>Solving these three equations for v_0r and v_0z yields:
+   *
+   * <ul>
+   *   <li>v_0r = dr * sqrt(g / (2 * (dz + dr * tan(impactAngle))))
+   *   <li>v_0z = (g * dr) / v_0r - v_0r * tan(impactAngle)
+   * </ul>
+   *
+   * @param d Displacement vector from turret to target (meters)
+   * @param impactAngle Desired angle of the velocity vector at impact (positive = descending)
+   * @param key Logging key prefix
+   * @return Initial velocity vector (m/s), or last valid result if target is unreachable
+   */
   private Translation3d getV0Nominal(Translation3d d, Rotation2d impactAngle, String key) {
+    // Horizontal distance to target
     double dr = Math.hypot(d.getX(), d.getY());
     if (dr < 1e-6) {
       Logger.recordOutput("Launcher/" + key + "/Reachable", false);
@@ -347,17 +374,22 @@ public class Launcher extends SubsystemBase {
       return v0nominalLast;
     }
 
+    // Vertical displacement to target
     double dz = d.getZ();
 
+    // Denominator from the derived formula; must be positive for a valid trajectory
     double denominator = 2 * (dz + dr * impactAngle.getTan());
     if (denominator <= 0) {
       Logger.recordOutput("Launcher/" + key + "/Reachable", false);
       // log(d, v0, key);
       return v0nominalLast;
     }
+
+    // Calculate horizontal and vertical initial velocity components
     double v_0r = dr * Math.sqrt(g / denominator);
     double v_0z = (g * dr) / v_0r - v_0r * impactAngle.getTan();
 
+    // Convert radial velocity to x,y components based on target direction
     double v_0x = v_0r * d.toTranslation2d().getAngle().getCos();
     double v_0y = v_0r * d.toTranslation2d().getAngle().getSin();
 
@@ -367,8 +399,42 @@ public class Launcher extends SubsystemBase {
     return v0nominalLast;
   }
 
+  /**
+   * Calculates the launch angle required to hit a target given a fixed initial speed.
+   *
+   * <p><b>Physics Derivation:</b>
+   *
+   * <p>Given a fixed initial speed |v_0| = v_flywheel, we need to find the launch angle θ that
+   * reaches the target at (dr, dz). From projectile motion:
+   *
+   * <ul>
+   *   <li>dr = v_0 * cos(θ) * t
+   *   <li>dz = v_0 * sin(θ) * t - 0.5 * g * t²
+   * </ul>
+   *
+   * <p>Eliminating t and solving for tan(θ) yields a quadratic equation:
+   *
+   * <pre>
+   *   tan(θ) = (v² ± sqrt(v⁴ - g*(g*dr² + 2*dz*v²))) / (g * dr)
+   * </pre>
+   *
+   * <p>The discriminant determines reachability:
+   *
+   * <ul>
+   *   <li>Negative: Target is out of range at this speed
+   *   <li>Zero: Target is at maximum range (one solution)
+   *   <li>Positive: Two solutions exist (high arc and low arc)
+   * </ul>
+   *
+   * <p>We use the high-arc solution (+sqrt) for more consistent ball entry into the target.
+   *
+   * @param d Displacement vector from turret to target (meters)
+   * @param v_flywheel Fixed initial ball speed (m/s) based on actual flywheel velocity
+   * @param key Logging key prefix
+   * @return Initial velocity vector (m/s), or last valid result if target is unreachable
+   */
   private Translation3d getV0Replanned(Translation3d d, double v_flywheel, String key) {
-    // Geometry
+    // Horizontal distance to target
     double dr = Math.hypot(d.getX(), d.getY());
     if (dr < 1e-6) {
       Logger.recordOutput("Launcher/" + key + "/Reachable", false);
@@ -376,29 +442,32 @@ public class Launcher extends SubsystemBase {
       return v0replannedLast;
     }
 
+    // Vertical displacement to target
     double dz = d.getZ();
 
-    // Unit vectors toward target in XY plane
+    // Unit vectors toward target in XY plane (for converting back to field coordinates)
     double rHatX = d.getX() / dr;
     double rHatY = d.getY() / dr;
 
+    // Solve quadratic for tan(θ): discriminant determines if target is reachable
     double v_sq = v_flywheel * v_flywheel;
     double discriminant = v_sq * v_sq - g * (g * dr * dr + 2 * dz * v_sq);
 
     if (discriminant < 0) {
-      // Unreachable target at this speed
+      // Target is beyond maximum range for this flywheel speed
       Logger.recordOutput("Launcher/" + key + "/Reachable", false);
       // log(d, v0, key);
       return v0replannedLast;
     }
 
-    // High-arc solution
+    // High-arc solution (+sqrt) for better target entry angle
     double tanTheta = (v_sq + Math.sqrt(discriminant)) / (g * dr);
 
     Logger.recordOutput(
         "Launcher/" + key + "/PredictedRange", (v_sq * Math.sin(2 * Math.atan(tanTheta))) / g);
 
-    // Effective velocity available for ballistics
+    // Decompose v_flywheel into horizontal (v_r) and vertical (v_z) components
+    // Using: v_r = v / sqrt(1 + tan²θ) and v_z = v_r * tan(θ)
     double v_r = v_flywheel / Math.sqrt(1 + tanTheta * tanTheta);
     double v_z = v_r * tanTheta;
 
@@ -410,13 +479,13 @@ public class Launcher extends SubsystemBase {
       return v0replannedLast;
     }
 
-    // Scale to match actual flywheel speed
+    // Normalize to exact flywheel speed (handles numerical precision)
     double scale = v_flywheel / v_required;
 
     v_r *= scale;
     v_z *= scale;
 
-    // Back to field frame
+    // Convert radial velocity back to field-frame x,y components
     v0replannedLast = new Translation3d(rHatX * v_r, rHatY * v_r, v_z);
     Logger.recordOutput("Launcher/" + key + "/Reachable", true);
     log(d, v0replannedLast, key);

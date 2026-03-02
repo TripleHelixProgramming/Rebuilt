@@ -67,7 +67,7 @@ Collect game pieces (fuel) from the field and transfer them into the robot's int
 
 **Hardware**:
 - **Actuator**: Pneumatic cylinder
-- **Control**: Single solenoid (REV Pneumatic Hub)
+- **Control**: Double solenoid (REV Pneumatic Hub)
 - **Positions**: Extended (deployed) or retracted (stowed)
 
 **Why Pneumatic?**

@@ -216,7 +216,9 @@ public static synchronized AprilTagLayout getAprilTagLayout() {
 
 ## Potential Bugs
 
-### 1. setPose Doesn't Update Pose Estimator (High Priority)
+> **NOTE:** Items #1 and #2 below were initially flagged as bugs but have been confirmed as **intentional design decisions** by the team. They are preserved here for documentation purposes.
+
+### ~~1. setPose Doesn't Update Pose Estimator~~ (NOT A BUG - Intentional)
 
 **Location:** `Drive.java:391-393`
 
@@ -226,21 +228,13 @@ public void setPose(Pose2d pose) {
 }
 ```
 
-**Bug:** This only resets heading but doesn't update the `visionPose` estimator's position. The `getPose()` method returns from `visionPose`, so after calling `setPose()`, the robot's X/Y position won't change—only the heading offset.
+**Original Concern:** This only resets heading but doesn't update the `visionPose` estimator's position.
 
-**Impact:** This method is passed to PathPlanner's `AutoBuilder.configure()` on line 114, which expects it to fully reset the robot pose for autonomous starting positions. Currently, autonomous routines will start with incorrect X/Y coordinates.
-
-**Fix:**
-```java
-public void setPose(Pose2d pose) {
-    resetHeading(pose.getRotation());
-    visionPose.resetPosition(rawGyroRotation, getModulePositions(), pose);
-}
-```
+**Team Response:** This behavior is intentional. The pose estimator position is deliberately not reset here.
 
 ---
 
-### 2. Default Commands Use startEnd Instead of run (Medium Priority)
+### ~~2. Default Commands Use startEnd Instead of run~~ (NOT A BUG - Intentional)
 
 **Location:** `Robot.java:263, 266`
 
@@ -249,12 +243,9 @@ feeder.setDefaultCommand(Commands.startEnd(feeder::stop, () -> {}, feeder).withN
 launcher.setDefaultCommand(Commands.startEnd(launcher::stop, () -> {}, launcher).withName("Stop"));
 ```
 
-**Issue:** `Commands.startEnd()` only calls the start action (`stop()`) once when the command initializes. If the mechanism has residual momentum or is disturbed, it won't be actively stopped.
+**Original Concern:** `Commands.startEnd()` only calls the start action (`stop()`) once when the command initializes.
 
-**Recommendation:** Use `Commands.run()` for continuous stopping:
-```java
-feeder.setDefaultCommand(Commands.run(feeder::stop, feeder).withName("Stop"));
-```
+**Team Response:** This is intentional. Continuous stopping behavior is not desired for these mechanisms.
 
 ---
 
@@ -322,14 +313,13 @@ A 5-degree margin on a 180-degree range is reasonable, but ensure the turret can
 - `VISION.md` - AprilTag detection and pose estimation
 - `LED.md` - LED patterns and driver feedback
 
-**Gaps:**
-1. **No top-level README.md** - Project needs build/deploy instructions at root
-2. **GameState.java** - Purpose of "Shifts 1-4" game phases not documented
-3. **Ballistic math** in `getV0Nominal()` and `getV0Replanned()` would benefit from physics comments explaining the derivation
+**Gaps:** *(All fixed)*
+1. ~~**GameState.java** - Purpose of "Shifts 1-4" game phases not documented~~ ✓ Added Javadoc
+2. ~~**Ballistic math** in `getV0Nominal()` and `getV0Replanned()` would benefit from physics comments~~ ✓ Added physics derivation comments
 
-**Discrepancies:**
-1. **INTAKE_FEEDER.md** - States intake arm uses "Single solenoid" but `IntakeArmIOReal.java` uses `DoubleSolenoid`
-2. **VISION.md** - Camera configuration example doesn't match `VisionConstants.java` (four rear-mounted cameras angled upward). Also missing documentation of the sigmoid-based pose scoring system in `Vision.java`
+**Discrepancies:** *(All fixed)*
+1. ~~**INTAKE_FEEDER.md** - States intake arm uses "Single solenoid"~~ ✓ Corrected to "Double solenoid"
+2. ~~**VISION.md** - Camera configuration doesn't match actual setup~~ ✓ Updated camera diagram and added sigmoid scoring docs
 
 ---
 
@@ -341,7 +331,7 @@ A 5-degree margin on a 180-degree range is reasonable, but ensure the turret can
 | Code Quality | 4/5 | Good overall, some magic numbers |
 | Safety | 4/5 | Alerts present, limits configured |
 | Performance | 4/5 | Profiling present, some allocation concerns |
-| Documentation | 4/5 | Comprehensive subsystem docs, missing README |
+| Documentation | 5/5 | Comprehensive subsystem docs with top-level README |
 | Testing | 2/5 | No unit tests; relies on simulation |
 
 ---
@@ -349,21 +339,23 @@ A 5-degree margin on a 180-degree range is reasonable, but ensure the turret can
 ## Priority Action Items
 
 ### High Priority
-1. Fix `setPose()` to actually update pose estimator position
-2. Add guard for small `v_0r` in ballistics calculation
+1. Add guard for small `v_0r` in ballistics calculation
 
 ### Medium Priority
-3. Extract duplicate turret desaturation logic
-4. Review thread safety in Vision pass rate calculation
-5. Improve InterruptedException handling in odometry thread
-6. Change default commands from `startEnd` to `run` for continuous stopping
+2. Extract duplicate turret desaturation logic
+3. Review thread safety in Vision pass rate calculation
+4. Improve InterruptedException handling in odometry thread
 
 ### Low Priority
-7. Move magic numbers to constants files
-8. Remove or document commented-out code
-9. Fix `Boolean` vs `boolean` usage
-10. Remove unused `chassisPoseSupplier` field in Vision.java
-11. Fix documentation discrepancies in INTAKE_FEEDER.md and VISION.md
+5. Move magic numbers to constants files
+6. Remove or document commented-out code
+7. Fix `Boolean` vs `boolean` usage
+8. Remove unused `chassisPoseSupplier` field in Vision.java
+9. ~~Fix documentation discrepancies in INTAKE_FEEDER.md and VISION.md~~ ✓ Fixed
+
+### Not Bugs (Confirmed Intentional)
+- ~~`setPose()` not updating pose estimator~~ — Intentional design
+- ~~Default commands using `startEnd` instead of `run`~~ — Continuous stopping not desired
 
 ---
 
