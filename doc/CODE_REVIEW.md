@@ -1,14 +1,15 @@
 # Comprehensive Code Review: FRC Robot Project
 
-**Date:** 2026-03-01
+**Date:** 2026-03-02
 **Reviewer:** Claude Code
-**Codebase:** Rebuilt (FRC Robot)
+**Team:** 2363
+**Codebase:** Rebuilt (FRC Robot, 2026 Season)
 
 ---
 
 ## Overall Assessment
 
-This is a **well-architected FRC robot codebase** using AdvantageKit for logging, hardware abstraction via IO interfaces, and the WPILib command-based framework. The codebase follows many best practices from Team 6328 (Mechanical Advantage). That said, I've identified several areas for improvement.
+This is a **well-architected FRC robot codebase** using AdvantageKit for logging, hardware abstraction via IO interfaces, and the WPILib command-based framework. The codebase follows the architectural patterns established by Team 6328 (Mechanical Advantage) via their AdvantageKit template. That said, I've identified several areas for improvement.
 
 ---
 
@@ -227,6 +228,8 @@ public void setPose(Pose2d pose) {
 
 **Bug:** This only resets heading but doesn't update the `visionPose` estimator's position. The `getPose()` method returns from `visionPose`, so after calling `setPose()`, the robot's X/Y position won't change—only the heading offset.
 
+**Impact:** This method is passed to PathPlanner's `AutoBuilder.configure()` on line 114, which expects it to fully reset the robot pose for autonomous starting positions. Currently, autonomous routines will start with incorrect X/Y coordinates.
+
 **Fix:**
 ```java
 public void setPose(Pose2d pose) {
@@ -237,15 +240,21 @@ public void setPose(Pose2d pose) {
 
 ---
 
-### 2. Feeder Default Command Empty Lambda (Low Priority)
+### 2. Default Commands Use startEnd Instead of run (Medium Priority)
 
-**Location:** `Robot.java:263`
+**Location:** `Robot.java:263, 266`
 
 ```java
 feeder.setDefaultCommand(Commands.startEnd(feeder::stop, () -> {}, feeder).withName("Stop"));
+launcher.setDefaultCommand(Commands.startEnd(launcher::stop, () -> {}, launcher).withName("Stop"));
 ```
 
-**Issue:** The end action `() -> {}` does nothing. Consider whether `feeder::stop` should also be called on end, or document why this is intentional.
+**Issue:** `Commands.startEnd()` only calls the start action (`stop()`) once when the command initializes. If the mechanism has residual momentum or is disturbed, it won't be actively stopped.
+
+**Recommendation:** Use `Commands.run()` for continuous stopping:
+```java
+feeder.setDefaultCommand(Commands.run(feeder::stop, feeder).withName("Stop"));
+```
 
 ---
 
@@ -303,11 +312,24 @@ A 5-degree margin on a 180-degree range is reasonable, but ensure the turret can
 
 ---
 
-## Documentation Gaps
+## Documentation Status
 
-1. **No README** explaining project structure, build instructions, or deployment
-2. **GameState.java** referenced but purpose of "Shifts 1-4" not documented
+**Existing Documentation (in `/doc/`):**
+- `OVERVIEW.md` - Excellent high-level architecture guide
+- `DRIVE.md` - Swerve drive and odometry details
+- `LAUNCHER.md` - Ballistics and shooting mechanics
+- `INTAKE_FEEDER.md` - Game piece handling
+- `VISION.md` - AprilTag detection and pose estimation
+- `LED.md` - LED patterns and driver feedback
+
+**Gaps:**
+1. **No top-level README.md** - Project needs build/deploy instructions at root
+2. **GameState.java** - Purpose of "Shifts 1-4" game phases not documented
 3. **Ballistic math** in `getV0Nominal()` and `getV0Replanned()` would benefit from physics comments explaining the derivation
+
+**Discrepancies:**
+1. **INTAKE_FEEDER.md** - States intake arm uses "Single solenoid" but `IntakeArmIOReal.java` uses `DoubleSolenoid`
+2. **VISION.md** - Camera configuration example doesn't match `VisionConstants.java` (four rear-mounted cameras angled upward). Also missing documentation of the sigmoid-based pose scoring system in `Vision.java`
 
 ---
 
@@ -319,8 +341,8 @@ A 5-degree margin on a 180-degree range is reasonable, but ensure the turret can
 | Code Quality | 4/5 | Good overall, some magic numbers |
 | Safety | 4/5 | Alerts present, limits configured |
 | Performance | 4/5 | Profiling present, some allocation concerns |
-| Documentation | 3/5 | Inline comments sparse, no README |
-| Testing | 2/5 | No unit tests visible |
+| Documentation | 4/5 | Comprehensive subsystem docs, missing README |
+| Testing | 2/5 | No unit tests; relies on simulation |
 
 ---
 
@@ -334,13 +356,14 @@ A 5-degree margin on a 180-degree range is reasonable, but ensure the turret can
 3. Extract duplicate turret desaturation logic
 4. Review thread safety in Vision pass rate calculation
 5. Improve InterruptedException handling in odometry thread
+6. Change default commands from `startEnd` to `run` for continuous stopping
 
 ### Low Priority
-6. Move magic numbers to constants files
-7. Remove or document commented-out code
-8. Fix `Boolean` vs `boolean` usage
-9. Remove unused `chassisPoseSupplier` field
-10. Add project README
+7. Move magic numbers to constants files
+8. Remove or document commented-out code
+9. Fix `Boolean` vs `boolean` usage
+10. Remove unused `chassisPoseSupplier` field in Vision.java
+11. Fix documentation discrepancies in INTAKE_FEEDER.md and VISION.md
 
 ---
 

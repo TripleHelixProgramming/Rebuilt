@@ -316,15 +316,15 @@ After a full match, odometry might be off by several feet.
 We fuse odometry with vision to correct drift:
 
 ```
-┌─────────────┐     ┌─────────────┐
-│  Odometry   │────▶│   Kalman    │────▶ Best Estimate
-│ (fast, noisy)│     │   Filter    │      of Position
-└─────────────┘     └─────────────┘
-                          ▲
-┌─────────────┐          │
-│   Vision    │──────────┘
-│ (slow, accurate)
-└─────────────┘
+┌─────────────────┐     ┌─────────────┐
+│    Odometry     │────▶│   Kalman    │────▶ Best Estimate
+│ (fast, noisy)   │     │   Filter    │      of Position
+└─────────────────┘     └─────────────┘
+                              ▲
+┌─────────────────┐           │
+│     Vision      │───────────┘
+│ (slow, accurate)│
+└─────────────────┘
 ```
 
 The Kalman filter weighs each source by its uncertainty:
