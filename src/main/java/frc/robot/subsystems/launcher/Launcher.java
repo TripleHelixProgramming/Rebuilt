@@ -6,6 +6,7 @@ import static frc.robot.subsystems.launcher.LauncherConstants.FlywheelConstants.
 import static frc.robot.subsystems.launcher.LauncherConstants.HoodConstants.ballToHoodOffset;
 import static frc.robot.subsystems.launcher.LauncherConstants.TurretConstants.*;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -169,9 +170,15 @@ public class Launcher extends SubsystemBase {
     turretBasePose = new Pose3d(chassisPoseSupplier.get()).plus(chassisToTurretBase);
     vectorTurretBaseToTarget = target.minus(turretBasePose.getTranslation());
 
+    // Compute distance-based impact angle
+    double horizontalDistance =
+        Math.hypot(vectorTurretBaseToTarget.getX(), vectorTurretBaseToTarget.getY());
+    Rotation2d dynamicImpactAngle = getImpactAngle(horizontalDistance);
+
     // Set flywheel speed assuming a motionless robot
-    var v0_nominal = getV0Nominal(vectorTurretBaseToTarget, impactAngle, nominalKey);
-    flywheelIO.setVelocity(MetersPerSecond.of(ballToFlywheelFactor * v0_nominal.getNorm()));
+    var v0_nominal = getV0Nominal(vectorTurretBaseToTarget, dynamicImpactAngle, nominalKey);
+    var flywheelSetpoint = MetersPerSecond.of(flywheelSetpointfromBallistics(v0_nominal.getNorm()));
+    flywheelIO.setVelocity(flywheelSetpoint);
     long t1 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Get translation velocities (m/s) of the turret caused by motion of the chassis
@@ -182,17 +189,16 @@ public class Launcher extends SubsystemBase {
     var v_base = getTurretBaseSpeeds(turretBasePose.toPose2d().getRotation(), fieldRelative);
     long t2 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
-    // Get actual flywheel speed
-    double flywheelSpeedMetersPerSec = flywheelInputs.velocityMetersPerSec / ballToFlywheelFactor;
+    // Get actual initial shot speed
+    double initialSpeedMetersPerSec =
+        ballisticsFromFlywheelSetpoint(flywheelInputs.velocityMetersPerSec);
 
-    // Replan shot using actual flywheel speed
-    var v0_total =
-        getV0Replanned(vectorTurretBaseToTarget, flywheelSpeedMetersPerSec, replannedKey);
+    // Replan shot using actual initial shot speed speed
+    var v0_total = getV0Replanned(vectorTurretBaseToTarget, initialSpeedMetersPerSec, replannedKey);
     long t3 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Point turret to align velocity vectors
     var v0_flywheel = v0_total.minus(v_base);
-    // var v0_flywheel = v0_nominal.minus(v_base);
 
     // Check if v0_flywheel has non-zero horizontal component
     double v0_horizontal = Math.hypot(v0_flywheel.getX(), v0_flywheel.getY());
@@ -224,9 +230,9 @@ public class Launcher extends SubsystemBase {
     double turretSin = turretPosition.getSin();
 
     // Build actual velocities
-    double vx = hoodCos * turretCos * flywheelSpeedMetersPerSec + v_base.getX();
-    double vy = hoodCos * turretSin * flywheelSpeedMetersPerSec + v_base.getY();
-    double vz = hoodSin * flywheelSpeedMetersPerSec;
+    double vx = hoodCos * turretCos * initialSpeedMetersPerSec + v_base.getX();
+    double vy = hoodCos * turretSin * initialSpeedMetersPerSec + v_base.getY();
+    double vz = hoodSin * initialSpeedMetersPerSec;
     Translation3d v0_actual = new Translation3d(vx, vy, vz);
 
     // Cache values for deferred logging (will be logged in periodic())
@@ -320,6 +326,17 @@ public class Launcher extends SubsystemBase {
     cachedBaseSpeeds = baseSpeeds;
 
     return baseSpeeds;
+  }
+
+  private Rotation2d getImpactAngle(double horizontalDistanceMeters) {
+    double t =
+        (horizontalDistanceMeters - impactAngleCloseDistance.in(Meters))
+            / (impactAngleFarDistance.in(Meters) - impactAngleCloseDistance.in(Meters));
+    t = MathUtil.clamp(t, 0.0, 1.0);
+
+    double angleDeg =
+        MathUtil.interpolate(impactAngleClose.getDegrees(), impactAngleFar.getDegrees(), t);
+    return Rotation2d.fromDegrees(angleDeg);
   }
 
   private Translation3d getV0Nominal(Translation3d d, Rotation2d impactAngle, String key) {
@@ -512,5 +529,13 @@ public class Launcher extends SubsystemBase {
             this)
         .withTimeout(1.0)
         .withName("Initialize hood");
+  }
+
+  private double flywheelSetpointfromBallistics(double ballistics) {
+    return FlywheelScaling.coefficient * Math.pow(ballistics, FlywheelScaling.exponent);
+  }
+
+  private double ballisticsFromFlywheelSetpoint(double setpoint) {
+    return Math.pow(setpoint / FlywheelScaling.coefficient, 1.0 / FlywheelScaling.exponent);
   }
 }
