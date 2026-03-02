@@ -70,6 +70,9 @@ public final class LauncherConstants {
   public static final String replannedKey = "Replanned";
   public static final String actualKey = "Actual";
 
+  // Tolerance for isOnTarget() check (independent of motor controller allowable error)
+  public static final Angle isOnTargetTolerance = Degrees.of(2.0);
+
   public static final class TurretConstants {
     // Geometry
     public static final Transform3d chassisToTurretBase =

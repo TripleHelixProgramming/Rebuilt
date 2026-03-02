@@ -50,6 +50,10 @@ public class Launcher extends SubsystemBase {
   private Translation3d v0replannedLast = new Translation3d();
   private Rotation2d horizontalAimAngle = Rotation2d.kZero;
 
+  // Setpoint tracking for isOnTarget() tolerance check
+  private Rotation2d turretSetpoint = Rotation2d.kZero;
+  private Rotation2d hoodSetpoint = Rotation2d.kZero;
+
   // Cached values for deferred logging (populated in aim(), logged in periodic())
   private boolean hasCachedAimData = false;
   private Translation3d cachedBaseSpeeds = new Translation3d();
@@ -211,11 +215,12 @@ public class Launcher extends SubsystemBase {
     cachedFlywheelVelocityTooLow = false;
 
     horizontalAimAngle = new Rotation2d(v0_flywheel.getX(), v0_flywheel.getY());
+    turretSetpoint = horizontalAimAngle.minus(turretBasePose.toPose2d().getRotation());
     turretIO.setPosition(
-        horizontalAimAngle.minus(turretBasePose.toPose2d().getRotation()),
+        turretSetpoint,
         RadiansPerSecond.of(robotRelative.omegaRadiansPerSecond).unaryMinus().times(2.0));
-    Rotation2d hoodSetpoint = new Rotation2d(v0_horizontal, v0_flywheel.getZ());
-    hoodIO.setPosition(hoodSetpoint.minus(ballToHoodOffset), RadiansPerSecond.of(0));
+    hoodSetpoint = new Rotation2d(v0_horizontal, v0_flywheel.getZ()).minus(ballToHoodOffset);
+    hoodIO.setPosition(hoodSetpoint, RadiansPerSecond.of(0));
     long t4 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Get actual hood & turret position
@@ -300,7 +305,10 @@ public class Launcher extends SubsystemBase {
 
   @AutoLogOutput(key = "Launcher/IsOnTarget")
   public boolean isOnTarget() {
-    return turretInputs.isAtSetpoint && hoodInputs.isAtSetpoint;
+    double tolerance = isOnTargetTolerance.in(Radians);
+    double hoodError = Math.abs(hoodInputs.position.minus(hoodSetpoint).getRadians());
+    double turretError = Math.abs(turretInputs.relativePosition.minus(turretSetpoint).getRadians());
+    return hoodError < tolerance && turretError < tolerance;
   }
 
   private Translation3d getTurretBaseSpeeds(Rotation2d rotation, ChassisSpeeds chassisSpeeds) {
