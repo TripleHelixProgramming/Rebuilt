@@ -97,7 +97,9 @@ public final class LEDCustomPattern {
       Supplier<Double> progressSupplier, Supplier<Color> colorSupplier, Color backgroundColor) {
     return (reader, writer) -> {
       int length = reader.getLength();
-      int filledLeds = (int) (length * Math.max(0, Math.min(1, progressSupplier.get())));
+      double progress = Math.max(0, Math.min(1, progressSupplier.get()));
+      // Use ceil so any non-zero progress keeps at least one LED lit
+      int filledLeds = (int) Math.ceil(length * progress);
       for (int i = 0; i < length; i++) {
         writer.setLED(i, i < filledLeds ? colorSupplier.get() : backgroundColor);
       }
