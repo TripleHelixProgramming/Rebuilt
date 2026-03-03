@@ -117,7 +117,6 @@ public class TurretIOSpark implements TurretIO {
 
     inputs.oversaturation = oversaturation;
     inputs.oversaturationLessMargin = oversaturationLessMargin;
-    inputs.isAtSetpoint = controller.isAtSetpoint();
   }
 
   @Override

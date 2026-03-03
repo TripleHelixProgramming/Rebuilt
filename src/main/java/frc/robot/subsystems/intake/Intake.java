@@ -63,8 +63,7 @@ public class Intake extends SubsystemBase {
     intakeArmIO.retract();
   }
 
-  public void intakeFuel() {
-    intakeRollerIO.setVelocity(MetersPerSecond.of(6));
+  public void deployArm() {
     intakeArmIO.deploy();
   }
 
@@ -79,5 +78,23 @@ public class Intake extends SubsystemBase {
   @Override
   public Command getDefaultCommand() {
     return Commands.startEnd(this::stop, () -> {}, this).withName("Retract and stop");
+  }
+
+  public Command getDeployCommand() {
+    return Commands.sequence(
+            Commands.runOnce(this::deployArm, this),
+            this.idle().withTimeout(0.5),
+            Commands.startEnd(
+                () -> intakeRollerIO.setVelocity(MetersPerSecond.of(5)), () -> {}, this))
+        .withName("Intake");
+  }
+
+  public Command getReverseCommand() {
+    return Commands.sequence(
+            Commands.runOnce(this::deployArm, this),
+            this.idle().withTimeout(0.5),
+            Commands.startEnd(
+                () -> intakeRollerIO.setVelocity(MetersPerSecond.of(-4)), () -> {}, this))
+        .withName("Reverse");
   }
 }

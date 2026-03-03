@@ -1,6 +1,5 @@
 package frc.robot;
 
-import static edu.wpi.first.units.Units.Seconds;
 import static frc.robot.subsystems.vision.VisionConstants.*;
 
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -14,7 +13,6 @@ import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.ConditionalCommand;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
@@ -26,16 +24,20 @@ import frc.lib.AutoOption;
 import frc.lib.AutoSelector;
 import frc.lib.CommandZorroController;
 import frc.lib.ControllerSelector;
-import frc.lib.ControllerSelector.ControllerConfig;
-import frc.lib.ControllerSelector.ControllerFunction;
 import frc.lib.ControllerSelector.ControllerType;
+import frc.lib.ControllerSelector.DriverConfig;
+import frc.lib.ControllerSelector.DriverController;
+import frc.lib.ControllerSelector.OperatorConfig;
 import frc.lib.ZorroController.Axis;
 import frc.robot.Constants.DIOPorts;
-import frc.robot.auto.B_MoveForward1M;
-import frc.robot.auto.B_Path;
-import frc.robot.auto.R_MoveAndRotate;
-import frc.robot.auto.R_MoveStraight;
-import frc.robot.auto.TraversingTheBump;
+import frc.robot.auto.B_DepotAuto;
+import frc.robot.auto.B_LeftTrenchAuto;
+import frc.robot.auto.B_OutpostAuto;
+import frc.robot.auto.B_RightTrenchAuto;
+import frc.robot.auto.R_DepotAuto;
+import frc.robot.auto.R_LeftTrenchAuto;
+import frc.robot.auto.R_OutpostAuto;
+import frc.robot.auto.R_RightTrenchAuto;
 import frc.robot.commands.DriveCommands;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.DriveConstants;
@@ -51,10 +53,6 @@ import frc.robot.subsystems.feeder.KickerIOSpark;
 import frc.robot.subsystems.feeder.SpindexerIO;
 import frc.robot.subsystems.feeder.SpindexerIOSimSpark;
 import frc.robot.subsystems.feeder.SpindexerIOSpark;
-import frc.robot.subsystems.hopper.Hopper;
-import frc.robot.subsystems.hopper.HopperIO;
-import frc.robot.subsystems.hopper.HopperIOReal;
-import frc.robot.subsystems.hopper.HopperIOSim;
 import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.intake.IntakeArmIO;
 import frc.robot.subsystems.intake.IntakeArmIOReal;
@@ -108,7 +106,7 @@ public class Robot extends LoggedRobot {
   private Launcher launcher;
   private Feeder feeder;
   private Intake intake;
-  private Hopper hopper;
+  // private Hopper hopper;
   private LEDController leds = LEDController.getInstance();
 
   public Robot() {
@@ -161,7 +159,7 @@ public class Robot extends LoggedRobot {
                 new FlywheelIOTalonFX(),
                 new HoodIOSpark());
         intake = new Intake(new IntakeRollerIOTalonFX(), new IntakeArmIOReal());
-        hopper = new Hopper(new HopperIOReal());
+        // hopper = new Hopper(new HopperIOReal());
         feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
         SmartDashboard.putData(new Compressor(PneumaticsModuleType.REVPH));
         break;
@@ -199,7 +197,7 @@ public class Robot extends LoggedRobot {
                 new HoodIOSimSpark());
         feeder = new Feeder(new SpindexerIOSimSpark(), new KickerIOSimSpark());
         intake = new Intake(new IntakeRollerIOSimTalonFX(), new IntakeArmIOSim());
-        hopper = new Hopper(new HopperIOSim());
+        // hopper = new Hopper(new HopperIOSim());
         break;
 
       case REPLAY: // Replaying a log
@@ -234,7 +232,7 @@ public class Robot extends LoggedRobot {
                 new FlywheelIO() {},
                 new HoodIO() {});
         intake = new Intake(new IntakeRollerIO() {}, new IntakeArmIO() {});
-        hopper = new Hopper(new HopperIO() {});
+        // hopper = new Hopper(new HopperIO() {});
         feeder = new Feeder(new SpindexerIO() {}, new KickerIO() {});
         break;
     }
@@ -264,7 +262,7 @@ public class Robot extends LoggedRobot {
 
     feeder.setDefaultCommand(Commands.startEnd(feeder::stop, () -> {}, feeder).withName("Stop"));
     intake.setDefaultCommand(intake.getDefaultCommand());
-    hopper.setDefaultCommand(hopper.getDefaultCommand());
+    // hopper.setDefaultCommand(hopper.getDefaultCommand());
     launcher.setDefaultCommand(
         Commands.startEnd(launcher::stop, () -> {}, launcher).withName("Stop"));
   }
@@ -330,6 +328,14 @@ public class Robot extends LoggedRobot {
   @Override
   public void autonomousInit() {
     drive.setDefaultCommand(Commands.runOnce(drive::stop, drive).withName("Stop"));
+    launcher.setDefaultCommand(
+        launcher
+            .initializeHoodCommand()
+            .andThen(
+                new RunCommand(
+                        () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()),
+                        launcher)
+                    .withName("Aim at hub")));
     autoSelector.scheduleAuto();
     leds.clear();
   }
@@ -344,6 +350,8 @@ public class Robot extends LoggedRobot {
   /** This function is called once when teleop mode is enabled. */
   @Override
   public void teleopInit() {
+    launcher.setDefaultCommand(
+        Commands.startEnd(launcher::stop, () -> {}, launcher).withName("Stop"));
     autoSelector.cancelAuto();
     ControllerSelector.getInstance().scan(true);
     leds.clear();
@@ -387,40 +395,47 @@ public class Robot extends LoggedRobot {
   private void configureControlPanelBindings() {
     ControllerSelector.configure(
         // ZORRO is always preferred as driver in REAL and SIM mode
-        new ControllerConfig(
-            ControllerFunction.DRIVER,
-            ControllerType.ZORRO,
-            this::bindZorroDriver,
-            Constants.Mode.REAL,
-            Constants.Mode.SIM),
+        new DriverConfig(
+            ControllerType.ZORRO, this::bindZorroDriver, Constants.Mode.REAL, Constants.Mode.SIM),
         // XBOX is always preferred as operator in REAL and SIM mode
-        new ControllerConfig(
-            ControllerFunction.OPERATOR,
-            ControllerType.XBOX,
-            this::bindXboxOperator,
-            Constants.Mode.REAL,
-            Constants.Mode.SIM),
+        new OperatorConfig(
+            ControllerType.XBOX, this::bindXboxOperator, Constants.Mode.REAL, Constants.Mode.SIM),
         // XBOX is permitted as driver in REAL and SIM mode
-        new ControllerConfig(
-            ControllerFunction.DRIVER,
-            ControllerType.XBOX,
-            this::bindXboxDriver,
-            Constants.Mode.REAL,
-            Constants.Mode.SIM));
+        new DriverConfig(
+            ControllerType.XBOX, this::bindXboxDriver, Constants.Mode.REAL, Constants.Mode.SIM));
   }
 
-  public void bindZorroDriver(int port) {
+  public DriverController bindZorroDriver(int port) {
     var zorroDriver = new CommandZorroController(port);
+
+    var controller =
+        new DriverController() {
+          public double getXTranslationInput() {
+            return -zorroDriver.getRightYAxis();
+          }
+
+          public double getYTranslationInput() {
+            return -zorroDriver.getRightXAxis();
+          }
+
+          public double getRotationInput() {
+            return -zorroDriver.getLeftXAxis();
+          }
+
+          public boolean getFieldRelativeInput() {
+            return zorroDriver.getHID().getEUp();
+          }
+        };
 
     // Drive in field-relative mode while switch E is up
     // Drive in robot-relative mode while switch E is down
     drive.setDefaultCommand(
         DriveCommands.joystickDrive(
             drive,
-            () -> -zorroDriver.getRightYAxis(),
-            () -> -zorroDriver.getRightXAxis(),
-            () -> -zorroDriver.getLeftXAxis(),
-            () -> zorroDriver.getHID().getEUp(),
+            () -> controller.getXTranslationInput(),
+            () -> controller.getYTranslationInput(),
+            () -> controller.getRotationInput(),
+            () -> controller.getFieldRelativeInput(),
             allianceSelector::fieldRotated));
 
     // Reset gyro to 0° when button G is pressed
@@ -436,6 +451,9 @@ public class Robot extends LoggedRobot {
                     drive)
                 .ignoringDisable(true));
 
+    // Switch to X pattern when button D is pressed
+    // zorroDriver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
+
     // Desaturate turret and advance feeder
     zorroDriver
         .AIn()
@@ -443,16 +461,17 @@ public class Robot extends LoggedRobot {
             Commands.parallel(
                 DriveCommands.joystickDrive(
                         drive,
-                        () -> -zorroDriver.getRightYAxis(),
-                        () -> -zorroDriver.getRightXAxis(),
+                        () -> controller.getXTranslationInput(),
+                        () -> controller.getYTranslationInput(),
                         () -> launcher.desaturateTurret(),
-                        () -> zorroDriver.getHID().getEUp(),
+                        () -> controller.getFieldRelativeInput(),
                         allianceSelector::fieldRotated)
                     .withName("Desaturate turret"),
                 Commands.sequence(
                     Commands.waitUntil(launcher::turretDesaturated),
                     Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance"))));
 
+    // Launcher
     Trigger launcherEnabled = zorroDriver.axisGreaterThan(Axis.kLeftDial.value, 0.5).debounce(0.1);
     launcherEnabled
         .or(() -> DriverStation.isFMSAttached())
@@ -466,46 +485,64 @@ public class Robot extends LoggedRobot {
                             launcher)
                         .withName("Aim at hub")));
 
-    // Switch to X pattern when button D is pressed
-    // zorroDriver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
+    // Intake
+    zorroDriver.HIn().whileTrue(intake.getDeployCommand());
+    // zorroDriver.HIn().and(() -> hopper.isDeployed()).onTrue(intake.getDeployCommand());
+    // zorroDriver.HIn().negate().and(() -> hopper.isDeployed()).onTrue(intake.getDefaultCommand());
 
-    zorroDriver
-        .DIn()
-        .and(() -> hopper.isDeployed())
-        .onTrue(Commands.startEnd(intake::intakeFuel, () -> {}, intake).withName("Intake"));
+    // Hopper
+    // zorroDriver
+    //     .FDown()
+    //     .onTrue(Commands.startEnd(hopper::deploy, () -> {}, hopper).withName("Deploy"));
 
-    zorroDriver.DIn().negate().and(() -> hopper.isDeployed()).onTrue(intake.getDefaultCommand());
+    // zorroDriver
+    //     .FUp()
+    //     .onTrue(
+    //         new ConditionalCommand(
+    //             // If intake is stowed, immediately retract hopper
+    //             hopper.getDefaultCommand(),
+    //             // If intake is deployed, retract it first before retracting hopper
+    //             Commands.parallel(
+    //                 intake.getDefaultCommand(),
+    //
+    // hopper.idle().withTimeout(Seconds.of(2)).andThen(hopper.getDefaultCommand())),
+    //             // Condition to check
+    //             () -> intake.isStowed()));
 
-    zorroDriver
-        .FDown()
-        .onTrue(Commands.startEnd(hopper::deploy, () -> {}, hopper).withName("Deploy"));
-
-    zorroDriver
-        .FUp()
-        .onTrue(
-            new ConditionalCommand(
-                // If intake is stowed, immediately retract hopper
-                hopper.getDefaultCommand(),
-                // If intake is deployed, retract it first before retracting hopper
-                Commands.parallel(
-                    intake.getDefaultCommand(),
-                    hopper.idle().withTimeout(Seconds.of(2)).andThen(hopper.getDefaultCommand())),
-                // Condition to check
-                () -> intake.isStowed()));
+    return controller;
   }
 
-  public void bindXboxDriver(int port) {
+  public DriverController bindXboxDriver(int port) {
     var xboxDriver = new CommandXboxController(port);
+
+    var controller =
+        new DriverController() {
+          public double getXTranslationInput() {
+            return -xboxDriver.getLeftY();
+          }
+
+          public double getYTranslationInput() {
+            return -xboxDriver.getLeftX();
+          }
+
+          public double getRotationInput() {
+            return -xboxDriver.getRightX();
+          }
+
+          public boolean getFieldRelativeInput() {
+            return !xboxDriver.getHID().getLeftBumperButton();
+          }
+        };
 
     // Drive in field-relative mode while left bumper is released
     // Drive in robot-relative mode while left bumper is pressed
     drive.setDefaultCommand(
         DriveCommands.joystickDrive(
             drive,
-            () -> -xboxDriver.getLeftY(),
-            () -> -xboxDriver.getLeftX(),
-            () -> -xboxDriver.getRightX(),
-            () -> !xboxDriver.getHID().getLeftBumperButton(),
+            () -> controller.getXTranslationInput(),
+            () -> controller.getYTranslationInput(),
+            () -> controller.getRotationInput(),
+            () -> controller.getFieldRelativeInput(),
             allianceSelector::fieldRotated));
 
     // Reset gyro to 0° when B button is pressed
@@ -585,23 +622,64 @@ public class Robot extends LoggedRobot {
 
     // Switch to X pattern when X button is pressed
     xboxDriver.x().onTrue(Commands.runOnce(drive::stopWithX, drive));
+
+    return controller;
   }
 
-  public void bindXboxOperator(int port) {
+  public void bindXboxOperator(int port, DriverController driver) {
     var xboxOperator = new CommandXboxController(port);
 
-    // intake
+    // Intake
+    xboxOperator.b().whileTrue(intake.getDeployCommand());
+    // xboxOperator.b().and(() -> hopper.isDeployed()).whileTrue(intake.getDeployCommand());
+
+    xboxOperator.y().whileTrue(intake.getReverseCommand());
+    // xboxOperator.y().and(() -> hopper.isDeployed()).whileTrue(intake.getReverseCommand());
+
+    // Feeder
+    xboxOperator
+        .a()
+        .whileTrue(Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance"));
+
+    xboxOperator
+        .x()
+        .whileTrue(Commands.startEnd(feeder::reverse, () -> {}, feeder).withName("Reverse"));
+
+    // Desaturate turret and advance feeder
     xboxOperator
         .rightBumper()
-        .whileTrue(Commands.startEnd(intake::intakeFuel, () -> {}, intake).withName("Intaking"));
+        .whileTrue(
+            Commands.parallel(
+                DriveCommands.joystickDrive(
+                        drive,
+                        () -> driver.getXTranslationInput(),
+                        () -> driver.getYTranslationInput(),
+                        () -> launcher.desaturateTurret(),
+                        () -> driver.getFieldRelativeInput(),
+                        allianceSelector::fieldRotated)
+                    .withName("Desaturate turret"),
+                Commands.sequence(
+                    Commands.waitUntil(launcher::turretDesaturated),
+                    Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance"))));
   }
 
   public void configureAutoOptions() {
-    autoSelector.addAuto(new AutoOption(Alliance.Blue, 1, new B_MoveForward1M(drive)));
-    autoSelector.addAuto(new AutoOption(Alliance.Red, 1, new R_MoveStraight(drive)));
-    autoSelector.addAuto(new AutoOption(Alliance.Blue, 2, new TraversingTheBump(drive)));
-    autoSelector.addAuto(new AutoOption(Alliance.Red, 2, new R_MoveAndRotate(drive)));
-    autoSelector.addAuto(new AutoOption(Alliance.Blue, 3, new B_Path(drive)));
+    autoSelector.addAuto(
+        new AutoOption(Alliance.Blue, 1, new B_LeftTrenchAuto(drive, feeder, intake, launcher)));
+    autoSelector.addAuto(
+        new AutoOption(Alliance.Red, 1, new R_LeftTrenchAuto(drive, feeder, intake, launcher)));
+    autoSelector.addAuto(
+        new AutoOption(Alliance.Blue, 2, new B_RightTrenchAuto(drive, feeder, intake, launcher)));
+    autoSelector.addAuto(
+        new AutoOption(Alliance.Red, 2, new R_RightTrenchAuto(drive, feeder, intake, launcher)));
+    autoSelector.addAuto(
+        new AutoOption(Alliance.Blue, 3, new B_DepotAuto(drive, feeder, intake, launcher)));
+    autoSelector.addAuto(
+        new AutoOption(Alliance.Red, 3, new R_DepotAuto(drive, feeder, intake, launcher)));
+    autoSelector.addAuto(
+        new AutoOption(Alliance.Blue, 4, new B_OutpostAuto(drive, feeder, intake, launcher)));
+    autoSelector.addAuto(
+        new AutoOption(Alliance.Red, 4, new R_OutpostAuto(drive, feeder, intake, launcher)));
   }
 
   public static Alliance getAlliance() {
