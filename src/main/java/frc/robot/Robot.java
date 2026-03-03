@@ -665,7 +665,14 @@ public class Robot extends LoggedRobot {
                 drive,
                 driver::getXTranslationInput,
                 driver::getYTranslationInput,
-                launcher::desaturateTurret,
+                // launcher::desaturateTurret,
+                () -> {
+                  if (launcher.turretDesaturated()) {
+                    return driver.getRotationInput();
+                  } else {
+                    return launcher.desaturateTurret();
+                  }
+                },
                 driver::getFieldRelativeInput,
                 allianceSelector::fieldRotated)
             .withName("Desaturate turret"),
