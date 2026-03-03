@@ -54,8 +54,6 @@ public class HoodIOSimWPI implements HoodIO {
     inputs.appliedVolts = appliedVolts;
     inputs.currentAmps = Math.abs(hoodSim.getCurrentDrawAmps());
 
-    inputs.isAtSetpoint = positionController.atSetpoint();
-
     if (hoodSim.getAngularPositionRad() > maxPosRad) {
       hoodSim.setState(maxPosRad, 0);
     }

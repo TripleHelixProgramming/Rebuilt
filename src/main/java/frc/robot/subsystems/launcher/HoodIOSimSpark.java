@@ -107,8 +107,6 @@ public class HoodIOSimSpark implements HoodIO {
     inputs.velocityRadPerSec = maxSim.getVelocity();
     inputs.appliedVolts = maxSim.getAppliedOutput() * maxSim.getBusVoltage();
     inputs.currentAmps = Math.abs(maxSim.getMotorCurrent());
-
-    inputs.isAtSetpoint = controller.isAtSetpoint();
   }
 
   @Override
