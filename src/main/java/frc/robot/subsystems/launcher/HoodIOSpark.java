@@ -90,8 +90,6 @@ public class HoodIOSpark implements HoodIO {
     inputs.appliedVolts = sparkInputs.getAppliedVolts();
     inputs.currentAmps = sparkInputs.getOutputCurrent();
     inputs.connected = connectedDebounce.calculate(sparkInputs.isConnected());
-
-    inputs.isAtSetpoint = hoodController.isAtSetpoint();
   }
 
   @Override

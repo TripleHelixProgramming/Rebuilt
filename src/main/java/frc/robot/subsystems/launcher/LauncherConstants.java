@@ -70,6 +70,9 @@ public final class LauncherConstants {
   public static final String replannedKey = "Replanned";
   public static final String actualKey = "Actual";
 
+  // Tolerance for isOnTarget() check (independent of motor controller allowable error)
+  public static final Angle isOnTargetTolerance = Degrees.of(2.0);
+
   public static final class TurretConstants {
     // Geometry
     public static final Transform3d chassisToTurretBase =
@@ -81,7 +84,7 @@ public final class LauncherConstants {
 
     // Position controller
     public static final double kPReal = 0.5;
-    public static final Angle kAllowableError = Degrees.of(1.0);
+    public static final Angle kAllowableError = Degrees.of(0.25);
 
     // Motor controller
     public static final double motorReduction = 9.0 * 72.0 / 12.0;
@@ -126,7 +129,7 @@ public final class LauncherConstants {
 
   public static final class HoodConstants {
     public static final Rotation2d ballToHoodOffset = new Rotation2d(Degrees.of(0));
-    public static final Angle kAllowableError = Degrees.of(0.5);
+    public static final Angle kAllowableError = Degrees.of(0.25);
 
     // Position controller
     public static final double kPRealPos = 0.35;
