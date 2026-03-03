@@ -131,9 +131,9 @@ public class TurretIOSpark implements TurretIO {
     double setpoint =
         MathUtil.inputModulus(
             rotation.getRadians() - mechanismOffset.getRadians(), 0.0, 2 * Math.PI);
-    double clampedSetpoint = MathUtil.clamp(setpoint, upperLimitRad, lowerLimitRad);
+    double clampedSetpoint = MathUtil.clamp(setpoint, lowerLimitRad, upperLimitRad);
     double clampedSetpointWithMargin =
-        MathUtil.clamp(setpoint, upperLimitRad - marginRad, lowerLimitRad + marginRad);
+        MathUtil.clamp(setpoint, lowerLimitRad + marginRad, upperLimitRad - marginRad);
     oversaturation = setpoint - clampedSetpoint;
     oversaturationLessMargin = setpoint - clampedSetpointWithMargin;
     double feedforwardVolts =
