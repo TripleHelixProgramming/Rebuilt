@@ -71,9 +71,9 @@ public class TurretIOSpark implements TurretIO {
 
     turnConfig
         .softLimit
-        .forwardSoftLimit(Math.PI + rangeOfMotion.div(2).in(Radians))
+        .forwardSoftLimit(upperLimitRad)
         .forwardSoftLimitEnabled(true)
-        .reverseSoftLimit(Math.PI - rangeOfMotion.div(2).in(Radians))
+        .reverseSoftLimit(lowerLimitRad)
         .reverseSoftLimitEnabled(true);
 
     turnConfig
@@ -131,16 +131,9 @@ public class TurretIOSpark implements TurretIO {
     double setpoint =
         MathUtil.inputModulus(
             rotation.getRadians() - mechanismOffset.getRadians(), 0.0, 2 * Math.PI);
-    double clampedSetpoint =
-        MathUtil.clamp(
-            setpoint,
-            Math.PI - rangeOfMotion.div(2).in(Radians),
-            Math.PI + rangeOfMotion.div(2).in(Radians));
+    double clampedSetpoint = MathUtil.clamp(setpoint, lowerLimitRad, upperLimitRad);
     double clampedSetpointWithMargin =
-        MathUtil.clamp(
-            setpoint,
-            Math.PI - rangeOfMotion.div(2).in(Radians) + margin.in(Radians),
-            Math.PI + rangeOfMotion.div(2).in(Radians) - margin.in(Radians));
+        MathUtil.clamp(setpoint, lowerLimitRad + marginRad, upperLimitRad - marginRad);
     oversaturation = setpoint - clampedSetpoint;
     oversaturationLessMargin = setpoint - clampedSetpointWithMargin;
     double feedforwardVolts =

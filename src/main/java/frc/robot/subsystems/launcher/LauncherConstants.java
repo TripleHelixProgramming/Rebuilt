@@ -8,6 +8,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
@@ -79,8 +80,9 @@ public final class LauncherConstants {
         new Transform3d(Inches.of(-2.271), Inches.of(-4.959), Inches.of(16.331), Rotation3d.kZero);
     public static final Rotation2d absEncoderOffset = new Rotation2d(5.157);
     public static final Rotation2d mechanismOffset = Rotation2d.kZero;
-    public static final Angle rangeOfMotion = Degrees.of(180);
-    public static final Angle margin = Degrees.of(5);
+    public static final double upperLimitRad = Units.degreesToRadians(270);
+    public static final double lowerLimitRad = Units.degreesToRadians(45);
+    public static final double marginRad = Units.degreesToRadians(5);
 
     // Position controller
     public static final double kPReal = 0.5;
