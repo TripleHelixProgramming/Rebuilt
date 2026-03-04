@@ -16,7 +16,6 @@ import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.Filesystem;
-import frc.robot.Robot;
 import frc.robot.subsystems.drive.DriveConstants;
 
 public class VisionConstants {
@@ -80,8 +79,6 @@ public class VisionConstants {
   public static final double minRobotWidthHalfMeters = minRobotWidth.div(2.0).in(Meters);
   public static final double fieldXLenMeters = frc.game.Field.field_x_len.in(Meters);
   public static final double fieldYLenMeters = frc.game.Field.field_y_len.in(Meters);
-  public static Distance maxTravelDistance =
-      DriveConstants.drivetrainSpeedLimit.times(Seconds.of(Robot.defaultPeriodSecs));
 
   // Velocity consistency check
   public static double maxReasonableVelocityMps =
