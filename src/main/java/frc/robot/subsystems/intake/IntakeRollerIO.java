@@ -11,8 +11,6 @@ public interface IntakeRollerIO {
     public double velocityMetersPerSec = 0.0;
     public double appliedVolts = 0.0;
     public double currentAmps = 0.0;
-    public double followerAppliedVolts = 0.0;
-    public double followerCurrentAmps = 0.0;
   }
 
   public default void updateInputs(IntakeRollerIOInputs inputs) {}
