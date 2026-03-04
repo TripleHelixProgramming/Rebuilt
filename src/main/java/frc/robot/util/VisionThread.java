@@ -1,5 +1,6 @@
 package frc.robot.util;
 
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.Notifier;
 import frc.robot.subsystems.vision.VisionIO;
 import frc.robot.subsystems.vision.VisionIO.PoseObservation;
@@ -71,14 +72,7 @@ public class VisionThread {
       this.fps = 0.0;
       this.latencyMs = 0.0;
       this.bestReprojError = 0.0;
-      this.latestTargetObservation =
-          new TargetObservation(
-              edu.wpi.first.math.geometry.Rotation2d.kZero,
-              edu.wpi.first.math.geometry.Rotation2d.kZero,
-              edu.wpi.first.math.geometry.Rotation2d.kZero,
-              0,
-              -1,
-              -1);
+      this.latestTargetObservation = VisionIO.EMPTY_TARGET;
       this.poseObservations = new PoseObservation[0];
       this.tagIds = new int[0];
     }
