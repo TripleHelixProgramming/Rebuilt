@@ -83,6 +83,11 @@ public class VisionConstants {
   public static Distance maxTravelDistance =
       DriveConstants.drivetrainSpeedLimit.times(Seconds.of(Robot.defaultPeriodSecs));
 
+  // Velocity consistency check
+  public static double maxReasonableVelocityMps =
+      DriveConstants.maxDriveSpeed.in(MetersPerSecond) * 1.3; // 30% margin for noise
+  public static double velocityCheckTimeoutSeconds = 0.5; // Reset reference after this gap
+
   // Standard deviation baselines
   public static double linearStdDevBaseline = 0.02; // Meters
   public static double angularStdDevBaseline = 0.06; // Radians
