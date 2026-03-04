@@ -137,7 +137,11 @@ public class Vision extends SubsystemBase {
    * @param cameraIndex The index of the camera to use.
    */
   public Rotation2d getTargetX(int cameraIndex) {
-    return inputs[cameraIndex].latestTargetObservation.yaw();
+    /* TODO: don't use latestTargetObservation: it's just the most recent observation,
+     *   not necessarily a good one, possibly even the default EMPTY_TARGET.
+     */
+    throw new RuntimeException("Don't call me until I'm fixed");
+    // return inputs[cameraIndex].latestTargetObservation.yaw();
   }
 
   @Override

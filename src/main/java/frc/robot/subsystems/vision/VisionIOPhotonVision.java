@@ -57,8 +57,7 @@ public class VisionIOPhotonVision implements VisionIO {
                 bestTarget.getDetectedObjectConfidence(),
                 bestTarget.getDetectedObjectClassID());
       } else {
-        inputs.latestTargetObservation =
-            new TargetObservation(Rotation2d.kZero, Rotation2d.kZero, Rotation2d.kZero, 0, -1, -1);
+        inputs.latestTargetObservation = VisionIO.EMPTY_TARGET;
       }
 
       // Add pose observation
@@ -119,10 +118,7 @@ public class VisionIOPhotonVision implements VisionIO {
     }
 
     // Save pose observations to inputs object
-    inputs.poseObservations = new PoseObservation[poseObservations.size()];
-    for (int i = 0; i < poseObservations.size(); i++) {
-      inputs.poseObservations[i] = poseObservations.get(i);
-    }
+    inputs.poseObservations = poseObservations.toArray(PoseObservation[]::new);
 
     // Save tag IDs to inputs objects
     inputs.tagIds = new int[tagIds.size()];
