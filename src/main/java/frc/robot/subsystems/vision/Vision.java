@@ -31,6 +31,7 @@ import frc.robot.util.VisionThread.VisionInputs;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.function.Supplier;
 import org.littletonrobotics.junction.Logger;
 
@@ -71,6 +72,9 @@ public class Vision extends SubsystemBase {
   // Initialize scoring results
   private EnumMap<VisionTest, Double> testResults = new EnumMap<>(VisionTest.class);
 
+  // Reusable context object for vision tests (avoids allocations)
+  private final TestContext testContext = new TestContext();
+
   LinearFilter[] cameraPassRate = {
     LinearFilter.movingAverage(20),
     LinearFilter.movingAverage(20),
@@ -78,13 +82,33 @@ public class Vision extends SubsystemBase {
     LinearFilter.movingAverage(20)
   };
 
+  // Per-camera tracking for velocity consistency check
+  private final Pose2d[] lastAcceptedPose;
+  private final double[] lastAcceptedTimestamp;
+
   // Cycle counter for throttled logging
   private int loopCounter = 0;
+
+  // Vision tests to apply (remove from set to disable specific tests)
+  public static final EnumSet<VisionTest> enabledTests =
+      EnumSet.of(
+          VisionTest.moreThanZeroTags,
+          VisionTest.unambiguous,
+          VisionTest.pitchError,
+          VisionTest.rollError,
+          VisionTest.heightError,
+          VisionTest.withinBoundaries,
+          VisionTest.distanceToTags,
+          VisionTest.velocityConsistency);
 
   public Vision(VisionConsumer consumer, Supplier<Pose2d> chassisPoseSupplier, VisionIO... io) {
     this.consumer = consumer;
     this.chassisPoseSupplier = chassisPoseSupplier;
     this.io = io;
+
+    // Initialize per-camera velocity tracking arrays
+    this.lastAcceptedPose = new Pose2d[io.length];
+    this.lastAcceptedTimestamp = new double[io.length];
 
     // Register each VisionIO with VisionThread for background polling
     this.visionInputs = new VisionInputs[io.length];
@@ -168,13 +192,17 @@ public class Vision extends SubsystemBase {
       for (var observation : inputs[cameraIndex].poseObservations) {
         testResults.clear();
 
-        testResults.put(VisionTest.moreThanZeroTags, VisionTest.moreThanZeroTags.test(observation));
-        testResults.put(VisionTest.unambiguous, VisionTest.unambiguous.test(observation));
-        testResults.put(VisionTest.pitchError, VisionTest.pitchError.test(observation));
-        testResults.put(VisionTest.rollError, VisionTest.rollError.test(observation));
-        testResults.put(VisionTest.heightError, VisionTest.heightError.test(observation));
-        testResults.put(VisionTest.withinBoundaries, VisionTest.withinBoundaries.test(observation));
-        testResults.put(VisionTest.distanceToTags, VisionTest.distanceToTags.test(observation));
+        // Update reusable context with current observation and camera state
+        testContext
+            .observation(observation)
+            .cameraIndex(cameraIndex)
+            .lastAcceptedPose(lastAcceptedPose[cameraIndex])
+            .lastAcceptedTimestamp(lastAcceptedTimestamp[cameraIndex]);
+
+        // Run enabled tests
+        for (VisionTest test : enabledTests) {
+          testResults.put(test, test.test(testContext));
+        }
 
         Double totalScore =
             testResults.values().stream().reduce(1.0, (subtotal, element) -> subtotal * element);
@@ -236,6 +264,10 @@ public class Vision extends SubsystemBase {
           o.observation.timestamp(),
           VecBuilder.fill(linearStdDev, linearStdDev, angularStdDev));
 
+      // Update per-camera tracking for velocity consistency check
+      lastAcceptedPose[o.cameraIndex] = o.observation.pose().toPose2d();
+      lastAcceptedTimestamp[o.cameraIndex] = o.observation.timestamp();
+
       Logger.recordOutput("Vision/Summary/ObservationScore", o.score);
     }
     long t4 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
@@ -294,6 +326,50 @@ public class Vision extends SubsystemBase {
       EnumMap<VisionTest, Double> testResults,
       double score) {}
 
+  /** Mutable context object for vision tests, reused to avoid allocations. Fluent API. */
+  public static class TestContext {
+    private PoseObservation observation;
+    private int cameraIndex;
+    private Pose2d lastAcceptedPose;
+    private double lastAcceptedTimestamp;
+
+    public TestContext observation(PoseObservation observation) {
+      this.observation = observation;
+      return this;
+    }
+
+    public TestContext cameraIndex(int cameraIndex) {
+      this.cameraIndex = cameraIndex;
+      return this;
+    }
+
+    public TestContext lastAcceptedPose(Pose2d lastAcceptedPose) {
+      this.lastAcceptedPose = lastAcceptedPose;
+      return this;
+    }
+
+    public TestContext lastAcceptedTimestamp(double lastAcceptedTimestamp) {
+      this.lastAcceptedTimestamp = lastAcceptedTimestamp;
+      return this;
+    }
+
+    public PoseObservation observation() {
+      return observation;
+    }
+
+    public int cameraIndex() {
+      return cameraIndex;
+    }
+
+    public Pose2d lastAcceptedPose() {
+      return lastAcceptedPose;
+    }
+
+    public double lastAcceptedTimestamp() {
+      return lastAcceptedTimestamp;
+    }
+  }
+
   // Caching for AprilTag layout (volatile for thread-safe lazy initialization)
   private static volatile AprilTagFieldLayout cachedLayout = null;
 
@@ -324,13 +400,13 @@ public class Vision extends SubsystemBase {
        * and 1 meaning both have the same reprojection error). Numbers above 0.2 are likely to be
        * ambiguous.
        *
-       * @param observation The pose observation to check
+       * @param ctx The test context containing the observation and camera state
        * @return Score between 0 and 1
        */
       @Override
-      public double test(PoseObservation observation) {
-        if (observation.tagCount() == 1) {
-          return 1.0 - normalizedSigmoid(observation.ambiguity(), ambiguityTolerance, 4.0);
+      public double test(TestContext ctx) {
+        if (ctx.observation().tagCount() == 1) {
+          return 1.0 - normalizedSigmoid(ctx.observation().ambiguity(), ambiguityTolerance, 4.0);
         } else {
           return 1.0;
         }
@@ -341,14 +417,16 @@ public class Vision extends SubsystemBase {
        * We assume that the robot is constrained to an orientation that is flat on the field.
        * Penalizes poses with significantly nonzero pitch.
        *
-       * @param observation The pose observation to check
+       * @param ctx The test context containing the observation and camera state
        * @return Score between 0 and 1
        */
       @Override
-      public double test(PoseObservation observation) {
+      public double test(TestContext ctx) {
         return 1.0
             - normalizedSigmoid(
-                Math.abs(observation.pose().getRotation().getY()), pitchToleranceRadians, 1.0);
+                Math.abs(ctx.observation().pose().getRotation().getY()),
+                pitchToleranceRadians,
+                1.0);
       }
     },
     rollError {
@@ -356,14 +434,14 @@ public class Vision extends SubsystemBase {
        * We assume that the robot is constrained to an orientation that is flat on the field.
        * Penalizes poses with significantly nonzero roll.
        *
-       * @param observation The pose observation to check
+       * @param ctx The test context containing the observation and camera state
        * @return Score between 0 and 1
        */
       @Override
-      public double test(PoseObservation observation) {
+      public double test(TestContext ctx) {
         return 1.0
             - normalizedSigmoid(
-                Math.abs(observation.pose().getRotation().getX()), rollToleranceRadians, 1.0);
+                Math.abs(ctx.observation().pose().getRotation().getX()), rollToleranceRadians, 1.0);
       }
     },
     heightError {
@@ -371,25 +449,27 @@ public class Vision extends SubsystemBase {
        * We assume that the robot is constrained to an orientation that is flat on the field.
        * Penalizes poses with significantly nonzero elevation.
        *
-       * @param observation The pose observation to check
+       * @param ctx The test context containing the observation and camera state
        * @return Score between 0 and 1
        */
       @Override
-      public double test(PoseObservation observation) {
+      public double test(TestContext ctx) {
         return 1.0
-            - normalizedSigmoid(Math.abs(observation.pose().getZ()), elevationToleranceMeters, 1.0);
+            - normalizedSigmoid(
+                Math.abs(ctx.observation().pose().getZ()), elevationToleranceMeters, 1.0);
       }
     },
     withinBoundaries {
       /**
        * Penalizes poses that, when projected to the floor, lie outside of the field boundaries
        *
-       * @param observation The pose observation to check
+       * @param ctx The test context containing the observation and camera state
        * @return Score between 0 and 1
        */
       @Override
-      public double test(PoseObservation observation) {
-        boolean pass = arenaRectangle.contains(observation.pose().toPose2d().getTranslation());
+      public double test(TestContext ctx) {
+        boolean pass =
+            arenaRectangle.contains(ctx.observation().pose().toPose2d().getTranslation());
         return (pass ? 1.0 : 0.0);
       }
     },
@@ -397,29 +477,57 @@ public class Vision extends SubsystemBase {
       /**
        * Penalizes observations that see zero tags
        *
-       * @param observation The pose observation to check
+       * @param ctx The test context containing the observation and camera state
        * @return Score between 0 and 1
        */
       @Override
-      public double test(PoseObservation observation) {
-        return Math.min(observation.tagCount(), 1.0);
+      public double test(TestContext ctx) {
+        return Math.min(ctx.observation().tagCount(), 1.0);
       }
     },
     distanceToTags {
       /**
        * Rewards observations that see tags closer to the robot
        *
-       * @param observation The pose observation to check
+       * @param ctx The test context containing the observation and camera state
        * @return Score between 0 and 1
        */
       @Override
-      public double test(PoseObservation observation) {
+      public double test(TestContext ctx) {
         return 1.0
-            - normalizedSigmoid(observation.averageTagDistance(), tagDistanceToleranceMeters, 1.0);
+            - normalizedSigmoid(
+                ctx.observation().averageTagDistance(), tagDistanceToleranceMeters, 1.0);
+      }
+    },
+    velocityConsistency {
+      /**
+       * Penalizes observations that imply physically impossible velocity since the last accepted
+       * observation from the same camera.
+       *
+       * @param ctx The test context containing the observation and camera state
+       * @return Score between 0 and 1
+       */
+      @Override
+      public double test(TestContext ctx) {
+        if (ctx.lastAcceptedPose() == null) return 1.0; // First observation from this camera
+
+        double dt = ctx.observation().timestamp() - ctx.lastAcceptedTimestamp();
+        if (dt <= 0.001) return 1.0; // Same frame or timestamp issue
+        if (dt > velocityCheckTimeoutSeconds) return 1.0; // Too long since last, don't penalize
+
+        double distance =
+            ctx.observation()
+                .pose()
+                .toPose2d()
+                .getTranslation()
+                .getDistance(ctx.lastAcceptedPose().getTranslation());
+        double impliedVelocity = distance / dt;
+
+        return 1.0 - normalizedSigmoid(impliedVelocity, maxReasonableVelocityMps, 2.0);
       }
     };
 
-    public abstract double test(PoseObservation observation);
+    public abstract double test(TestContext ctx);
   }
 
   /**
