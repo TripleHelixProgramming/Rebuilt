@@ -12,8 +12,9 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import org.littletonrobotics.junction.AutoLog;
 
 public interface VisionIO {
-  public static final TargetObservation EMPTY_TARGET = new TargetObservation(Rotation2d.kZero, Rotation2d.kZero, Rotation2d.kZero, 0, -1, -1);
-  
+  public static final TargetObservation EMPTY_TARGET =
+      new TargetObservation(Rotation2d.kZero, Rotation2d.kZero, Rotation2d.kZero, 0, -1, -1);
+
   @AutoLog
   public static class VisionIOInputs {
     public boolean connected = false;
