@@ -7,12 +7,10 @@ import static frc.robot.util.PhoenixUtil.tryUntilOk;
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.NeutralOut;
 import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
@@ -25,7 +23,7 @@ import frc.robot.Constants.CANBusPorts.CAN2;
 
 public class IntakeRollerIOTalonFX implements IntakeRollerIO {
   private final TalonFX intakeMotorLeader;
-  private final TalonFX intakeMotorFollower;
+  // private final TalonFX intakeMotorFollower;
   private final TalonFXConfiguration config;
   private final Debouncer connectedDebounce = new Debouncer(0.5, Debouncer.DebounceType.kFalling);
 
@@ -42,12 +40,12 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
   // Inputs from intake motor
   private final StatusSignal<AngularVelocity> intakeVelocity;
   private final StatusSignal<AngularAcceleration> intakeAcceleration;
-  private final StatusSignal<Voltage> intakeAppliedVolts, followerAppliedVolts;
-  private final StatusSignal<Current> intakeCurrent, followerCurrent;
+  private final StatusSignal<Voltage> intakeAppliedVolts /*, followerAppliedVolts*/;
+  private final StatusSignal<Current> intakeCurrent /*, followerCurrent*/;
 
   public IntakeRollerIOTalonFX() {
     intakeMotorLeader = new TalonFX(CAN2.intakeRollerLeader, CAN2.bus);
-    intakeMotorFollower = new TalonFX(CAN2.intakeRollerFollower, CAN2.bus);
+    // intakeMotorFollower = new TalonFX(CAN2.intakeRollerFollower, CAN2.bus);
     config = new TalonFXConfiguration();
     config.MotorOutput.withNeutralMode(NeutralModeValue.Brake);
     config.Slot0 = velocityVoltageGains;
@@ -59,20 +57,16 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
     intakeAppliedVolts = intakeMotorLeader.getMotorVoltage();
     intakeCurrent = intakeMotorLeader.getSupplyCurrent();
 
-    followerAppliedVolts = intakeMotorFollower.getMotorVoltage();
-    followerCurrent = intakeMotorFollower.getSupplyCurrent();
+    // followerAppliedVolts = intakeMotorFollower.getMotorVoltage();
+    // followerCurrent = intakeMotorFollower.getSupplyCurrent();
 
     BaseStatusSignal.setUpdateFrequencyForAll(
-        50.0,
-        intakeVelocity,
-        intakeAcceleration,
-        intakeAppliedVolts,
-        intakeCurrent,
-        followerAppliedVolts,
-        followerCurrent);
+        50.0, intakeVelocity, intakeAcceleration, intakeAppliedVolts, intakeCurrent);
+    // followerAppliedVolts,
+    // followerCurrent);
 
-    intakeMotorFollower.setControl(
-        new Follower(CAN2.intakeRollerLeader, MotorAlignmentValue.Opposed));
+    // intakeMotorFollower.setControl(
+    //     new Follower(CAN2.intakeRollerLeader, MotorAlignmentValue.Opposed));
   }
 
   @Override
@@ -82,12 +76,9 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
     inputs.connected =
         connectedDebounce.calculate(
             BaseStatusSignal.refreshAll(
-                    intakeVelocity,
-                    intakeAcceleration,
-                    intakeAppliedVolts,
-                    intakeCurrent,
-                    followerAppliedVolts,
-                    followerCurrent)
+                    intakeVelocity, intakeAcceleration, intakeAppliedVolts, intakeCurrent)
+                // followerAppliedVolts,
+                // followerCurrent)
                 .isOK());
 
     inputs.appliedVolts = intakeAppliedVolts.getValueAsDouble();
@@ -97,8 +88,8 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
 
     // Follower data goes into inputs struct to be logged via processInputs()
     // instead of recordOutput() which can block for 10-30ms
-    inputs.followerAppliedVolts = followerAppliedVolts.getValueAsDouble();
-    inputs.followerCurrentAmps = followerCurrent.getValueAsDouble();
+    // inputs.followerAppliedVolts = followerAppliedVolts.getValueAsDouble();
+    // inputs.followerCurrentAmps = followerCurrent.getValueAsDouble();
   }
 
   @Override
