@@ -10,6 +10,7 @@ import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.NeutralOut;
 import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
+import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
@@ -32,8 +33,10 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
   private final Debouncer connectedDebounce = new Debouncer(0.5, Debouncer.DebounceType.kFalling);
 
   private final VoltageOut voltageRequest = new VoltageOut(0);
-  // private final VelocityVoltage velocityVoltageRequest =
-  //     new VelocityVoltage(0.0).withSlot(0);
+  // Toggle to disable FOC if needed for troubleshooting Kraken X60 limp-mode behavior
+  private static final boolean kUseFOC = true;
+
+  private final VelocityVoltage velocityVoltageRequest = new VelocityVoltage(0.0).withSlot(0);
   private final VelocityTorqueCurrentFOC velocityTorqueCurrentRequest =
       new VelocityTorqueCurrentFOC(0.0).withSlot(1);
   private final NeutralOut brake = new NeutralOut();
@@ -117,8 +120,15 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
 
     setpoint = profile.calculate(Robot.defaultPeriodSecs, setpoint, goal);
 
-    velocityTorqueCurrentRequest.Velocity = setpoint.position;
-    velocityTorqueCurrentRequest.Acceleration = setpoint.velocity;
-    intakeMotorLeader.setControl(velocityTorqueCurrentRequest);
+    if (kUseFOC) {
+      velocityTorqueCurrentRequest.Velocity = setpoint.position;
+      velocityTorqueCurrentRequest.Acceleration = setpoint.velocity;
+      intakeMotorLeader.setControl(velocityTorqueCurrentRequest);
+    } else {
+      // Fallback to velocity+voltage control for troubleshooting
+      double radPerSec = setpoint.position * 2.0 * Math.PI;
+      intakeMotorLeader.setControl(
+          velocityVoltageRequest.withVelocity(RadiansPerSecond.of(radPerSec)));
+    }
   }
 }
