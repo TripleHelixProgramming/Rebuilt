@@ -13,12 +13,12 @@ import edu.wpi.first.wpilibj.LEDWriter;
  * <p>Modify this enum when the physical LED layout changes between seasons.
  */
 public enum LEDSeries implements LEDReader, LEDWriter {
-  // Full strip (all 24 LEDs)
+  // Full strip (all 36 LEDs)
   ALL(P.ALL),
 
   // Primary segments by robot axis
-  // Y_AXIS: LEDs 0-11, aligned along robot Y axis (pose-seek, hub countdown)
-  // X_AXIS: LEDs 12-23, aligned along robot X axis (auto selection)
+  // Y_AXIS: LEDs 0-11, aligned along robot Y axis (pose-seek, spindexer/target state)
+  // X_AXIS: LEDs 12-35, aligned along robot X axis (auto selection, hub countdown)
   Y_AXIS(P.Y_AXIS),
   X_AXIS(P.X_AXIS),
 
@@ -35,11 +35,11 @@ public enum LEDSeries implements LEDReader, LEDWriter {
   /** Portion definitions - single source of truth for physical layout. */
   private static final class P {
     // Full strip (all 24 LEDs)
-    static final Portion ALL = new Portion(LEDStrip.MAIN, 0, 23, false);
+    static final Portion ALL = new Portion(LEDStrip.MAIN, 0, 35, false);
 
     // Primary segments by robot axis
     static final Portion Y_AXIS = new Portion(LEDStrip.MAIN, 0, 11, false);
-    static final Portion X_AXIS = new Portion(LEDStrip.MAIN, 12, 23, false);
+    static final Portion X_AXIS = new Portion(LEDStrip.MAIN, 12, 35, false);
 
     // Pose-seek portions (within Y_AXIS): [Y_LEFT][ROT_LEFT][X_CENTER][ROT_RIGHT][Y_RIGHT]
     //                                     [0-1]  [2-3]     [4-7]     [8-9]      [10-11]
