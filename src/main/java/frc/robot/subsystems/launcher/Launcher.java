@@ -157,7 +157,14 @@ public class Launcher extends SubsystemBase {
         turretSetpoint.minus(turretBasePose.toPose2d().getRotation()),
         RadiansPerSecond.of(robotRelative.omegaRadiansPerSecond).unaryMinus().times(2.0));
     Rotation2d hoodSetpoint = new Rotation2d(v0_horizontal, v0_flywheel.getZ());
-    hoodIO.setPosition(hoodSetpoint.minus(ballToHoodOffset), RadiansPerSecond.of(0));
+
+    // Map the desired launch speed to a hood "wrap" angle. This allows a
+    // non-linear relationship (calibrated table) between the required
+    // initial ball speed and the mechanical hood position that produces it.
+    double launchSpeed = v0_flywheel.getNorm();
+    Rotation2d correctedHood =
+        HoodConstants.hoodAngleForLaunchSpeed(launchSpeed, hoodSetpoint.minus(ballToHoodOffset));
+    hoodIO.setPosition(correctedHood, RadiansPerSecond.of(0));
 
     // Get actual hood & turret position
     Rotation2d hoodPosition = hoodInputs.position.plus(ballToHoodOffset);

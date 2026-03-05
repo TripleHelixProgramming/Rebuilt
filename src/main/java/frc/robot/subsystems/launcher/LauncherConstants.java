@@ -118,6 +118,21 @@ public final class LauncherConstants {
   public static final class HoodConstants {
     public static final Rotation2d ballToHoodOffset = new Rotation2d(Degrees.of(0));
 
+    /*
+     * Mapping between launch speed (m/s) and the hood "wrap" angle (radians).
+     * This table is intentionally editable during calibration. The system will
+     * linearly interpolate between entries. If you prefer a different
+     * interpolation (spline, polynomial), replace the implementation below.
+     *
+     * By default the table is conservative and maps a small range of speeds to
+     * hood angles between minPosition and maxPosition. Update these values
+     * from calibration data for your robot.
+     */
+    public static final double[] launchSpeedMapMetersPerSec = {4.0, 6.0, 8.0};
+    public static final double[] hoodWrapAngleRadMap = {
+      Degrees.of(60).in(Radians), Degrees.of(70).in(Radians), Degrees.of(80).in(Radians)
+    };
+
     // Position controller
     public static final double kPRealPos = 0.35;
     public static final double kPSimPos = 1.5;
@@ -143,5 +158,55 @@ public final class LauncherConstants {
 
     // Simulation
     public static final DCMotor gearbox = DCMotor.getNeo550(1);
+
+    /**
+     * Map a desired launch speed (m/s) to a hood rotation (Rotation2d). The returned Rotation2d is
+     * an absolute hood angle that should be used to drive the mechanism (it replaces the geometric
+     * angle when a non-linear wrap mapping is desired).
+     *
+     * @param launchSpeedMetersPerSecond desired scalar launch speed (m/s)
+     * @param geometricAngle fallback/auxiliary geometric angle (unused by linear mapping but kept
+     *     so callers can pass context if needed)
+     * @return hood rotation that implements the speed->wrap mapping
+     */
+    public static Rotation2d hoodAngleForLaunchSpeed(
+        double launchSpeedMetersPerSecond, Rotation2d geometricAngle) {
+      // Defensive checks
+      if (launchSpeedMapMetersPerSec == null
+          || hoodWrapAngleRadMap == null
+          || launchSpeedMapMetersPerSec.length != hoodWrapAngleRadMap.length
+          || launchSpeedMapMetersPerSec.length == 0) {
+        // Fallback to geometric angle when mapping is invalid
+        return geometricAngle;
+      }
+
+      int n = launchSpeedMapMetersPerSec.length;
+
+      // Below lowest entry
+      if (launchSpeedMetersPerSecond <= launchSpeedMapMetersPerSec[0]) {
+        return new Rotation2d(hoodWrapAngleRadMap[0]);
+      }
+
+      // Above highest entry
+      if (launchSpeedMetersPerSecond >= launchSpeedMapMetersPerSec[n - 1]) {
+        return new Rotation2d(hoodWrapAngleRadMap[n - 1]);
+      }
+
+      // Find interval and linearly interpolate
+      for (int i = 0; i < n - 1; i++) {
+        double v0 = launchSpeedMapMetersPerSec[i];
+        double v1 = launchSpeedMapMetersPerSec[i + 1];
+        if (launchSpeedMetersPerSecond >= v0 && launchSpeedMetersPerSecond <= v1) {
+          double t = (launchSpeedMetersPerSecond - v0) / (v1 - v0);
+          double a0 = hoodWrapAngleRadMap[i];
+          double a1 = hoodWrapAngleRadMap[i + 1];
+          double a = a0 + t * (a1 - a0);
+          return new Rotation2d(a);
+        }
+      }
+
+      // Should not reach here; return geometric angle as safe fallback
+      return geometricAngle;
+    }
   }
 }

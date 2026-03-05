@@ -8,6 +8,7 @@ import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.Follower;
+import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -38,9 +39,14 @@ public class IntakeRollerIOSimTalonFX implements IntakeRollerIO {
   private final Debouncer connectedDebounce = new Debouncer(0.5, Debouncer.DebounceType.kFalling);
 
   private final VoltageOut voltageRequest = new VoltageOut(0);
+  // Toggle to disable FOC in sim (keeps parity with real code toggle)
+  private static final boolean kUseFOC = true;
+
   private final VelocityVoltage velocityVoltageRequest = new VelocityVoltage(0.0);
-  // private final VelocityTorqueCurrentFOC velocityTorqueCurrentRequest =
-  //     new VelocityTorqueCurrentFOC(0.0);
+  // Use the same FOC velocity control as the real TalonFX implementation so
+  // simulation and real codepaths behave the same by default.
+  private final VelocityTorqueCurrentFOC velocityTorqueCurrentRequest =
+      new VelocityTorqueCurrentFOC(0.0).withSlot(1);
 
   private final TrapezoidProfile profile =
       new TrapezoidProfile(new TrapezoidProfile.Constraints(maxAcceleration, maxJerk));
@@ -113,15 +119,21 @@ public class IntakeRollerIOSimTalonFX implements IntakeRollerIO {
 
     TrapezoidProfile.State goal =
         new TrapezoidProfile.State(angularVelocity.in(RotationsPerSecond), 0);
-    // Use the status signal values (likely in rotations/sec) as the current setpoint
+    // Use the status signal values (rotations/sec) as the current setpoint
     TrapezoidProfile.State setpoint =
         new TrapezoidProfile.State(intakeVelocity.getValueAsDouble(), 0.0);
 
     setpoint = profile.calculate(Robot.defaultPeriodSecs, setpoint, goal);
 
-    // setpoint.position is in rotations/sec (per goal), convert to rad/sec for the velocity API
-    double radPerSec = setpoint.position * 2.0 * Math.PI;
-    intakeMotorLeader.setControl(
-        velocityVoltageRequest.withVelocity(RadiansPerSecond.of(radPerSec)));
+    if (kUseFOC) {
+      // setpoint.position is in rotations/sec (matching the real TalonFX API usage)
+      velocityTorqueCurrentRequest.Velocity = setpoint.position;
+      velocityTorqueCurrentRequest.Acceleration = setpoint.velocity;
+      intakeMotorLeader.setControl(velocityTorqueCurrentRequest);
+    } else {
+      double radPerSec = setpoint.position * 2.0 * Math.PI;
+      intakeMotorLeader.setControl(
+          velocityVoltageRequest.withVelocity(RadiansPerSecond.of(radPerSec)));
+    }
   }
 }
