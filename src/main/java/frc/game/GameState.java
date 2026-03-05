@@ -32,7 +32,7 @@ public class GameState {
     }
 
     public double remainingAt(double atTime) {
-      return Math.floor(atTime - countDownUntil);
+      return atTime - countDownUntil;
     }
 
     private GamePhase(String timer) {
