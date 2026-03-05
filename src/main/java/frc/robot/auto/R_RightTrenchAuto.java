@@ -54,11 +54,9 @@ public class R_RightTrenchAuto extends AutoMode {
         .onTrue(
             Commands.sequence(
                 redRightNeutralZone.resetOdometry(),
+                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(3.0),
                 Commands.parallel(
-                    redRightNeutralZone.cmd(),
-                    Commands.sequence(
-                        // Commands.runOnce(hopper::deploy, hopper),
-                        intake.getDeployCommand().withTimeout(10.0)))));
+                    redRightNeutralZone.cmd(), intake.getDeployCommand().withTimeout(10.0))));
 
     redRightNeutralZone
         .done()
@@ -71,7 +69,10 @@ public class R_RightTrenchAuto extends AutoMode {
 
     redRightTransitionToNZ
         .done()
-        .onTrue(Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0));
+        .onTrue(
+            Commands.sequence(
+                Commands.runOnce(drive::stop, drive),
+                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0)));
 
     return routine;
   }

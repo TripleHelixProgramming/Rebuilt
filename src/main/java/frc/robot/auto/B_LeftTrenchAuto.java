@@ -54,24 +54,29 @@ public class B_LeftTrenchAuto extends AutoMode {
         .onTrue(
             Commands.sequence(
                 blueLeftNeutralZone.resetOdometry(),
+                Commands.startEnd(launcher::desaturateTurret, () -> {}, launcher).withTimeout(0.5),
+                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(3.0),
                 Commands.parallel(
                     blueLeftNeutralZone.cmd(),
                     Commands.sequence(
-                        // Commands.runOnce(hopper::deploy, hopper),
-                        intake.getDeployCommand().withTimeout(10.0)))));
+                        Commands.waitSeconds(2), intake.getDeployCommand().withTimeout(8.0)))));
 
     blueLeftNeutralZone
         .done()
         .onTrue(
             Commands.sequence(
                 Commands.runOnce(drive::stop, drive),
+                Commands.startEnd(launcher::desaturateTurret, () -> {}, launcher).withTimeout(0.5),
                 Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
                 Commands.parallel(
                     blueLeftTransitionToNZ.cmd(), intake.getDeployCommand().withTimeout(5.0))));
 
     blueLeftTransitionToNZ
         .done()
-        .onTrue(Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0));
+        .onTrue(
+            Commands.sequence(
+                Commands.runOnce(drive::stop, drive),
+                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0)));
 
     return routine;
   }
