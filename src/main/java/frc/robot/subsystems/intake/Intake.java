@@ -85,7 +85,7 @@ public class Intake extends SubsystemBase {
             Commands.runOnce(this::deployArm, this),
             this.idle().withTimeout(0.5),
             Commands.startEnd(
-                () -> intakeRollerIO.setVelocity(MetersPerSecond.of(5)), () -> {}, this))
+                () -> intakeRollerIO.setVelocity(MetersPerSecond.of(6.5)), () -> {}, this))
         .withName("Intake");
   }
 
