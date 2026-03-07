@@ -67,8 +67,6 @@ public class R_RightTrenchAuto extends AutoMode {
         .onTrue(
             Commands.sequence(
                 Commands.runOnce(drive::stop, drive),
-                DriveCommands.getChassisAimingCommand(drive, launcher::getTurretDesaturationDelta)
-                    .until(launcher::isTurretDesaturated),
                 Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
                 Commands.runOnce(feeder::stop, feeder),
                 Commands.parallel(
@@ -79,8 +77,6 @@ public class R_RightTrenchAuto extends AutoMode {
         .onTrue(
             Commands.sequence(
                 Commands.runOnce(drive::stop, drive),
-                DriveCommands.getChassisAimingCommand(drive, launcher::getTurretDesaturationDelta)
-                    .until(launcher::isTurretDesaturated),
                 Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
                 Commands.runOnce(feeder::stop, feeder)));
 

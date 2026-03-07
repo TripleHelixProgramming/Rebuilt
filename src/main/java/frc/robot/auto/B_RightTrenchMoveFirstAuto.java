@@ -3,7 +3,6 @@ package frc.robot.auto;
 import choreo.auto.AutoRoutine;
 import choreo.auto.AutoTrajectory;
 import edu.wpi.first.wpilibj2.command.Commands;
-import frc.robot.commands.DriveCommands;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.feeder.Feeder;
 import frc.robot.subsystems.intake.Intake;
@@ -60,8 +59,6 @@ public class B_RightTrenchMoveFirstAuto extends AutoMode {
         .onTrue(
             Commands.sequence(
                 Commands.runOnce(drive::stop, drive),
-                DriveCommands.getChassisAimingCommand(drive, launcher::getTurretDesaturationDelta)
-                    .until(launcher::isTurretDesaturated),
                 Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
                 Commands.runOnce(feeder::stop, feeder),
                 Commands.parallel(
@@ -72,8 +69,6 @@ public class B_RightTrenchMoveFirstAuto extends AutoMode {
         .onTrue(
             Commands.sequence(
                 Commands.runOnce(drive::stop, drive),
-                DriveCommands.getChassisAimingCommand(drive, launcher::getTurretDesaturationDelta)
-                    .until(launcher::isTurretDesaturated),
                 Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
                 Commands.runOnce(feeder::stop, feeder)));
 
