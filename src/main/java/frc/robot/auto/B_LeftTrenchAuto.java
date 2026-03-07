@@ -68,7 +68,7 @@ public class B_LeftTrenchAuto extends AutoMode {
             Commands.sequence(
                 Commands.runOnce(drive::stop, drive),
                 DriveCommands.getChassisAimingCommand(drive, launcher::getTurretDesaturationDelta)
-                    .withTimeout(1.5),
+                    .until(launcher::isTurretDesaturated),
                 Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
                 Commands.runOnce(feeder::stop, feeder),
                 Commands.parallel(
@@ -80,7 +80,7 @@ public class B_LeftTrenchAuto extends AutoMode {
             Commands.sequence(
                 Commands.runOnce(drive::stop, drive),
                 DriveCommands.getChassisAimingCommand(drive, launcher::getTurretDesaturationDelta)
-                    .withTimeout(1.5),
+                    .until(launcher::isTurretDesaturated),
                 Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
                 Commands.runOnce(feeder::stop, feeder)));
 
