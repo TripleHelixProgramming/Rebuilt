@@ -150,7 +150,7 @@ public class LEDController extends SubsystemBase {
           // Total phase duration
           () -> GameState.getCurrentPhase().duration(),
           // Urgency threshold (5 seconds)
-          5.0,
+          10.0,
           // Fill color
           () -> {
             if (GameState.isMyHubActive()) {
