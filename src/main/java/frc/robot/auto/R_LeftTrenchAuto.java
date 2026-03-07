@@ -54,24 +54,31 @@ public class R_LeftTrenchAuto extends AutoMode {
         .onTrue(
             Commands.sequence(
                 redLeftNeutralZone.resetOdometry(),
+                Commands.startEnd(launcher::desaturateTurret, () -> {}, launcher).withTimeout(0.5),
+                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(3.0),
                 Commands.parallel(
                     redLeftNeutralZone.cmd(),
                     Commands.sequence(
-                        // Commands.runOnce(hopper::deploy, hopper),
-                        intake.getDeployCommand().withTimeout(10.0)))));
+                        Commands.waitSeconds(2.0), intake.getDeployCommand().withTimeout(8.0)))));
 
     redLeftNeutralZone
         .done()
         .onTrue(
             Commands.sequence(
                 Commands.runOnce(drive::stop, drive),
+                Commands.startEnd(launcher::desaturateTurret, () -> {}, launcher).withTimeout(0.5),
                 Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
                 Commands.parallel(
-                    redLeftTransitionToNZ.cmd(), intake.getDeployCommand().withTimeout(5.0))));
+                    redLeftTransitionToNZ.cmd(),
+                    Commands.sequence(
+                        Commands.waitSeconds(1.0), intake.getDeployCommand().withTimeout(4.0)))));
 
     redLeftTransitionToNZ
         .done()
-        .onTrue(Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0));
+        .onTrue(
+            Commands.sequence(
+                Commands.runOnce(drive::stop),
+                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0)));
 
     return routine;
   }
