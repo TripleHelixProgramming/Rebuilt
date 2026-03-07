@@ -294,11 +294,11 @@ public class Launcher extends SubsystemBase {
     return horizontalAimAngle;
   }
 
-  public double desaturateTurret() {
+  public double getTurretDesaturationDelta() {
     return headingController.calculate(-turretInputs.oversaturationLessMargin, 0);
   }
 
-  public boolean turretDesaturated() {
+  public boolean isTurretDesaturated() {
     // return headingController.atSetpoint();
     return Math.abs(turretInputs.oversaturation) < Units.degreesToRadians(8);
   }
