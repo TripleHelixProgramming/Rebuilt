@@ -54,8 +54,10 @@ public class R_LeftTrenchAuto extends AutoMode {
         .onTrue(
             Commands.sequence(
                 redLeftNeutralZone.resetOdometry(),
+                Commands.waitSeconds(1.5),
                 Commands.startEnd(launcher::desaturateTurret, () -> {}, launcher).withTimeout(0.5),
                 Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(3.0),
+                Commands.runOnce(feeder::stop, feeder),
                 Commands.parallel(
                     redLeftNeutralZone.cmd(),
                     Commands.sequence(
@@ -68,6 +70,7 @@ public class R_LeftTrenchAuto extends AutoMode {
                 Commands.runOnce(drive::stop, drive),
                 Commands.startEnd(launcher::desaturateTurret, () -> {}, launcher).withTimeout(0.5),
                 Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
+                Commands.runOnce(feeder::stop, feeder),
                 Commands.parallel(
                     redLeftTransitionToNZ.cmd(),
                     Commands.sequence(
@@ -78,7 +81,8 @@ public class R_LeftTrenchAuto extends AutoMode {
         .onTrue(
             Commands.sequence(
                 Commands.runOnce(drive::stop),
-                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0)));
+                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
+                Commands.runOnce(feeder::stop, feeder)));
 
     return routine;
   }

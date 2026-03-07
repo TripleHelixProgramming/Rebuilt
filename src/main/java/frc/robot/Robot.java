@@ -264,8 +264,14 @@ public class Robot extends LoggedRobot {
     feeder.setDefaultCommand(Commands.startEnd(feeder::stop, () -> {}, feeder).withName("Stop"));
     intake.setDefaultCommand(intake.getDefaultCommand());
     // hopper.setDefaultCommand(hopper.getDefaultCommand());
-    launcher.setDefaultCommand(
-        Commands.startEnd(launcher::stop, () -> {}, launcher).withName("Stop"));
+   launcher.setDefaultCommand(
+        launcher
+            .initializeHoodCommand()
+            .andThen(
+                new RunCommand(
+                        () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()),
+                        launcher)
+                    .withName("Aim at hub")));
   }
 
   /** This function is called periodically during all modes. */
@@ -352,7 +358,13 @@ public class Robot extends LoggedRobot {
   @Override
   public void teleopInit() {
     launcher.setDefaultCommand(
-        Commands.startEnd(launcher::stop, () -> {}, launcher).withName("Stop"));
+        launcher
+            .initializeHoodCommand()
+            .andThen(
+                new RunCommand(
+                        () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()),
+                        launcher)
+                    .withName("Aim at hub")));
     autoSelector.cancelAuto();
     ControllerSelector.getInstance().scan(true);
     leds.clear();

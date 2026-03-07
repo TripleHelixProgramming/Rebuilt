@@ -54,7 +54,9 @@ public class B_RightTrenchAuto extends AutoMode {
         .onTrue(
             Commands.sequence(
                 blueRightNeutralZone.resetOdometry(),
+                Commands.waitSeconds(1.5),
                 Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(3.0),
+                Commands.runOnce(feeder::stop, feeder),
                 Commands.parallel(
                     blueRightNeutralZone.cmd(), intake.getDeployCommand().withTimeout(10.0))));
 
@@ -64,6 +66,7 @@ public class B_RightTrenchAuto extends AutoMode {
             Commands.sequence(
                 Commands.runOnce(drive::stop, drive),
                 Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
+                Commands.runOnce(feeder::stop, feeder),
                 Commands.parallel(
                     blueRightTransitionToNZ.cmd(), intake.getDeployCommand().withTimeout(5.0))));
 
@@ -72,7 +75,8 @@ public class B_RightTrenchAuto extends AutoMode {
         .onTrue(
             Commands.sequence(
                 Commands.runOnce(drive::stop, drive),
-                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0)));
+                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
+                Commands.runOnce(feeder::stop, feeder)));
 
     return routine;
   }
