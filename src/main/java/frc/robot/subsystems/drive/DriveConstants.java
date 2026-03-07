@@ -66,7 +66,7 @@ public class DriveConstants {
       Meters.of(Translation2d.kZero.getDistance(moduleTranslations[0]));
 
   // Chassis movement limits
-  public static final LinearVelocity maxChassisVelocity = MetersPerSecond.of(2.5);
+  public static final LinearVelocity maxChassisVelocity = MetersPerSecond.of(3.0);
   public static final LinearAcceleration maxChassisAcceleration = MetersPerSecondPerSecond.of(2.5);
 
   public static final AngularVelocity maxChassisAngularVelocity =

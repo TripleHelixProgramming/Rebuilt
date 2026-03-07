@@ -11,6 +11,7 @@ import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
@@ -455,21 +456,7 @@ public class Robot extends LoggedRobot {
     // zorroDriver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
 
     // Desaturate turret and advance feeder
-    zorroDriver
-        .AIn()
-        .whileTrue(
-            Commands.parallel(
-                DriveCommands.joystickDrive(
-                        drive,
-                        () -> controller.getXTranslationInput(),
-                        () -> controller.getYTranslationInput(),
-                        () -> launcher.desaturateTurret(),
-                        () -> controller.getFieldRelativeInput(),
-                        allianceSelector::fieldRotated)
-                    .withName("Desaturate turret"),
-                Commands.sequence(
-                    Commands.waitUntil(launcher::turretDesaturated),
-                    Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance"))));
+    zorroDriver.AIn().whileTrue(createDesaturateAndShootCommand(controller));
 
     // Launcher
     Trigger launcherEnabled = zorroDriver.axisGreaterThan(Axis.kLeftDial.value, 0.5).debounce(0.1);
@@ -646,21 +633,7 @@ public class Robot extends LoggedRobot {
         .whileTrue(Commands.startEnd(feeder::reverse, () -> {}, feeder).withName("Reverse"));
 
     // Desaturate turret and advance feeder
-    xboxOperator
-        .rightBumper()
-        .whileTrue(
-            Commands.parallel(
-                DriveCommands.joystickDrive(
-                        drive,
-                        () -> driver.getXTranslationInput(),
-                        () -> driver.getYTranslationInput(),
-                        () -> launcher.desaturateTurret(),
-                        () -> driver.getFieldRelativeInput(),
-                        allianceSelector::fieldRotated)
-                    .withName("Desaturate turret"),
-                Commands.sequence(
-                    Commands.waitUntil(launcher::turretDesaturated),
-                    Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance"))));
+    xboxOperator.rightBumper().whileTrue(createDesaturateAndShootCommand(driver));
   }
 
   public void configureAutoOptions() {
@@ -684,5 +657,27 @@ public class Robot extends LoggedRobot {
 
   public static Alliance getAlliance() {
     return allianceSelector.getAllianceColor();
+  }
+
+  private Command createDesaturateAndShootCommand(DriverController driver) {
+    return Commands.parallel(
+        DriveCommands.joystickDrive(
+                drive,
+                driver::getXTranslationInput,
+                driver::getYTranslationInput,
+                // launcher::desaturateTurret,
+                () -> {
+                  if (launcher.turretDesaturated()) {
+                    return driver.getRotationInput();
+                  } else {
+                    return launcher.desaturateTurret();
+                  }
+                },
+                driver::getFieldRelativeInput,
+                allianceSelector::fieldRotated)
+            .withName("Desaturate turret"),
+        Commands.sequence(
+            Commands.waitUntil(launcher::turretDesaturated),
+            Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance")));
   }
 }

@@ -195,11 +195,11 @@ public class LEDController extends SubsystemBase {
    * alliance color based on hub state. When both hubs are active, shows our alliance color.
    */
   public void displayHubCountdown() {
-    LEDSeries.Y_AXIS.applyPattern(hubCountdownPattern);
+    LEDSeries.X_AXIS.applyPattern(hubCountdownPattern);
   }
 
   /**
-   * Displays robot state on the X_AXIS LEDs.
+   * Displays robot state on the Y_AXIS LEDs.
    *
    * <ul>
    *   <li><b>Color:</b> Yellow = not locked on target, Green = locked on target
@@ -219,7 +219,7 @@ public class LEDController extends SubsystemBase {
     } else {
       pattern = spindexing ? bounceRippleYellowPattern : solidYellowPattern;
     }
-    LEDSeries.X_AXIS.applyPattern(pattern);
+    LEDSeries.Y_AXIS.applyPattern(pattern);
   }
 
   /** Clears all LEDs by applying solid black. */
