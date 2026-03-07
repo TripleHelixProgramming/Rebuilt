@@ -7,16 +7,16 @@
   "poses":{
    "BLTransition":{
     "x":{
-     "exp":"4.55 m",
-     "val":4.55
+     "exp":"4 m",
+     "val":4.0
     },
     "y":{
      "exp":"7.5 m",
      "val":7.5
     },
     "heading":{
-     "exp":"0 deg",
-     "val":0.0
+     "exp":"180 deg",
+     "val":3.141592653589793
     }
    },
    "BRTransition":{
@@ -35,16 +35,16 @@
    },
    "RLTransition":{
     "x":{
-     "exp":"12.5 m",
-     "val":12.5
+     "exp":"13 m",
+     "val":13.0
     },
     "y":{
      "exp":"0.6 m",
      "val":0.6
     },
     "heading":{
-     "exp":"180 deg",
-     "val":3.141592653589793
+     "exp":"0 deg",
+     "val":0.0
     }
    },
    "RRTransition":{
