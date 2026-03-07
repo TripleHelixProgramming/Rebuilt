@@ -683,17 +683,32 @@ public class Robot extends LoggedRobot {
                 driver::getYTranslationInput,
                 // launcher::desaturateTurret,
                 () -> {
-                  if (launcher.turretDesaturated()) {
+                  if (launcher.isTurretDesaturated()) {
                     return driver.getRotationInput();
                   } else {
-                    return launcher.desaturateTurret();
+                    return launcher.getTurretDesaturationDelta();
                   }
                 },
                 driver::getFieldRelativeInput,
                 allianceSelector::fieldRotated)
             .withName("Desaturate turret"),
         Commands.sequence(
-            Commands.waitUntil(launcher::turretDesaturated),
+            Commands.waitUntil(launcher::isTurretDesaturated),
+            Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance")));
+  }
+
+  private Command createDesaturateAndShootCommand() {
+    return Commands.parallel(
+        DriveCommands.joystickDrive(
+                drive,
+                () -> 0,
+                () -> 0,
+                launcher::getTurretDesaturationDelta,
+                () -> true,
+                allianceSelector::fieldRotated)
+            .withName("Desaturate turret"),
+        Commands.sequence(
+            Commands.waitUntil(launcher::isTurretDesaturated),
             Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance")));
   }
 }
