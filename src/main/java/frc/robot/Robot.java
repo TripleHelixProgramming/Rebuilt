@@ -696,19 +696,4 @@ public class Robot extends LoggedRobot {
             Commands.waitUntil(launcher::isTurretDesaturated),
             Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance")));
   }
-
-  private Command createDesaturateAndShootCommand() {
-    return Commands.parallel(
-        DriveCommands.joystickDrive(
-                drive,
-                () -> 0,
-                () -> 0,
-                launcher::getTurretDesaturationDelta,
-                () -> true,
-                allianceSelector::fieldRotated)
-            .withName("Desaturate turret"),
-        Commands.sequence(
-            Commands.waitUntil(launcher::isTurretDesaturated),
-            Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance")));
-  }
 }
