@@ -26,6 +26,6 @@ public class IntakeConstants {
     public static final double maxJerk = 40000.0;
 
     // simulation
-    public static final DCMotor gearbox = DCMotor.getKrakenX60(1);
+    public static final DCMotor gearbox = DCMotor.getKrakenX60(2);
   }
 }
