@@ -458,9 +458,9 @@ public class Launcher extends SubsystemBase {
       Logger.recordOutput("Launcher/" + key + "/HorizontalLaunchAngleDegrees", 0.0);
       Logger.recordOutput("Launcher/" + key + "/TravelTime", 0.0);
     } else {
-      Logger.recordOutput(
-          "Launcher/" + key + "/VerticalLaunchAngleDegrees",
-          new Translation2d(v_r, v_z).getAngle().getDegrees());
+      // Logger.recordOutput(
+      //     "Launcher/" + key + "/VerticalLaunchAngleDegrees",
+      //     new Translation2d(v_r, v_z).getAngle().getDegrees());
       Logger.recordOutput(
           "Launcher/" + key + "/HorizontalLaunchAngleDegrees",
           v.toTranslation2d().getAngle().getDegrees());
