@@ -38,6 +38,7 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.units.Measure;
 import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
@@ -66,20 +67,8 @@ public class DriveConstants {
       Meters.of(Translation2d.kZero.getDistance(moduleTranslations[0]));
 
   // Chassis movement limits
-  public static final LinearVelocity maxChassisVelocity = MetersPerSecond.of(5);
-  public static final LinearAcceleration maxChassisAcceleration = MetersPerSecondPerSecond.of(2.5);
-
-  public static final AngularVelocity maxChassisAngularVelocity =
-      RadiansPerSecond.of(maxChassisVelocity.in(MetersPerSecond) / driveBaseRadius.in(Meters));
-  public static final AngularAcceleration maxChassisAngularAcceleration =
-      RadiansPerSecondPerSecond.of(4 * Math.PI);
-
-  public static final PathConstraints pathFollowingConstraints =
-      new PathConstraints(
-          maxChassisVelocity.in(MetersPerSecond),
-          maxChassisAcceleration.in(MetersPerSecondPerSecond),
-          maxChassisAngularVelocity.in(RadiansPerSecond),
-          maxChassisAngularAcceleration.in(RadiansPerSecondPerSecond));
+  private static final LinearVelocity maxChassisVelocity = MetersPerSecond.of(5);
+  public static final LinearAcceleration maxChassisAcceleration = MetersPerSecondPerSecond.of(3.0);
 
   public static final String zeroRotationKey = "ZeroRotation";
 
@@ -95,6 +84,18 @@ public class DriveConstants {
               * (wheelRadius.in(Meters) * 2.0 * Math.PI)
               * KrakenX60Constants.kFreeSpeed.in(RotationsPerSecond)
               / driveMotorReduction);
+  public static final LinearVelocity natesMaxVelocity = MetersPerSecond.of(Math.min(maxDriveSpeed.in(MetersPerSecond), maxChassisVelocity.in(MetersPerSecond)));
+  public static final AngularVelocity maxChassisAngularVelocity =
+      RadiansPerSecond.of(natesMaxVelocity.in(MetersPerSecond) / driveBaseRadius.in(Meters));
+  public static final AngularAcceleration maxChassisAngularAcceleration =
+      RadiansPerSecondPerSecond.of(4 * Math.PI);
+
+  public static final PathConstraints pathFollowingConstraints =
+      new PathConstraints(
+          natesMaxVelocity.in(MetersPerSecond),
+          maxChassisAcceleration.in(MetersPerSecondPerSecond),
+          maxChassisAngularVelocity.in(RadiansPerSecond),
+          maxChassisAngularAcceleration.in(RadiansPerSecondPerSecond));
 
   // Turn motor configuration
   public static final boolean turnInverted = false;

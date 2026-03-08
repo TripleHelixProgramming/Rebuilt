@@ -97,8 +97,8 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
 
     // Follower data goes into inputs struct to be logged via processInputs()
     // instead of recordOutput() which can block for 10-30ms
-    // inputs.followerAppliedVolts = followerAppliedVolts.getValueAsDouble();
-    // inputs.followerCurrentAmps = followerCurrent.getValueAsDouble();
+    inputs.followerAppliedVolts = followerAppliedVolts.getValueAsDouble();
+    inputs.followerCurrentAmps = followerCurrent.getValueAsDouble();
   }
 
   @Override
