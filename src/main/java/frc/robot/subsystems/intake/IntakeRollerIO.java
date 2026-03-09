@@ -8,9 +8,12 @@ public interface IntakeRollerIO {
   @AutoLog
   public static class IntakeRollerIOInputs {
     public boolean connected = false;
-    public double velocityMetersPerSec = 0.0;
-    public double appliedVolts = 0.0;
-    public double currentAmps = 0.0;
+    public double lowerVelocityMetersPerSec = 0.0;
+    public double lowerAppliedVolts = 0.0;
+    public double lowerCurrentAmps = 0.0;
+    public double upperVelocityMetersPerSec = 0.0;
+    public double upperAppliedVolts = 0.0;
+    public double upperCurrentAmps = 0.0;
   }
 
   public default void updateInputs(IntakeRollerIOInputs inputs) {}

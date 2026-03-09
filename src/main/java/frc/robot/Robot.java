@@ -265,7 +265,13 @@ public class Robot extends LoggedRobot {
     intake.setDefaultCommand(intake.getDefaultCommand());
     // hopper.setDefaultCommand(hopper.getDefaultCommand());
     launcher.setDefaultCommand(
-        Commands.startEnd(launcher::stop, () -> {}, launcher).withName("Stop"));
+        launcher
+            .initializeHoodCommand()
+            .andThen(
+                new RunCommand(
+                        () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()),
+                        launcher)
+                    .withName("Aim at hub")));
   }
 
   /** This function is called periodically during all modes. */
@@ -329,14 +335,6 @@ public class Robot extends LoggedRobot {
   @Override
   public void autonomousInit() {
     drive.setDefaultCommand(Commands.runOnce(drive::stop, drive).withName("Stop"));
-    launcher.setDefaultCommand(
-        launcher
-            .initializeHoodCommand()
-            .andThen(
-                new RunCommand(
-                        () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()),
-                        launcher)
-                    .withName("Aim at hub")));
     autoSelector.scheduleAuto();
     leds.clear();
   }
@@ -351,8 +349,6 @@ public class Robot extends LoggedRobot {
   /** This function is called once when teleop mode is enabled. */
   @Override
   public void teleopInit() {
-    launcher.setDefaultCommand(
-        Commands.startEnd(launcher::stop, () -> {}, launcher).withName("Stop"));
     autoSelector.cancelAuto();
     ControllerSelector.getInstance().scan(true);
     leds.clear();
@@ -671,17 +667,17 @@ public class Robot extends LoggedRobot {
                 driver::getYTranslationInput,
                 // launcher::desaturateTurret,
                 () -> {
-                  if (launcher.turretDesaturated()) {
+                  if (launcher.isTurretDesaturated()) {
                     return driver.getRotationInput();
                   } else {
-                    return launcher.desaturateTurret();
+                    return launcher.getTurretDesaturationDelta();
                   }
                 },
                 driver::getFieldRelativeInput,
                 allianceSelector::fieldRotated)
             .withName("Desaturate turret"),
         Commands.sequence(
-            Commands.waitUntil(launcher::turretDesaturated),
+            Commands.waitUntil(launcher::isTurretDesaturated),
             Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance")));
   }
 }

@@ -59,8 +59,8 @@ public class R_LeftTrenchMoveFirstAuto extends AutoMode {
         .onTrue(
             Commands.sequence(
                 Commands.runOnce(drive::stop, drive),
-                Commands.startEnd(launcher::desaturateTurret, () -> {}, launcher).withTimeout(0.5),
                 Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
+                Commands.runOnce(feeder::stop, feeder),
                 Commands.parallel(
                     redLeftTransitionToNZ.cmd(), intake.getDeployCommand().withTimeout(5.0))));
 
@@ -69,7 +69,8 @@ public class R_LeftTrenchMoveFirstAuto extends AutoMode {
         .onTrue(
             Commands.sequence(
                 Commands.runOnce(drive::stop, drive),
-                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0)));
+                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
+                Commands.runOnce(feeder::stop, feeder)));
 
     return routine;
   }

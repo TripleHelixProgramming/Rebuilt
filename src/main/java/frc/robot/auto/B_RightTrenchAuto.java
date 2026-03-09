@@ -3,6 +3,7 @@ package frc.robot.auto;
 import choreo.auto.AutoRoutine;
 import choreo.auto.AutoTrajectory;
 import edu.wpi.first.wpilibj2.command.Commands;
+import frc.robot.commands.DriveCommands;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.feeder.Feeder;
 import frc.robot.subsystems.intake.Intake;
@@ -54,7 +55,10 @@ public class B_RightTrenchAuto extends AutoMode {
         .onTrue(
             Commands.sequence(
                 blueRightNeutralZone.resetOdometry(),
+                DriveCommands.getChassisAimingCommand(drive, launcher::getTurretDesaturationDelta)
+                    .withTimeout(1.5),
                 Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(3.0),
+                Commands.runOnce(feeder::stop, feeder),
                 Commands.parallel(
                     blueRightNeutralZone.cmd(), intake.getDeployCommand().withTimeout(10.0))));
 
@@ -64,6 +68,7 @@ public class B_RightTrenchAuto extends AutoMode {
             Commands.sequence(
                 Commands.runOnce(drive::stop, drive),
                 Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
+                Commands.runOnce(feeder::stop, feeder),
                 Commands.parallel(
                     blueRightTransitionToNZ.cmd(), intake.getDeployCommand().withTimeout(5.0))));
 
@@ -72,7 +77,8 @@ public class B_RightTrenchAuto extends AutoMode {
         .onTrue(
             Commands.sequence(
                 Commands.runOnce(drive::stop, drive),
-                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0)));
+                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
+                Commands.runOnce(feeder::stop, feeder)));
 
     return routine;
   }

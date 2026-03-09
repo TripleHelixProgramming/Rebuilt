@@ -60,6 +60,7 @@ public class B_RightTrenchMoveFirstAuto extends AutoMode {
             Commands.sequence(
                 Commands.runOnce(drive::stop, drive),
                 Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
+                Commands.runOnce(feeder::stop, feeder),
                 Commands.parallel(
                     blueRightTransitionToNZ.cmd(), intake.getDeployCommand().withTimeout(5.0))));
 
@@ -68,7 +69,8 @@ public class B_RightTrenchMoveFirstAuto extends AutoMode {
         .onTrue(
             Commands.sequence(
                 Commands.runOnce(drive::stop, drive),
-                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0)));
+                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
+                Commands.runOnce(feeder::stop, feeder)));
 
     return routine;
   }
