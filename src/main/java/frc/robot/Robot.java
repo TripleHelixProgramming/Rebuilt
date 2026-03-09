@@ -30,7 +30,6 @@ import frc.lib.ControllerSelector.DriverConfig;
 import frc.lib.ControllerSelector.DriverController;
 import frc.lib.ControllerSelector.OperatorConfig;
 import frc.lib.ZorroController.Axis;
-import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.DIOPorts;
 import frc.robot.auto.B_LeftTrenchAuto;
 import frc.robot.auto.B_LeftTrenchMoveFirstAuto;
@@ -59,6 +58,7 @@ import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.intake.IntakeArmIO;
 import frc.robot.subsystems.intake.IntakeArmIOReal;
 import frc.robot.subsystems.intake.IntakeArmIOSim;
+import frc.robot.subsystems.intake.IntakeConstants.RollerConstants;
 import frc.robot.subsystems.intake.RollerIO;
 import frc.robot.subsystems.intake.RollerIOSimTalonFX;
 import frc.robot.subsystems.intake.RollerIOTalonFX;
@@ -162,8 +162,8 @@ public class Robot extends LoggedRobot {
                 new HoodIOSpark());
         intake =
             new Intake(
-                new RollerIOTalonFX(CAN2.intakeRollerUpper),
-                new RollerIOTalonFX(CAN2.intakeRollerLower),
+                new RollerIOTalonFX(RollerConstants.upperRollerConfig),
+                new RollerIOTalonFX(RollerConstants.lowerRollerConfig),
                 new IntakeArmIOReal());
         // hopper = new Hopper(new HopperIOReal());
         feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
@@ -204,8 +204,8 @@ public class Robot extends LoggedRobot {
         feeder = new Feeder(new SpindexerIOSimSpark(), new KickerIOSimSpark());
         intake =
             new Intake(
-                new RollerIOSimTalonFX(CAN2.intakeRollerUpper),
-                new RollerIOSimTalonFX(CAN2.intakeRollerLower),
+                new RollerIOSimTalonFX(RollerConstants.upperRollerConfig),
+                new RollerIOSimTalonFX(RollerConstants.lowerRollerConfig),
                 new IntakeArmIOSim());
         // hopper = new Hopper(new HopperIOSim());
         break;

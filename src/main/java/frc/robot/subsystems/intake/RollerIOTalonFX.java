@@ -1,7 +1,7 @@
 package frc.robot.subsystems.intake;
 
 import static edu.wpi.first.units.Units.*;
-import static frc.robot.subsystems.intake.IntakeConstants.IntakeRoller.*;
+import static frc.robot.subsystems.intake.IntakeConstants.RollerConstants.*;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
 import com.ctre.phoenix6.BaseStatusSignal;
@@ -19,7 +19,7 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
-import frc.robot.Constants.CANBusPorts.CAN2;
+import frc.robot.subsystems.intake.IntakeConstants.RollerConfig;
 
 public class RollerIOTalonFX implements RollerIO {
   private final TalonFX motor;
@@ -43,11 +43,14 @@ public class RollerIOTalonFX implements RollerIO {
   private final StatusSignal<Current> supplyCurrent, torqueCurrent;
   private final StatusSignal<Double> dutyCycle;
 
-  public RollerIOTalonFX(int port) {
-    motor = new TalonFX(port, CAN2.bus);
+  public RollerIOTalonFX(RollerConfig rollerConfig) {
+    motor = new TalonFX(rollerConfig.port, rollerConfig.bus);
     config = new TalonFXConfiguration();
-    config.MotorOutput.withInverted(InvertedValue.Clockwise_Positive)
-        .withNeutralMode(NeutralModeValue.Brake);
+    config.MotorOutput.Inverted =
+        rollerConfig.inverted
+            ? InvertedValue.Clockwise_Positive
+            : InvertedValue.CounterClockwise_Positive;
+    config.MotorOutput.withNeutralMode(NeutralModeValue.Brake);
     config.Slot0 = velocityVoltageGains;
     config.Slot1 = velocityTorqueCurrentGains;
     tryUntilOk(5, () -> motor.getConfigurator().apply(config, 0.25)); // -1 tryUntilOkay
