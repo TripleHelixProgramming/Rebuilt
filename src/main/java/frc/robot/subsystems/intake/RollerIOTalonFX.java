@@ -64,7 +64,7 @@ public class RollerIOTalonFX implements RollerIO {
   }
 
   @Override
-  public void updateInputs(IntakeRollerIOInputs inputs) {
+  public void updateInputs(RollerIOInputs inputs) {
     inputs.connected =
         connectedDebounce.calculate(
             BaseStatusSignal.refreshAll(

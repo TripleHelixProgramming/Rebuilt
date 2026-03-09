@@ -17,10 +17,8 @@ public class Intake extends SubsystemBase {
   private final RollerIO lowerRollerIO;
   private final IntakeArmIO intakeArmIO;
 
-  private final IntakeRollerIOInputsAutoLogged upperRollerInputs =
-      new IntakeRollerIOInputsAutoLogged();
-  private final IntakeRollerIOInputsAutoLogged lowerRollerInputs =
-      new IntakeRollerIOInputsAutoLogged();
+  private final RollerIOInputsAutoLogged upperRollerInputs = new RollerIOInputsAutoLogged();
+  private final RollerIOInputsAutoLogged lowerRollerInputs = new RollerIOInputsAutoLogged();
   private final IntakeArmIOInputsAutoLogged intakeArmInputs = new IntakeArmIOInputsAutoLogged();
 
   private final Alert upperRollerDisconnectedAlert;

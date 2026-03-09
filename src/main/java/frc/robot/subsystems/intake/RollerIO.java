@@ -6,14 +6,14 @@ import org.littletonrobotics.junction.AutoLog;
 
 public interface RollerIO {
   @AutoLog
-  public static class IntakeRollerIOInputs {
+  public static class RollerIOInputs {
     public boolean connected = false;
     public double velocityMetersPerSec = 0.0;
     public double appliedVolts = 0.0;
     public double currentAmps = 0.0;
   }
 
-  public default void updateInputs(IntakeRollerIOInputs inputs) {}
+  public default void updateInputs(RollerIOInputs inputs) {}
 
   public default void setOpenLoop(Voltage volts) {}
 
