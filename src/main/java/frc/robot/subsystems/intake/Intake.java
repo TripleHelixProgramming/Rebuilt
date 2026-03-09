@@ -69,6 +69,7 @@ public class Intake extends SubsystemBase {
 
   public void stop() {
     upperRollerIO.setOpenLoop(Volts.of(0.0));
+    lowerRollerIO.setOpenLoop(Volts.of(0.0));
     intakeArmIO.retract();
   }
 
@@ -94,7 +95,12 @@ public class Intake extends SubsystemBase {
             Commands.runOnce(this::deployArm, this),
             this.idle().withTimeout(0.5),
             Commands.startEnd(
-                () -> upperRollerIO.setVelocity(MetersPerSecond.of(6.0)), () -> {}, this))
+                () -> {
+                  upperRollerIO.setVelocity(MetersPerSecond.of(6.0));
+                  lowerRollerIO.setVelocity(MetersPerSecond.of(6.0));
+                },
+                () -> {},
+                this))
         .withName("Intake");
   }
 
@@ -103,7 +109,12 @@ public class Intake extends SubsystemBase {
             Commands.runOnce(this::deployArm, this),
             this.idle().withTimeout(0.5),
             Commands.startEnd(
-                () -> upperRollerIO.setVelocity(MetersPerSecond.of(-4.0)), () -> {}, this))
+                () -> {
+                  upperRollerIO.setVelocity(MetersPerSecond.of(-4.0));
+                  lowerRollerIO.setVelocity(MetersPerSecond.of(-4.0));
+                },
+                () -> {},
+                this))
         .withName("Reverse");
   }
 }
