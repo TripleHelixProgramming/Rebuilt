@@ -38,7 +38,6 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.units.Measure;
 import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
@@ -53,6 +52,8 @@ import frc.robot.Constants.MotorConstants.KrakenX60Constants;
 
 public class DriveConstants {
 
+  public static final String zeroRotationKey = "ZeroRotation";
+
   // Robot physical dimensions
   public static final Distance wheelBase = Inches.of(22.5);
   public static final Distance trackWidth = Inches.of(19.5);
@@ -66,34 +67,37 @@ public class DriveConstants {
   public static final Distance driveBaseRadius =
       Meters.of(Translation2d.kZero.getDistance(moduleTranslations[0]));
 
-  // Chassis movement limits
-  private static final LinearVelocity maxChassisVelocity = MetersPerSecond.of(5);
-  public static final LinearAcceleration maxChassisAcceleration = MetersPerSecondPerSecond.of(3.0);
-
-  public static final String zeroRotationKey = "ZeroRotation";
-
   // Drive motor configuration
   public static final Distance wheelRadius = Inches.of(2);
   public static final double wheelRadiusMeters = wheelRadius.in(Meters);
   public static final double driveMotorReduction =
       (50.0 / 14.0) * (17.0 / 27.0) * (45.0 / 15.0); // SDS MK4 L2
   public static final DCMotor driveGearbox = DCMotor.getKrakenX60(1);
-  public static final LinearVelocity maxDriveSpeed =
+  public static final LinearVelocity drivetrainSpeedLimit =
       MetersPerSecond.of(
           0.9
               * (wheelRadius.in(Meters) * 2.0 * Math.PI)
               * KrakenX60Constants.kFreeSpeed.in(RotationsPerSecond)
               / driveMotorReduction);
-  public static final LinearVelocity natesMaxVelocity = MetersPerSecond.of(Math.min(maxDriveSpeed.in(MetersPerSecond), maxChassisVelocity.in(MetersPerSecond)));
+
+  // Chassis movement limits
+  private static final LinearVelocity driverSpeedLimit = MetersPerSecond.of(5);
+  public static final LinearVelocity maxTeleopChassisVelocity =
+      MetersPerSecond.of(
+          Math.min(drivetrainSpeedLimit.in(MetersPerSecond), driverSpeedLimit.in(MetersPerSecond)));
+  public static final LinearAcceleration maxTeleopChassisAcceleration =
+      MetersPerSecondPerSecond.of(3.0);
+
   public static final AngularVelocity maxChassisAngularVelocity =
-      RadiansPerSecond.of(natesMaxVelocity.in(MetersPerSecond) / driveBaseRadius.in(Meters));
+      RadiansPerSecond.of(
+          maxTeleopChassisVelocity.in(MetersPerSecond) / driveBaseRadius.in(Meters));
   public static final AngularAcceleration maxChassisAngularAcceleration =
       RadiansPerSecondPerSecond.of(4 * Math.PI);
 
   public static final PathConstraints pathFollowingConstraints =
       new PathConstraints(
-          natesMaxVelocity.in(MetersPerSecond),
-          maxChassisAcceleration.in(MetersPerSecondPerSecond),
+          maxTeleopChassisVelocity.in(MetersPerSecond),
+          maxTeleopChassisAcceleration.in(MetersPerSecondPerSecond),
           maxChassisAngularVelocity.in(RadiansPerSecond),
           maxChassisAngularAcceleration.in(RadiansPerSecondPerSecond));
 
@@ -117,7 +121,7 @@ public class DriveConstants {
           robotMOI.in(KilogramSquareMeters),
           new ModuleConfig(
               wheelRadius.in(Meters),
-              maxDriveSpeed.in(MetersPerSecond),
+              drivetrainSpeedLimit.in(MetersPerSecond),
               wheelCOF,
               driveGearbox.withReduction(driveMotorReduction),
               KrakenX60Constants.kDefaultSupplyCurrentLimit,
@@ -203,7 +207,7 @@ public class DriveConstants {
               .withSteerMotorClosedLoopOutput(kSteerClosedLoopOutput)
               .withDriveMotorClosedLoopOutput(kDriveClosedLoopOutput)
               .withSlipCurrent(kSlipCurrent)
-              .withSpeedAt12Volts(maxDriveSpeed)
+              .withSpeedAt12Volts(drivetrainSpeedLimit)
               .withDriveMotorType(kDriveMotorType)
               .withSteerMotorType(kSteerMotorType)
               .withFeedbackSource(kSteerFeedbackType)
