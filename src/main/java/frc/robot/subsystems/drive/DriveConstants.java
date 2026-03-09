@@ -52,6 +52,8 @@ import frc.robot.Constants.MotorConstants.KrakenX60Constants;
 
 public class DriveConstants {
 
+  public static final String zeroRotationKey = "ZeroRotation";
+
   // Robot physical dimensions
   public static final Distance wheelBase = Inches.of(22.5);
   public static final Distance trackWidth = Inches.of(19.5);
@@ -65,9 +67,25 @@ public class DriveConstants {
   public static final Distance driveBaseRadius =
       Meters.of(Translation2d.kZero.getDistance(moduleTranslations[0]));
 
+  // Drive motor configuration
+  public static final Distance wheelRadius = Inches.of(2);
+  public static final double wheelRadiusMeters = wheelRadius.in(Meters);
+  public static final double driveMotorReduction =
+      (50.0 / 14.0) * (17.0 / 27.0) * (45.0 / 15.0); // SDS MK4 L2
+  public static final DCMotor driveGearbox = DCMotor.getKrakenX60(1);
+  public static final LinearVelocity drivetrainSpeedLimit =
+      MetersPerSecond.of(
+          0.9
+              * (wheelRadius.in(Meters) * 2.0 * Math.PI)
+              * KrakenX60Constants.kFreeSpeed.in(RotationsPerSecond)
+              / driveMotorReduction);
+
   // Chassis movement limits
-  public static final LinearVelocity maxChassisVelocity = MetersPerSecond.of(3.0);
-  public static final LinearAcceleration maxChassisAcceleration = MetersPerSecondPerSecond.of(2.5);
+  private static final LinearVelocity driverSpeedLimit = MetersPerSecond.of(5);
+  public static final LinearVelocity maxChassisVelocity =
+      MetersPerSecond.of(
+          Math.min(drivetrainSpeedLimit.in(MetersPerSecond), driverSpeedLimit.in(MetersPerSecond)));
+  public static final LinearAcceleration maxChassisAcceleration = MetersPerSecondPerSecond.of(3.0);
 
   public static final AngularVelocity maxChassisAngularVelocity =
       RadiansPerSecond.of(maxChassisVelocity.in(MetersPerSecond) / driveBaseRadius.in(Meters));
@@ -80,21 +98,6 @@ public class DriveConstants {
           maxChassisAcceleration.in(MetersPerSecondPerSecond),
           maxChassisAngularVelocity.in(RadiansPerSecond),
           maxChassisAngularAcceleration.in(RadiansPerSecondPerSecond));
-
-  public static final String zeroRotationKey = "ZeroRotation";
-
-  // Drive motor configuration
-  public static final Distance wheelRadius = Inches.of(2);
-  public static final double wheelRadiusMeters = wheelRadius.in(Meters);
-  public static final double driveMotorReduction =
-      (50.0 / 14.0) * (17.0 / 27.0) * (45.0 / 15.0); // SDS MK4 L2
-  public static final DCMotor driveGearbox = DCMotor.getKrakenX60(1);
-  public static final LinearVelocity maxDriveSpeed =
-      MetersPerSecond.of(
-          0.9
-              * (wheelRadius.in(Meters) * 2.0 * Math.PI)
-              * KrakenX60Constants.kFreeSpeed.in(RotationsPerSecond)
-              / driveMotorReduction);
 
   // Turn motor configuration
   public static final boolean turnInverted = false;
@@ -116,7 +119,7 @@ public class DriveConstants {
           robotMOI.in(KilogramSquareMeters),
           new ModuleConfig(
               wheelRadius.in(Meters),
-              maxDriveSpeed.in(MetersPerSecond),
+              drivetrainSpeedLimit.in(MetersPerSecond),
               wheelCOF,
               driveGearbox.withReduction(driveMotorReduction),
               KrakenX60Constants.kDefaultSupplyCurrentLimit,
@@ -202,7 +205,7 @@ public class DriveConstants {
               .withSteerMotorClosedLoopOutput(kSteerClosedLoopOutput)
               .withDriveMotorClosedLoopOutput(kDriveClosedLoopOutput)
               .withSlipCurrent(kSlipCurrent)
-              .withSpeedAt12Volts(maxDriveSpeed)
+              .withSpeedAt12Volts(drivetrainSpeedLimit)
               .withDriveMotorType(kDriveMotorType)
               .withSteerMotorType(kSteerMotorType)
               .withFeedbackSource(kSteerFeedbackType)

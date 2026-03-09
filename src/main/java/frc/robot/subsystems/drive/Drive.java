@@ -250,7 +250,7 @@ public class Drive extends SubsystemBase {
     Logger.recordOutput("SwerveStates/Setpoints", states);
 
     // 2: Desaturate (apply wheel limits FIRST)
-    SwerveDriveKinematics.desaturateWheelSpeeds(states, maxDriveSpeed.in(MetersPerSecond));
+    SwerveDriveKinematics.desaturateWheelSpeeds(states, drivetrainSpeedLimit.in(MetersPerSecond));
 
     // 3: Reconstruct the ACTUAL chassis speeds after limiting
     ChassisSpeeds limitedSpeeds = kinematics.toChassisSpeeds(states);
@@ -263,7 +263,8 @@ public class Drive extends SubsystemBase {
 
     // (Optional but usually unnecessary)
     // desaturate again for safety
-    SwerveDriveKinematics.desaturateWheelSpeeds(finalStates, maxDriveSpeed.in(MetersPerSecond));
+    SwerveDriveKinematics.desaturateWheelSpeeds(
+        finalStates, drivetrainSpeedLimit.in(MetersPerSecond));
 
     // 6: Send to modules
     for (int i = 0; i < 4; i++) {

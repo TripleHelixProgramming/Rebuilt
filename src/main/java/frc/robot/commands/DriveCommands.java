@@ -65,6 +65,12 @@ public class DriveCommands {
         .getTranslation();
   }
 
+  public static final Command getChassisAimingCommand(
+      Drive drive, DoubleSupplier desaturationSupplier) {
+    return DriveCommands.joystickDrive(
+        drive, () -> 0, () -> 0, desaturationSupplier, () -> true, () -> false);
+  }
+
   /**
    * Field relative drive command using two joysticks (controlling linear and angular velocities).
    */
