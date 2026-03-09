@@ -82,22 +82,20 @@ public class DriveConstants {
 
   // Chassis movement limits
   private static final LinearVelocity driverSpeedLimit = MetersPerSecond.of(5);
-  public static final LinearVelocity maxTeleopChassisVelocity =
+  public static final LinearVelocity maxChassisVelocity =
       MetersPerSecond.of(
           Math.min(drivetrainSpeedLimit.in(MetersPerSecond), driverSpeedLimit.in(MetersPerSecond)));
-  public static final LinearAcceleration maxTeleopChassisAcceleration =
-      MetersPerSecondPerSecond.of(3.0);
+  public static final LinearAcceleration maxChassisAcceleration = MetersPerSecondPerSecond.of(3.0);
 
   public static final AngularVelocity maxChassisAngularVelocity =
-      RadiansPerSecond.of(
-          maxTeleopChassisVelocity.in(MetersPerSecond) / driveBaseRadius.in(Meters));
+      RadiansPerSecond.of(maxChassisVelocity.in(MetersPerSecond) / driveBaseRadius.in(Meters));
   public static final AngularAcceleration maxChassisAngularAcceleration =
       RadiansPerSecondPerSecond.of(4 * Math.PI);
 
   public static final PathConstraints pathFollowingConstraints =
       new PathConstraints(
-          maxTeleopChassisVelocity.in(MetersPerSecond),
-          maxTeleopChassisAcceleration.in(MetersPerSecondPerSecond),
+          maxChassisVelocity.in(MetersPerSecond),
+          maxChassisAcceleration.in(MetersPerSecondPerSecond),
           maxChassisAngularVelocity.in(RadiansPerSecond),
           maxChassisAngularAcceleration.in(RadiansPerSecondPerSecond));
 
