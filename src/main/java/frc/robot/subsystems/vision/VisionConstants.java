@@ -81,7 +81,7 @@ public class VisionConstants {
   public static final double fieldXLenMeters = frc.game.Field.field_x_len.in(Meters);
   public static final double fieldYLenMeters = frc.game.Field.field_y_len.in(Meters);
   public static Distance maxTravelDistance =
-      DriveConstants.maxDriveSpeed.times(Seconds.of(Robot.defaultPeriodSecs));
+      DriveConstants.drivetrainSpeedLimit.times(Seconds.of(Robot.defaultPeriodSecs));
 
   // Standard deviation baselines
   public static double linearStdDevBaseline = 0.02; // Meters
