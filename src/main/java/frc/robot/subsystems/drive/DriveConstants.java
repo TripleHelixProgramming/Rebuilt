@@ -38,7 +38,6 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.units.Measure;
 import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
@@ -84,7 +83,9 @@ public class DriveConstants {
               * (wheelRadius.in(Meters) * 2.0 * Math.PI)
               * KrakenX60Constants.kFreeSpeed.in(RotationsPerSecond)
               / driveMotorReduction);
-  public static final LinearVelocity natesMaxVelocity = MetersPerSecond.of(Math.min(maxDriveSpeed.in(MetersPerSecond), maxChassisVelocity.in(MetersPerSecond)));
+  public static final LinearVelocity natesMaxVelocity =
+      MetersPerSecond.of(
+          Math.min(maxDriveSpeed.in(MetersPerSecond), maxChassisVelocity.in(MetersPerSecond)));
   public static final AngularVelocity maxChassisAngularVelocity =
       RadiansPerSecond.of(natesMaxVelocity.in(MetersPerSecond) / driveBaseRadius.in(Meters));
   public static final AngularAcceleration maxChassisAngularAcceleration =

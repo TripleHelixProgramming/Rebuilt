@@ -47,8 +47,8 @@ public class IntakeRollerIOSimTalonFX implements IntakeRollerIO {
   private final StatusSignal<Current> intakeCurrent;
 
   public IntakeRollerIOSimTalonFX() {
-    intakeMotorLeader = new TalonFX(CAN2.intakeRollerLeader, CAN2.bus);
-    intakeMotorFollower = new TalonFX(CAN2.intakeRollerFollower, CAN2.bus);
+    intakeMotorLeader = new TalonFX(CAN2.intakeRollerLower, CAN2.bus);
+    intakeMotorFollower = new TalonFX(CAN2.intakeRollerUpper, CAN2.bus);
     config = new TalonFXConfiguration();
     config.MotorOutput.withInverted(InvertedValue.CounterClockwise_Positive)
         .withNeutralMode(NeutralModeValue.Brake);
@@ -72,7 +72,7 @@ public class IntakeRollerIOSimTalonFX implements IntakeRollerIO {
         50.0, intakeVelocity, intakeAppliedVolts, intakeCurrent);
 
     intakeMotorFollower.setControl(
-        new Follower(CAN2.intakeRollerLeader, MotorAlignmentValue.Opposed));
+        new Follower(CAN2.intakeRollerLower, MotorAlignmentValue.Opposed));
   }
 
   @Override
@@ -90,9 +90,9 @@ public class IntakeRollerIOSimTalonFX implements IntakeRollerIO {
         intakeRollerSim.getAngularPositionRotations() * motorReduction);
     intakeMotorSim.setRotorVelocity(intakeRollerSim.getAngularVelocity().times(motorReduction));
 
-    inputs.appliedVolts = intakeAppliedVolts.getValueAsDouble();
-    inputs.currentAmps = intakeCurrent.getValueAsDouble();
-    inputs.velocityMetersPerSec =
+    inputs.lowerAppliedVolts = intakeAppliedVolts.getValueAsDouble();
+    inputs.lowerCurrentAmps = intakeCurrent.getValueAsDouble();
+    inputs.lowerVelocityMetersPerSec =
         intakeVelocity.getValue().in(RadiansPerSecond) * rollerRadius.in(Meters) / motorReduction;
   }
 

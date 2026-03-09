@@ -94,7 +94,7 @@ public class Intake extends SubsystemBase {
             Commands.runOnce(this::deployArm, this),
             this.idle().withTimeout(0.5),
             Commands.startEnd(
-                () -> intakeRollerIO.setVelocity(MetersPerSecond.of(-4)), () -> {}, this))
+                () -> intakeRollerIO.setVelocity(MetersPerSecond.of(-4.0)), () -> {}, this))
         .withName("Reverse");
   }
 }
