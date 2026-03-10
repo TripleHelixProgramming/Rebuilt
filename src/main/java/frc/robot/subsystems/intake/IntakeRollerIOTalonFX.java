@@ -10,6 +10,7 @@ import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.NeutralOut;
 import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VoltageOut;
+import com.ctre.phoenix6.hardware.ParentDevice;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
@@ -67,20 +68,23 @@ public class IntakeRollerIOTalonFX implements IntakeRollerIO {
         upperVelocity,
         upperAppliedVolts,
         upperCurrent);
+
+    // Disable all signals not explicitly configured above to reduce CAN bus load
+    ParentDevice.optimizeBusUtilizationForAll(intakeMotorLower, intakeMotorUpper);
   }
 
   @Override
   public void updateInputs(IntakeRollerIOInputs inputs) {
-    // No explicit refresh - Phoenix 6 auto-updates signals at configured frequency (50Hz).
-    // This avoids blocking CAN calls in the main loop.
     inputs.connected =
         connectedDebounce.calculate(
-            lowerVelocity.getStatus().isOK()
-                && lowerAppliedVolts.getStatus().isOK()
-                && lowerCurrent.getStatus().isOK()
-                && upperVelocity.getStatus().isOK()
-                && upperAppliedVolts.getStatus().isOK()
-                && upperCurrent.getStatus().isOK());
+            BaseStatusSignal.refreshAll(
+                    lowerVelocity,
+                    lowerAppliedVolts,
+                    lowerCurrent,
+                    upperVelocity,
+                    upperAppliedVolts,
+                    upperCurrent)
+                .isOK());
 
     inputs.lowerAppliedVolts = lowerAppliedVolts.getValueAsDouble();
     inputs.lowerCurrentAmps = lowerCurrent.getValueAsDouble();

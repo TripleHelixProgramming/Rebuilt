@@ -23,7 +23,6 @@ import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Robot;
-import org.littletonrobotics.junction.Logger;
 
 public class FlywheelIOTalonFX implements FlywheelIO {
   private final TalonFX flywheelLeaderTalon;
@@ -75,6 +74,9 @@ public class FlywheelIOTalonFX implements FlywheelIO {
         followerAppliedVolts,
         followerCurrent);
 
+    // Note: Do not use optimizeBusUtilizationForAll() here - leader/follower
+    // configurations require certain status signals for proper follower behavior
+
     flywheelFollowerTalon.setControl(
         new Follower(CAN2.flywheelLeader, MotorAlignmentValue.Opposed));
   }
@@ -99,8 +101,10 @@ public class FlywheelIOTalonFX implements FlywheelIO {
         (flywheelVelocity.getValue().in(RadiansPerSecond) * wheelRadius.in(Meters))
             / motorReduction;
 
-    Logger.recordOutput("Flywheel/Follower/Current", followerCurrent.getValue());
-    Logger.recordOutput("Flywheel/Follower/Volts", followerAppliedVolts.getValue());
+    // Populate follower telemetry via inputs struct (AdvantageKit best practice:
+    // IO layers should be pure - only populate inputs, logging happens via @AutoLog)
+    inputs.followerAppliedVolts = followerAppliedVolts.getValueAsDouble();
+    inputs.followerCurrentAmps = followerCurrent.getValueAsDouble();
   }
 
   @Override
