@@ -81,10 +81,7 @@ public class FlywheelIOTalonFX implements FlywheelIO {
 
   @Override
   public void updateInputs(FlywheelIOInputs inputs) {
-    BaseStatusSignal.refreshAll(flywheelVelocity);
-
-    // No explicit refresh - Phoenix 6 auto-updates signals at configured frequency (50Hz)
-    // This avoids blocking CAN calls in the main loop
+    // Synchronous refresh for leader/follower motors to ensure consistent state
     inputs.connected =
         connectedDebounce.calculate(
             BaseStatusSignal.refreshAll(
