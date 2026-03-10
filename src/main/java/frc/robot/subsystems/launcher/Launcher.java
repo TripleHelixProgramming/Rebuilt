@@ -409,8 +409,10 @@ public class Launcher extends SubsystemBase {
     // High-arc solution (lower trajectory would use v_sq - sqrt(discriminant))
     double tanTheta = (v_sq + Math.sqrt(discriminant)) / (g * dr);
 
+    // sin(2*atan(x)) = 2x/(1+x²) - avoids two trig function calls
     Logger.recordOutput(
-        "Launcher/" + key + "/PredictedRange", (v_sq * Math.sin(2 * Math.atan(tanTheta))) / g);
+        "Launcher/" + key + "/PredictedRange",
+        (v_sq * 2.0 * tanTheta) / (g * (1.0 + tanTheta * tanTheta)));
 
     // Effective velocity available for ballistics
     double v_r = v_flywheel / Math.sqrt(1 + tanTheta * tanTheta);

@@ -78,7 +78,7 @@ public class Drive extends SubsystemBase {
       };
   private SwerveDrivePoseEstimator visionPose =
       new SwerveDrivePoseEstimator(kinematics, rawGyroRotation, lastModulePositions, new Pose2d());
-  private Boolean firstVisionEstimate = true;
+  private boolean firstVisionEstimate = true;
 
   private static final ChassisSpeeds ZERO_SPEEDS = new ChassisSpeeds();
   private final SwerveModuleState[] emptyModuleStates = new SwerveModuleState[] {};
