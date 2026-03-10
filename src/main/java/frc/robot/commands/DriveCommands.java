@@ -461,12 +461,14 @@ public class DriveCommands {
 
                       if (wheelDelta < 1e-6) {
                         System.out.println("\tERROR: Wheels did not rotate sufficiently.");
-                        System.out.println("\tEnsure the robot spins in place during characterization.");
+                        System.out.println(
+                            "\tEnsure the robot spins in place during characterization.");
                         return;
                       }
                       if (state.gyroDelta < 1e-6) {
                         System.out.println("\tERROR: Robot did not rotate sufficiently.");
-                        System.out.println("\tCheck gyro connection and ensure robot spins freely.");
+                        System.out.println(
+                            "\tCheck gyro connection and ensure robot spins freely.");
                         return;
                       }
 

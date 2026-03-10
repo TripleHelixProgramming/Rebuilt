@@ -87,10 +87,11 @@ public class Drive extends SubsystemBase {
   private final SwerveModulePosition[] measuredPositions = new SwerveModulePosition[4];
   private SwerveModulePosition[] modulePositions = new SwerveModulePosition[4];
   // Pre-allocated to avoid allocations in odometry loop - fields are mutated in place
-  private final SwerveModulePosition[] moduleDeltas = new SwerveModulePosition[] {
-    new SwerveModulePosition(), new SwerveModulePosition(),
-    new SwerveModulePosition(), new SwerveModulePosition()
-  };
+  private final SwerveModulePosition[] moduleDeltas =
+      new SwerveModulePosition[] {
+        new SwerveModulePosition(), new SwerveModulePosition(),
+        new SwerveModulePosition(), new SwerveModulePosition()
+      };
   private ChassisSpeeds chassisSpeeds;
 
   // PID controllers for following Choreo trajectories
