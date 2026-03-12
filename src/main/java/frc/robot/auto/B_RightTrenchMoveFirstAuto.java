@@ -30,7 +30,7 @@ public class B_RightTrenchMoveFirstAuto extends AutoMode {
   AutoRoutine routine = super.getAutoFactory().newRoutine("B_RightTrenchMoveFirstAuto");
 
   // Load trajectories
-  AutoTrajectory blueRightNeutralZone = routine.trajectory("BlueRightNeutralZone");
+  AutoTrajectory blueRightNeutralZone = routine.trajectory("BlueRightNinetyNeutralZone");
   AutoTrajectory blueRightTransitionToNZ = routine.trajectory("BlueRightTransitionToNZ");
 
   @Override
@@ -52,7 +52,9 @@ public class B_RightTrenchMoveFirstAuto extends AutoMode {
             Commands.sequence(
                 blueRightNeutralZone.resetOdometry(),
                 Commands.parallel(
-                    blueRightNeutralZone.cmd(), intake.getDeployCommand().withTimeout(10.0))));
+                    blueRightNeutralZone.cmd(),
+                    Commands.sequence(
+                        Commands.waitSeconds(0.8), intake.getDeployCommand().withTimeout(9.2)))));
 
     blueRightNeutralZone
         .done()
