@@ -47,8 +47,8 @@ public class Hopper extends SubsystemBase {
     hopperIO.deploy();
   }
 
-  public Boolean isDeployed() {
-    return hopperInputs.isDeployed.equals(DoubleSolenoid.Value.kForward);
+  public boolean isDeployed() {
+    return hopperInputs.isDeployed == DoubleSolenoid.Value.kForward;
   }
 
   @Override

@@ -79,6 +79,11 @@ public class VisionIOPhotonVision implements VisionIO {
         // Add tag IDs
         tagIds.addAll(multitagResult.fiducialIDsUsed);
 
+        // Guard: avoid division by zero if targets list is unexpectedly empty.
+        // In practice, multitagResult should only exist with 2+ targets, but we guard defensively.
+        int targetCount = result.targets.size();
+        double avgTagDistance = targetCount > 0 ? totalTagDistance / targetCount : 0.0;
+
         // Add observation
         poseObservations.add(
             new PoseObservation(
@@ -86,17 +91,19 @@ public class VisionIOPhotonVision implements VisionIO {
                 robotPose, // 3D pose estimate
                 multitagResult.estimatedPose.ambiguity, // Ambiguity
                 multitagResult.fiducialIDsUsed.size(), // Tag count
-                totalTagDistance / result.targets.size(), // Average tag distance
+                avgTagDistance, // Average tag distance
                 PoseObservationType.PHOTONVISION)); // Observation type
 
       } else if (!result.targets.isEmpty()) { // Single tag result
         var target = result.targets.get(0);
 
         // Calculate robot pose
-        var tagPose = Vision.getAprilTagLayout().getTagPose(target.fiducialId);
-        if (tagPose.isPresent()) {
+        var tagPoseOpt = Vision.getAprilTagLayout().getTagPose(target.fiducialId);
+        if (tagPoseOpt.isPresent()) {
+          // Cache the Optional value to avoid multiple .get() calls and ensure consistency
+          Pose3d tagPose = tagPoseOpt.get();
           Transform3d fieldToTarget =
-              new Transform3d(tagPose.get().getTranslation(), tagPose.get().getRotation());
+              new Transform3d(tagPose.getTranslation(), tagPose.getRotation());
           Transform3d cameraToTarget = target.bestCameraToTarget;
           Transform3d fieldToCamera = fieldToTarget.plus(cameraToTarget.inverse());
           Transform3d fieldToRobot = fieldToCamera.plus(robotToCamera.inverse());

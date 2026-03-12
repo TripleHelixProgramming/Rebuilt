@@ -63,7 +63,11 @@ public class PathCommands {
           @Override
           public Command get() {
             var initialPose = drive.getPose();
-            var heading = targetPoint.minus(initialPose.getTranslation()).getAngle();
+            // Guard: if robot is already at target, use current heading to avoid
+            // getAngle() on a zero-length vector (which would be mathematically undefined)
+            Translation2d delta = targetPoint.minus(initialPose.getTranslation());
+            Rotation2d heading =
+                delta.getNorm() < 1e-6 ? initialPose.getRotation() : delta.getAngle();
             var finalPose = new Pose2d(targetPoint, heading);
             List<Waypoint> waypoints =
                 PathPlannerPath.waypointsFromPoses(

@@ -11,6 +11,9 @@ public interface FlywheelIO {
     public double velocityMetersPerSec = 0.0;
     public double appliedVolts = 0.0;
     public double currentAmps = 0.0;
+    // Follower motor telemetry (logged via @AutoLog, not directly in IO layer)
+    public double followerAppliedVolts = 0.0;
+    public double followerCurrentAmps = 0.0;
   }
 
   public default void updateInputs(FlywheelIOInputs inputs) {}
