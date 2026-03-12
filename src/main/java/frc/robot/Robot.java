@@ -58,9 +58,10 @@ import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.intake.IntakeArmIO;
 import frc.robot.subsystems.intake.IntakeArmIOReal;
 import frc.robot.subsystems.intake.IntakeArmIOSim;
-import frc.robot.subsystems.intake.IntakeRollerIO;
-import frc.robot.subsystems.intake.IntakeRollerIOSimTalonFX;
-import frc.robot.subsystems.intake.IntakeRollerIOTalonFX;
+import frc.robot.subsystems.intake.IntakeConstants.RollerConstants;
+import frc.robot.subsystems.intake.RollerIO;
+import frc.robot.subsystems.intake.RollerIOSimTalonFX;
+import frc.robot.subsystems.intake.RollerIOTalonFX;
 import frc.robot.subsystems.launcher.FlywheelIO;
 import frc.robot.subsystems.launcher.FlywheelIOSimTalonFX;
 import frc.robot.subsystems.launcher.FlywheelIOTalonFX;
@@ -159,7 +160,11 @@ public class Robot extends LoggedRobot {
                 new TurretIOSpark(),
                 new FlywheelIOTalonFX(),
                 new HoodIOSpark());
-        intake = new Intake(new IntakeRollerIOTalonFX(), new IntakeArmIOReal());
+        intake =
+            new Intake(
+                new RollerIOTalonFX(RollerConstants.upperRollerConfig),
+                new RollerIOTalonFX(RollerConstants.lowerRollerConfig),
+                new IntakeArmIOReal());
         // hopper = new Hopper(new HopperIOReal());
         feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
         SmartDashboard.putData(new Compressor(PneumaticsModuleType.REVPH));
@@ -197,7 +202,11 @@ public class Robot extends LoggedRobot {
                 new FlywheelIOSimTalonFX(),
                 new HoodIOSimSpark());
         feeder = new Feeder(new SpindexerIOSimSpark(), new KickerIOSimSpark());
-        intake = new Intake(new IntakeRollerIOSimTalonFX(), new IntakeArmIOSim());
+        intake =
+            new Intake(
+                new RollerIOSimTalonFX(RollerConstants.upperRollerConfig),
+                new RollerIOSimTalonFX(RollerConstants.lowerRollerConfig),
+                new IntakeArmIOSim());
         // hopper = new Hopper(new HopperIOSim());
         break;
 
@@ -232,7 +241,7 @@ public class Robot extends LoggedRobot {
                 new TurretIO() {},
                 new FlywheelIO() {},
                 new HoodIO() {});
-        intake = new Intake(new IntakeRollerIO() {}, new IntakeArmIO() {});
+        intake = new Intake(new RollerIO() {}, new RollerIO() {}, new IntakeArmIO() {});
         // hopper = new Hopper(new HopperIO() {});
         feeder = new Feeder(new SpindexerIO() {}, new KickerIO() {});
         break;
