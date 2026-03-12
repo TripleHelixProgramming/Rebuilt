@@ -55,6 +55,10 @@ public class FlywheelIOTalonFX implements FlywheelIO {
         .withNeutralMode(NeutralModeValue.Brake);
     config.Slot0 = velocityVoltageGains;
     config.Slot1 = velocityTorqueCurrentGains;
+    config.TorqueCurrent.PeakForwardTorqueCurrent = maxCurrentAmps;
+    config.TorqueCurrent.PeakReverseTorqueCurrent = -maxCurrentAmps;
+    config.CurrentLimits.StatorCurrentLimit = maxCurrentAmps;
+    config.CurrentLimits.StatorCurrentLimitEnable = true;
     tryUntilOk(5, () -> flywheelLeaderTalon.getConfigurator().apply(config, 0.25));
 
     flywheelVelocity = flywheelLeaderTalon.getVelocity();
