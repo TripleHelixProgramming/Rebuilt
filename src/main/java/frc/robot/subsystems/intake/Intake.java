@@ -75,12 +75,12 @@ public class Intake extends SubsystemBase {
     intakeArmIO.deploy();
   }
 
-  public Boolean isDeployed() {
-    return intakeArmInputs.isDeployed.equals(DoubleSolenoid.Value.kForward);
+  public boolean isDeployed() {
+    return intakeArmInputs.isDeployed == DoubleSolenoid.Value.kForward;
   }
 
-  public Boolean isStowed() {
-    return intakeArmInputs.isDeployed.equals(DoubleSolenoid.Value.kReverse);
+  public boolean isStowed() {
+    return intakeArmInputs.isDeployed == DoubleSolenoid.Value.kReverse;
   }
 
   @Override
