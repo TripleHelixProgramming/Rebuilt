@@ -10,11 +10,11 @@ import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.NeutralOut;
 import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VoltageOut;
+import com.ctre.phoenix6.hardware.ParentDevice;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.math.filter.Debouncer;
-import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.LinearVelocity;
@@ -27,21 +27,16 @@ public class RollerIOTalonFX implements RollerIO {
   private final Debouncer connectedDebounce = new Debouncer(0.5, Debouncer.DebounceType.kFalling);
 
   private final VoltageOut voltageRequest = new VoltageOut(0);
-  // private final VelocityVoltage velocityVoltageRequest =
-  //     new VelocityVoltage(0.0).withSlot(0);
   private final VelocityTorqueCurrentFOC velocityTorqueCurrentRequest =
       new VelocityTorqueCurrentFOC(0.0).withSlot(1);
   private final NeutralOut brake = new NeutralOut();
 
   // private final TrapezoidProfile profile =
   //     new TrapezoidProfile(new TrapezoidProfile.Constraints(maxAcceleration, maxJerk));
-
   // Inputs from intake motor
   private final StatusSignal<AngularVelocity> velocity;
-  private final StatusSignal<AngularAcceleration> acceleration;
   private final StatusSignal<Voltage> appliedVolts;
-  private final StatusSignal<Current> supplyCurrent, torqueCurrent;
-  private final StatusSignal<Double> dutyCycle;
+  private final StatusSignal<Current> supplyCurrent;
 
   public RollerIOTalonFX(RollerConfig rollerConfig) {
     motor = new TalonFX(rollerConfig.port, rollerConfig.bus);
@@ -56,23 +51,20 @@ public class RollerIOTalonFX implements RollerIO {
     tryUntilOk(5, () -> motor.getConfigurator().apply(config, 0.25)); // -1 tryUntilOkay
 
     velocity = motor.getVelocity();
-    acceleration = motor.getAcceleration();
     appliedVolts = motor.getMotorVoltage();
     supplyCurrent = motor.getSupplyCurrent();
-    dutyCycle = motor.getDutyCycle();
-    torqueCurrent = motor.getTorqueCurrent();
 
-    BaseStatusSignal.setUpdateFrequencyForAll(
-        50.0, velocity, acceleration, appliedVolts, supplyCurrent, dutyCycle, torqueCurrent);
+    BaseStatusSignal.setUpdateFrequencyForAll(50.0, velocity, appliedVolts, supplyCurrent);
+
+    // Disable all signals not explicitly configured above to reduce CAN bus load
+    ParentDevice.optimizeBusUtilizationForAll(motor);
   }
 
   @Override
   public void updateInputs(RollerIOInputs inputs) {
     inputs.connected =
         connectedDebounce.calculate(
-            BaseStatusSignal.refreshAll(
-                    velocity, acceleration, appliedVolts, supplyCurrent, dutyCycle, torqueCurrent)
-                .isOK());
+            BaseStatusSignal.refreshAll(velocity, appliedVolts, supplyCurrent).isOK());
 
     inputs.appliedVolts = appliedVolts.getValueAsDouble();
     inputs.currentAmps = supplyCurrent.getValueAsDouble();
