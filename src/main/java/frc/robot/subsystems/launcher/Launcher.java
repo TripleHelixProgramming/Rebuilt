@@ -348,7 +348,8 @@ public class Launcher extends SubsystemBase {
 
   private Translation3d getV0Nominal(Translation3d d, Rotation2d impactAngle, String key) {
     double dr = Math.hypot(d.getX(), d.getY());
-    if (dr < 1e-6) {
+    // Use !(x >= threshold) instead of (x < threshold) to catch NaN
+    if (!(dr >= 1e-6)) {
       Logger.recordOutput("Launcher/" + key + "/Reachable", false);
       // log(d, v0, key);
       return v0nominalLast;
@@ -360,12 +361,13 @@ public class Launcher extends SubsystemBase {
     // Guard: denominator <= 0 means target is unreachable with this impact angle (would require
     // negative velocity or infinite speed). Using < 1e-6 threshold also catches near-zero values
     // that would cause numerical instability in sqrt(g / denominator).
-    if (denominator < 1e-6) {
+    // Use !(x >= threshold) instead of (x < threshold) to catch NaN
+    if (!(denominator >= 1e-6)) {
       Logger.recordOutput("Launcher/" + key + "/Reachable", false);
       return v0nominalLast;
     }
     double v_0r = dr * Math.sqrt(g / denominator);
-    if (v_0r < 1e-6) {
+    if (!(v_0r >= 1e-6)) {
       Logger.recordOutput("Launcher/" + key + "/Reachable", false);
       return v0nominalLast;
     }
@@ -383,7 +385,8 @@ public class Launcher extends SubsystemBase {
   private Translation3d getV0Replanned(Translation3d d, double v_flywheel, String key) {
     // Geometry
     double dr = Math.hypot(d.getX(), d.getY());
-    if (dr < 1e-6) {
+    // Use !(x >= threshold) instead of (x < threshold) to catch NaN
+    if (!(dr >= 1e-6)) {
       Logger.recordOutput("Launcher/" + key + "/Reachable", false);
       // log(d, v0, key);
       return v0replannedLast;
@@ -401,7 +404,8 @@ public class Launcher extends SubsystemBase {
     // Guard: discriminant < 0 means target is beyond maximum range for current flywheel speed.
     // Using < 1e-6 threshold adds safety margin against sqrt of tiny negative values from
     // floating-point errors at the edge of reachable range.
-    if (discriminant < 1e-6) {
+    // Use !(x >= threshold) instead of (x < threshold) to catch NaN
+    if (!(discriminant >= 1e-6)) {
       Logger.recordOutput("Launcher/" + key + "/Reachable", false);
       return v0replannedLast;
     }
@@ -420,7 +424,8 @@ public class Launcher extends SubsystemBase {
 
     double v_required = Math.hypot(v_r, v_z);
 
-    if (v_required < 1e-6) {
+    // Use !(x >= threshold) instead of (x < threshold) to catch NaN
+    if (!(v_required >= 1e-6)) {
       Logger.recordOutput("Launcher/" + key + "/Reachable", false);
       // log(d, v0, key);
       return v0replannedLast;
@@ -453,11 +458,13 @@ public class Launcher extends SubsystemBase {
     Logger.recordOutput("Launcher/" + key + "/InitialVelocities", v);
     Logger.recordOutput("Launcher/" + key + "/InitialSpeedMetersPerSecond", v.getNorm());
 
-    var v_r = v.toTranslation2d().getNorm();
+    var v_2d = v.toTranslation2d();
+    var v_r = v_2d.getNorm();
     var v_z = v.getZ();
 
     // Zero-velocity guard: avoid getAngle() on zero-length vectors
-    if (v_r < 1e-6) {
+    // Use !(v_r >= 1e-6) instead of (v_r < 1e-6) to also catch NaN
+    if (!(v_r >= 1e-6)) {
       Logger.recordOutput("Launcher/" + key + "/VerticalLaunchAngleDegrees", 0.0);
       Logger.recordOutput("Launcher/" + key + "/HorizontalLaunchAngleDegrees", 0.0);
       Logger.recordOutput("Launcher/" + key + "/TravelTime", 0.0);
@@ -466,8 +473,7 @@ public class Launcher extends SubsystemBase {
       //     "Launcher/" + key + "/VerticalLaunchAngleDegrees",
       //     new Translation2d(v_r, v_z).getAngle().getDegrees());
       Logger.recordOutput(
-          "Launcher/" + key + "/HorizontalLaunchAngleDegrees",
-          v.toTranslation2d().getAngle().getDegrees());
+          "Launcher/" + key + "/HorizontalLaunchAngleDegrees", v_2d.getAngle().getDegrees());
 
       double dr = Math.hypot(d.getX(), d.getY());
       Logger.recordOutput("Launcher/" + key + "/TravelTime", dr / v_r);
