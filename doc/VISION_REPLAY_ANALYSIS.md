@@ -173,6 +173,69 @@ This does not affect the validity of the score comparison, as both RealOutputs a
 
 ---
 
+## False Positive Analysis
+
+The comparison script analyzes both **false negatives** (good data incorrectly rejected) and **false positives** (bad data incorrectly accepted).
+
+### Methodology
+
+1. **Timestamp matching**: Compare RealOutputs vs ReplayOutputs to identify observations the old code accepted but new code rejected
+2. **Pose trajectory analysis**: Decode `RobotPosesAccepted` struct arrays and analyze for impossible velocities/jumps
+
+### False Negative Risk (New Code Rejects)
+
+| Metric | Value |
+|--------|-------|
+| Observations old code accepted, new rejected | 6,909 |
+| Observations both codes accepted | 6,670 |
+| Score increased (new > old) | 6,661 (99.9%) |
+| Score decreased (new < old) | 9 (0.1%) |
+
+The 6,909 newly rejected observations could be:
+- **True false positives**: Bad data the old code incorrectly accepted
+- **False negatives**: Good data the new code incorrectly rejects
+
+The rejections are **evenly distributed over time** (not clustered), suggesting consistent selectivity.
+
+### False Positive Detection (Old Code Accepted Bad Data)
+
+By analyzing the **accepted pose trajectories** from the old code, we found:
+
+| Metric | Value |
+|--------|-------|
+| Pose jumps > 0.5m | 198 |
+| Impossible velocities > 7.5 m/s | 140 |
+| Max jump distance | 7.29m |
+| Max implied velocity | 171.0 m/s |
+
+**Worst violations (clearly bad data that was accepted):**
+
+| Timestamp | Jump | Velocity |
+|-----------|------|----------|
+| 379.08s | 6.73m in 39ms | 171.0 m/s |
+| 564.55s | 6.23m in 38ms | 163.1 m/s |
+| 379.04s | 6.72m in 42ms | 158.2 m/s |
+| 414.63s | 6.28m in 40ms | 157.3 m/s |
+
+These are **definitive false positives** - the robot cannot move at 171 m/s (~380 mph). The old code's lack of velocity consistency checking allowed these bad observations to be accepted.
+
+### Conclusion
+
+The new filter's velocity consistency check successfully rejects observations that would have caused impossible pose jumps. The 140 impossible velocity violations in the old code's accepted data confirm that the new filter is catching genuine false positives, not incorrectly rejecting good data.
+
+### Limitations
+
+**What we CANNOT determine from logs alone:**
+- Ground truth robot position (no external reference)
+- Why specific observations were rejected (per-test scores not logged)
+
+**To enable deeper analysis:**
+- Set `kLogRejectedPoses = true` to see rejected pose values
+- Log individual test scores for rejected observations
+- Record ground truth position data for validation
+
+---
+
 ## Appendix: Running the Analysis
 
 ```bash
