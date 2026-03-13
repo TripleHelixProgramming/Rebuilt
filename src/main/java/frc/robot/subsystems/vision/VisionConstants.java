@@ -92,6 +92,14 @@ public class VisionConstants {
   public static final double maxReasonableVelocityMps =
       DriveConstants.drivetrainSpeedLimit.in(MetersPerSecond) * 1.5; // Allow some margin
 
+  // Cross-camera correlation thresholds
+  // When multiple cameras report similar poses at similar times, we boost confidence.
+  // This helps validate observations and reject outliers from miscalibrated cameras.
+  public static double correlationTimeWindowSeconds = 0.050; // 50ms - cameras may not fire simultaneously
+  public static Distance correlationPoseThreshold = Meters.of(0.15); // How close poses must be to "agree"
+  public static final double correlationPoseThresholdMeters = correlationPoseThreshold.in(Meters);
+  public static double correlationBoostFactor = 1.3; // Score multiplier when corroborated by majority
+
   // Standard deviation baselines
   public static double linearStdDevBaseline = 0.02; // Meters
   public static double angularStdDevBaseline = 0.06; // Radians
