@@ -33,7 +33,7 @@
       "position": [
         0,
         0,
-        0
+        0.7
       ],
       "resolution": [
         800,
@@ -45,49 +45,18 @@
       "name": "FrontLeft",
       "rotations": [
         {
-          "axis": "x",
-          "degrees": 0
-        },
-        {
           "axis": "y",
-          "degrees": 0
+          "degrees": -20
         },
         {
           "axis": "z",
-          "degrees": 0
+          "degrees": 55
         }
       ],
       "position": [
         0,
         0,
-        0
-      ],
-      "resolution": [
-        800,
-        600
-      ],
-      "fov": 70
-    },
-    {
-      "name": "BackLeft",
-      "rotations": [
-        {
-          "axis": "x",
-          "degrees": 0
-        },
-        {
-          "axis": "y",
-          "degrees": 0
-        },
-        {
-          "axis": "z",
-          "degrees": 0
-        }
-      ],
-      "position": [
-        0,
-        0,
-        0
+        0.7
       ],
       "resolution": [
         800,
@@ -99,22 +68,41 @@
       "name": "BackRight",
       "rotations": [
         {
-          "axis": "x",
-          "degrees": 0
-        },
-        {
           "axis": "y",
-          "degrees": 0
+          "degrees": -15
         },
         {
           "axis": "z",
-          "degrees": 0
+          "degrees": -135
         }
       ],
       "position": [
         0,
         0,
-        0
+        0.7
+      ],
+      "resolution": [
+        800,
+        600
+      ],
+      "fov": 70
+    },
+    {
+      "name": "BackLeft",
+      "rotations": [
+        {
+          "axis": "y",
+          "degrees": -15
+        },
+        {
+          "axis": "z",
+          "degrees": 135
+        }
+      ],
+      "position": [
+        0,
+        0,
+        0.7
       ],
       "resolution": [
         800,
