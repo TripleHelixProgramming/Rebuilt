@@ -5,11 +5,11 @@
   "rotations": [
     {
       "axis": "x",
-      "degrees": 90
+      "degrees": 180
     },
     {
       "axis": "z",
-      "degrees": 270
+      "degrees": 180
     }
   ],
   "position": [
