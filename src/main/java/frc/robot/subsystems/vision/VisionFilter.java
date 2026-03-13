@@ -1,0 +1,359 @@
+// Copyright (c) 2021-2025 Littleton Robotics
+// http://github.com/Mechanical-Advantage
+//
+// Use of this source code is governed by a BSD
+// license that can be found in the LICENSE file
+// at the root directory of this project.
+
+package frc.robot.subsystems.vision;
+
+import static frc.robot.subsystems.vision.VisionConstants.*;
+
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rectangle2d;
+import edu.wpi.first.math.geometry.Translation2d;
+import frc.robot.subsystems.vision.VisionIO.PoseObservation;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+/**
+ * Handles scoring and filtering of vision observations.
+ *
+ * <p>This class is separated from Vision to make the scoring logic testable in isolation.
+ */
+public class VisionFilter {
+
+  // Arena boundary for withinBoundaries test
+  private static final Rectangle2d arenaRectangle;
+
+  static {
+    double halfWidth = minRobotWidthHalfMeters;
+    var cornerA = new Translation2d(halfWidth, halfWidth);
+    var cornerB = new Translation2d(fieldXLenMeters - halfWidth, fieldYLenMeters - halfWidth);
+    arenaRectangle = new Rectangle2d(cornerA, cornerB);
+  }
+
+  // Reusable data structures for cross-camera correlation (avoids allocations)
+  private static final int MAX_OBSERVATIONS = 32;
+  @SuppressWarnings("unchecked")
+  private final Set<Integer>[] clusters = new HashSet[MAX_OBSERVATIONS];
+  private final Map<Integer, Set<Integer>> clusterMap = new HashMap<>();
+  private final Set<Integer> camerasInWindow = new HashSet<>();
+  private final Set<Integer> camerasInCluster = new HashSet<>();
+
+  {
+    for (int i = 0; i < MAX_OBSERVATIONS; i++) {
+      clusters[i] = new HashSet<>();
+    }
+  }
+
+  // Reusable context object for tests
+  private final TestContext testContext = new TestContext();
+
+  /** Observation paired with its camera index and test scores. */
+  public record TestedObservation(
+      PoseObservation observation,
+      int cameraIndex,
+      EnumMap<Test, Double> testResults,
+      double score) {}
+
+  /** Mutable context object for vision tests, reused to avoid allocations. */
+  public static class TestContext {
+    private PoseObservation observation;
+    private int cameraIndex;
+    private Pose2d lastAcceptedPose;
+    private double lastAcceptedTimestamp;
+
+    public TestContext observation(PoseObservation observation) {
+      this.observation = observation;
+      return this;
+    }
+
+    public TestContext cameraIndex(int cameraIndex) {
+      this.cameraIndex = cameraIndex;
+      return this;
+    }
+
+    public TestContext lastAcceptedPose(Pose2d lastAcceptedPose) {
+      this.lastAcceptedPose = lastAcceptedPose;
+      return this;
+    }
+
+    public TestContext lastAcceptedTimestamp(double lastAcceptedTimestamp) {
+      this.lastAcceptedTimestamp = lastAcceptedTimestamp;
+      return this;
+    }
+
+    public PoseObservation observation() {
+      return observation;
+    }
+
+    public int cameraIndex() {
+      return cameraIndex;
+    }
+
+    public Pose2d lastAcceptedPose() {
+      return lastAcceptedPose;
+    }
+
+    public double lastAcceptedTimestamp() {
+      return lastAcceptedTimestamp;
+    }
+  }
+
+  /**
+   * Vision tests that evaluate the quality of pose observations.
+   *
+   * <p>Each test returns a score between 0 and 1. Tests have weights that determine their impact
+   * on the final score via weighted geometric mean.
+   */
+  public enum Test {
+    unambiguous(0.8) {
+      @Override
+      public double test(TestContext ctx) {
+        if (ctx.observation().tagCount() == 1) {
+          return 1.0 - normalizedSigmoid(ctx.observation().ambiguity(), ambiguityTolerance, 4.0);
+        }
+        return 1.0;
+      }
+    },
+
+    pitchError(0.7) {
+      @Override
+      public double test(TestContext ctx) {
+        return 1.0
+            - normalizedSigmoid(
+                Math.abs(ctx.observation().pose().getRotation().getY()),
+                pitchToleranceRadians,
+                1.0);
+      }
+    },
+
+    rollError(0.7) {
+      @Override
+      public double test(TestContext ctx) {
+        return 1.0
+            - normalizedSigmoid(
+                Math.abs(ctx.observation().pose().getRotation().getX()), rollToleranceRadians, 1.0);
+      }
+    },
+
+    heightError(0.7) {
+      @Override
+      public double test(TestContext ctx) {
+        return 1.0
+            - normalizedSigmoid(
+                Math.abs(ctx.observation().pose().getZ()), elevationToleranceMeters, 1.0);
+      }
+    },
+
+    withinBoundaries(1.0) {
+      @Override
+      public double test(TestContext ctx) {
+        return arenaRectangle.contains(ctx.observation().pose().toPose2d().getTranslation())
+            ? 1.0
+            : 0.0;
+      }
+    },
+
+    moreThanZeroTags(1.0) {
+      @Override
+      public double test(TestContext ctx) {
+        return Math.min(ctx.observation().tagCount(), 1.0);
+      }
+    },
+
+    distanceToTags(0.5) {
+      @Override
+      public double test(TestContext ctx) {
+        return 1.0
+            - normalizedSigmoid(
+                ctx.observation().averageTagDistance(), tagDistanceToleranceMeters, 1.0);
+      }
+    },
+
+    velocityConsistency(0.9) {
+      @Override
+      public double test(TestContext ctx) {
+        if (ctx.lastAcceptedPose() == null) return 1.0;
+
+        double dt = ctx.observation().timestamp() - ctx.lastAcceptedTimestamp();
+        if (dt <= 0.001) return 1.0;
+        if (dt > velocityCheckTimeoutSeconds) return 1.0;
+
+        double distance =
+            ctx.observation()
+                .pose()
+                .toPose2d()
+                .getTranslation()
+                .getDistance(ctx.lastAcceptedPose().getTranslation());
+        double impliedVelocity = distance / dt;
+
+        return 1.0 - normalizedSigmoid(impliedVelocity, maxReasonableVelocityMps, 2.0);
+      }
+    };
+
+    private final double weight;
+
+    Test(double weight) {
+      this.weight = weight;
+    }
+
+    public double weight() {
+      return weight;
+    }
+
+    public abstract double test(TestContext ctx);
+  }
+
+  /** Default enabled tests. */
+  public static final EnumSet<Test> DEFAULT_ENABLED_TESTS =
+      EnumSet.of(
+          Test.moreThanZeroTags,
+          Test.unambiguous,
+          Test.pitchError,
+          Test.rollError,
+          Test.heightError,
+          Test.withinBoundaries,
+          Test.distanceToTags,
+          Test.velocityConsistency);
+
+  /**
+   * Scores an observation by running all enabled tests.
+   *
+   * @param observation The pose observation to score
+   * @param cameraIndex Which camera produced this observation
+   * @param lastAcceptedPose Last accepted pose from this camera (null if none)
+   * @param lastAcceptedTimestamp Timestamp of last accepted pose
+   * @param enabledTests Which tests to run
+   * @return TestedObservation with scores
+   */
+  public TestedObservation scoreObservation(
+      PoseObservation observation,
+      int cameraIndex,
+      Pose2d lastAcceptedPose,
+      double lastAcceptedTimestamp,
+      EnumSet<Test> enabledTests) {
+
+    testContext
+        .observation(observation)
+        .cameraIndex(cameraIndex)
+        .lastAcceptedPose(lastAcceptedPose)
+        .lastAcceptedTimestamp(lastAcceptedTimestamp);
+
+    var testResults = new EnumMap<Test, Double>(Test.class);
+    for (var test : enabledTests) {
+      testResults.put(test, test.test(testContext));
+    }
+
+    // Weighted geometric mean
+    double weightedProduct = 1.0;
+    double sumOfWeights = 0.0;
+    for (var entry : testResults.entrySet()) {
+      double score = entry.getValue();
+      double weight = entry.getKey().weight();
+      weightedProduct *= Math.pow(score, weight);
+      sumOfWeights += weight;
+    }
+    double totalScore = Math.pow(weightedProduct, 1.0 / sumOfWeights);
+
+    return new TestedObservation(observation, cameraIndex, testResults, totalScore);
+  }
+
+  /**
+   * Applies cross-camera correlation boosting to observations.
+   *
+   * <p>When multiple cameras report similar poses at similar times, boost their scores. Uses
+   * majority rule: only boost if >50% of cameras in the time window agree.
+   *
+   * @param observations List to modify in place with boosted scores
+   */
+  public void applyCorrelationBoost(ArrayList<TestedObservation> observations) {
+    int n = observations.size();
+    if (n < 2 || n > MAX_OBSERVATIONS) {
+      return;
+    }
+
+    // Step 1: Build clusters of agreeing observations
+    // Each observation starts in its own cluster
+    clusterMap.clear();
+    for (int i = 0; i < n; i++) {
+      clusters[i].clear();
+      clusters[i].add(i);
+      clusterMap.put(i, clusters[i]);
+    }
+
+    // Step 2: Merge clusters when observations agree
+    for (int i = 0; i < n; i++) {
+      var obsA = observations.get(i);
+      double timeA = obsA.observation().timestamp();
+      var transA = obsA.observation().pose().toPose2d().getTranslation();
+
+      for (int j = i + 1; j < n; j++) {
+        var obsB = observations.get(j);
+        if (obsA.cameraIndex() == obsB.cameraIndex()) continue;
+
+        double timeB = obsB.observation().timestamp();
+        if (Math.abs(timeA - timeB) > correlationTimeWindowSeconds) continue;
+
+        var transB = obsB.observation().pose().toPose2d().getTranslation();
+        if (transA.getDistance(transB) > correlationPoseThresholdMeters) continue;
+
+        // Observations agree - merge their clusters
+        var clusterA = clusterMap.get(i);
+        var clusterB = clusterMap.get(j);
+        if (clusterA != clusterB) {
+          // Merge B into A
+          clusterA.addAll(clusterB);
+          // Update all members of B to point to merged cluster
+          for (int member : clusterB) {
+            clusterMap.put(member, clusterA);
+          }
+        }
+      }
+    }
+
+    // Step 3: Determine which observations to boost
+    for (int i = 0; i < n; i++) {
+      var obsI = observations.get(i);
+      double timeI = obsI.observation().timestamp();
+      var clusterI = clusterMap.get(i);
+
+      // Find cameras in time window and cameras in our cluster
+      camerasInWindow.clear();
+      camerasInCluster.clear();
+
+      for (int j = 0; j < n; j++) {
+        var obsJ = observations.get(j);
+        if (Math.abs(timeI - obsJ.observation().timestamp()) <= correlationTimeWindowSeconds) {
+          camerasInWindow.add(obsJ.cameraIndex());
+          if (clusterI.contains(j)) {
+            camerasInCluster.add(obsJ.cameraIndex());
+          }
+        }
+      }
+
+      int totalCameras = camerasInWindow.size();
+      int agreeingCameras = camerasInCluster.size();
+
+      // Boost if majority of cameras agree (and at least 2 cameras)
+      if (agreeingCameras > totalCameras / 2.0 && agreeingCameras >= 2) {
+        var orig = observations.get(i);
+        double boosted = Math.min(1.0, orig.score() * correlationBoostFactor);
+        observations.set(
+            i, new TestedObservation(orig.observation(), orig.cameraIndex(), orig.testResults(), boosted));
+      }
+    }
+  }
+
+  /** Normalized sigmoid function. Output is between 0 and 1. */
+  public static double normalizedSigmoid(double x, double midpoint, double steepness) {
+    double exponent = -steepness * (x - midpoint);
+    return 1.0 / (1.0 + Math.exp(exponent));
+  }
+}
