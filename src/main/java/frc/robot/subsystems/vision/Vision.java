@@ -15,9 +15,7 @@ import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
-import edu.wpi.first.math.geometry.Rectangle2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.Alert;
@@ -25,28 +23,17 @@ import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
-import frc.robot.subsystems.vision.VisionIO.PoseObservation;
 import frc.robot.util.VisionThread;
 import frc.robot.util.VisionThread.VisionInputs;
+import frc.robot.subsystems.vision.VisionFilter.TestedObservation;
+import frc.robot.subsystems.vision.VisionFilter.Test;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.function.Supplier;
 import org.littletonrobotics.junction.Logger;
 
 public class Vision extends SubsystemBase {
-  // Cached arena boundary for withinBoundaries test (avoids allocations per observation)
-  private static final Rectangle2d arenaRectangle;
-
-  static {
-    double halfWidth = minRobotWidthHalfMeters;
-    Translation2d cornerA = new Translation2d(halfWidth, halfWidth);
-    Translation2d cornerB =
-        new Translation2d(fieldXLenMeters - halfWidth, fieldYLenMeters - halfWidth);
-    arenaRectangle = new Rectangle2d(cornerA, cornerB);
-  }
-
   private final VisionConsumer consumer;
   private final Supplier<Pose2d> chassisPoseSupplier;
   private final VisionIO[] io;
@@ -69,11 +56,8 @@ public class Vision extends SubsystemBase {
   private ArrayList<Pose3d> robotPosesAccepted = new ArrayList<Pose3d>();
   private ArrayList<Pose3d> robotPosesRejected = new ArrayList<Pose3d>();
 
-  // Initialize scoring results
-  private EnumMap<VisionTest, Double> testResults = new EnumMap<>(VisionTest.class);
-
-  // Reusable context object for vision tests (avoids allocations)
-  private final TestContext testContext = new TestContext();
+  // Vision filter for scoring observations
+  private final VisionFilter visionFilter = new VisionFilter();
 
   LinearFilter[] cameraPassRate = {
     LinearFilter.movingAverage(20),
@@ -90,16 +74,7 @@ public class Vision extends SubsystemBase {
   private int loopCounter = 0;
 
   // Vision tests to apply (remove from set to disable specific tests)
-  public static final EnumSet<VisionTest> enabledTests =
-      EnumSet.of(
-          VisionTest.moreThanZeroTags,
-          VisionTest.unambiguous,
-          VisionTest.pitchError,
-          VisionTest.rollError,
-          VisionTest.heightError,
-          VisionTest.withinBoundaries,
-          VisionTest.distanceToTags,
-          VisionTest.velocityConsistency);
+  public static final EnumSet<Test> enabledTests = VisionFilter.DEFAULT_ENABLED_TESTS;
 
   public Vision(VisionConsumer consumer, Supplier<Pose2d> chassisPoseSupplier, VisionIO... io) {
     this.consumer = consumer;
@@ -194,37 +169,26 @@ public class Vision extends SubsystemBase {
 
       // Loop over pose observations
       for (var observation : inputs[cameraIndex].poseObservations) {
-        testResults.clear();
+        // Score the observation using VisionFilter
+        TestedObservation tested =
+            visionFilter.scoreObservation(
+                observation,
+                cameraIndex,
+                lastAcceptedPose[cameraIndex],
+                lastAcceptedTimestamp[cameraIndex],
+                enabledTests);
 
-        // Update reusable context with current observation and camera state
-        testContext
-            .observation(observation)
-            .cameraIndex(cameraIndex)
-            .lastAcceptedPose(lastAcceptedPose[cameraIndex])
-            .lastAcceptedTimestamp(lastAcceptedTimestamp[cameraIndex]);
-
-        // Run enabled tests
-        for (VisionTest test : enabledTests) {
-          testResults.put(test, test.test(testContext));
-        }
-
-        // Multiply all test scores - loop avoids stream overhead and boxing
-        double totalScore = 1.0;
-        for (Double score : testResults.values()) {
-          totalScore *= score;
-        }
-
-        observations.add(new TestedObservation(observation, cameraIndex, testResults, totalScore));
+        observations.add(tested);
 
         // Add pose to log
         robotPoses.add(observation.pose());
-        if (totalScore > minScore) {
+        if (tested.score() > minScore) {
           robotPosesAccepted.add(observation.pose());
         } else {
           robotPosesRejected.add(observation.pose());
         }
 
-        cameraPassRate[cameraIndex].calculate(totalScore);
+        cameraPassRate[cameraIndex].calculate(tested.score());
       }
 
       // Log camera datadata
@@ -253,29 +217,34 @@ public class Vision extends SubsystemBase {
 
     long t3 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
+    // Apply cross-camera correlation boost before filtering
+    // Observations corroborated by a majority of cameras get boosted scores
+    visionFilter.applyCorrelationBoost(observations);
+
     // Remove unacceptable observations
-    observations.removeIf(o -> o.score < minScore);
+    observations.removeIf(o -> o.score() < minScore);
 
     // Sort the list of acceptable observations by timestamp
     observations.sort(
-        (lhs, rhs) -> (int) Math.signum(lhs.observation.timestamp() - rhs.observation.timestamp()));
+        (lhs, rhs) ->
+            (int) Math.signum(lhs.observation().timestamp() - rhs.observation().timestamp()));
 
     for (var o : observations) {
       // Calculate standard deviations
-      double linearStdDev = linearStdDevBaseline / o.score;
-      double angularStdDev = angularStdDevBaseline / o.score;
+      double linearStdDev = linearStdDevBaseline / o.score();
+      double angularStdDev = angularStdDevBaseline / o.score();
 
       // Send acceptable vision observations to the pose estimator with their stddevs
       consumer.accept(
-          o.observation.pose().toPose2d(),
-          o.observation.timestamp(),
+          o.observation().pose().toPose2d(),
+          o.observation().timestamp(),
           VecBuilder.fill(linearStdDev, linearStdDev, angularStdDev));
 
       // Update per-camera tracking for velocity consistency check
-      lastAcceptedPose[o.cameraIndex] = o.observation.pose().toPose2d();
-      lastAcceptedTimestamp[o.cameraIndex] = o.observation.timestamp();
+      lastAcceptedPose[o.cameraIndex()] = o.observation().pose().toPose2d();
+      lastAcceptedTimestamp[o.cameraIndex()] = o.observation().timestamp();
 
-      Logger.recordOutput("Vision/Summary/ObservationScore", o.score);
+      Logger.recordOutput("Vision/Summary/ObservationScore", o.score());
     }
     long t4 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
@@ -326,57 +295,6 @@ public class Vision extends SubsystemBase {
         Matrix<N3, N1> visionMeasurementStdDevs);
   }
 
-  // Associate observations with their camera
-  public static record TestedObservation(
-      PoseObservation observation,
-      int cameraIndex,
-      EnumMap<VisionTest, Double> testResults,
-      double score) {}
-
-  /** Mutable context object for vision tests, reused to avoid allocations. Fluent API. */
-  public static class TestContext {
-    private PoseObservation observation;
-    private int cameraIndex;
-    private Pose2d lastAcceptedPose;
-    private double lastAcceptedTimestamp;
-
-    public TestContext observation(PoseObservation observation) {
-      this.observation = observation;
-      return this;
-    }
-
-    public TestContext cameraIndex(int cameraIndex) {
-      this.cameraIndex = cameraIndex;
-      return this;
-    }
-
-    public TestContext lastAcceptedPose(Pose2d lastAcceptedPose) {
-      this.lastAcceptedPose = lastAcceptedPose;
-      return this;
-    }
-
-    public TestContext lastAcceptedTimestamp(double lastAcceptedTimestamp) {
-      this.lastAcceptedTimestamp = lastAcceptedTimestamp;
-      return this;
-    }
-
-    public PoseObservation observation() {
-      return observation;
-    }
-
-    public int cameraIndex() {
-      return cameraIndex;
-    }
-
-    public Pose2d lastAcceptedPose() {
-      return lastAcceptedPose;
-    }
-
-    public double lastAcceptedTimestamp() {
-      return lastAcceptedTimestamp;
-    }
-  }
-
   // Caching for AprilTag layout (volatile for thread-safe lazy initialization)
   private static volatile AprilTagFieldLayout cachedLayout = null;
 
@@ -397,162 +315,5 @@ public class Vision extends SubsystemBase {
       }
     }
     return cachedLayout;
-  }
-
-  public enum VisionTest {
-    unambiguous {
-      /**
-       * Penalizes ambiguous observations of a single tag, where ambiguity is defined as the ratio
-       * of best:alternate pose reprojection errors. This is between 0 and 1 (0 being no ambiguity,
-       * and 1 meaning both have the same reprojection error). Numbers above 0.2 are likely to be
-       * ambiguous.
-       *
-       * @param ctx The test context containing the observation and camera state
-       * @return Score between 0 and 1
-       */
-      @Override
-      public double test(TestContext ctx) {
-        if (ctx.observation().tagCount() == 1) {
-          return 1.0 - normalizedSigmoid(ctx.observation().ambiguity(), ambiguityTolerance, 4.0);
-        } else {
-          return 1.0;
-        }
-      }
-    },
-    pitchError {
-      /**
-       * We assume that the robot is constrained to an orientation that is flat on the field.
-       * Penalizes poses with significantly nonzero pitch.
-       *
-       * @param ctx The test context containing the observation and camera state
-       * @return Score between 0 and 1
-       */
-      @Override
-      public double test(TestContext ctx) {
-        return 1.0
-            - normalizedSigmoid(
-                Math.abs(ctx.observation().pose().getRotation().getY()),
-                pitchToleranceRadians,
-                1.0);
-      }
-    },
-    rollError {
-      /**
-       * We assume that the robot is constrained to an orientation that is flat on the field.
-       * Penalizes poses with significantly nonzero roll.
-       *
-       * @param ctx The test context containing the observation and camera state
-       * @return Score between 0 and 1
-       */
-      @Override
-      public double test(TestContext ctx) {
-        return 1.0
-            - normalizedSigmoid(
-                Math.abs(ctx.observation().pose().getRotation().getX()), rollToleranceRadians, 1.0);
-      }
-    },
-    heightError {
-      /**
-       * We assume that the robot is constrained to an orientation that is flat on the field.
-       * Penalizes poses with significantly nonzero elevation.
-       *
-       * @param ctx The test context containing the observation and camera state
-       * @return Score between 0 and 1
-       */
-      @Override
-      public double test(TestContext ctx) {
-        return 1.0
-            - normalizedSigmoid(
-                Math.abs(ctx.observation().pose().getZ()), elevationToleranceMeters, 1.0);
-      }
-    },
-    withinBoundaries {
-      /**
-       * Penalizes poses that, when projected to the floor, lie outside of the field boundaries
-       *
-       * @param ctx The test context containing the observation and camera state
-       * @return Score between 0 and 1
-       */
-      @Override
-      public double test(TestContext ctx) {
-        boolean pass =
-            arenaRectangle.contains(ctx.observation().pose().toPose2d().getTranslation());
-        return (pass ? 1.0 : 0.0);
-      }
-    },
-    moreThanZeroTags {
-      /**
-       * Penalizes observations that see zero tags
-       *
-       * @param ctx The test context containing the observation and camera state
-       * @return Score between 0 and 1
-       */
-      @Override
-      public double test(TestContext ctx) {
-        return Math.min(ctx.observation().tagCount(), 1.0);
-      }
-    },
-    distanceToTags {
-      /**
-       * Rewards observations that see tags closer to the robot
-       *
-       * @param ctx The test context containing the observation and camera state
-       * @return Score between 0 and 1
-       */
-      @Override
-      public double test(TestContext ctx) {
-        return 1.0
-            - normalizedSigmoid(
-                ctx.observation().averageTagDistance(), tagDistanceToleranceMeters, 1.0);
-      }
-    },
-    velocityConsistency {
-      /**
-       * Penalizes observations that imply physically impossible velocity since the last accepted
-       * observation from the same camera.
-       *
-       * @param ctx The test context containing the observation and camera state
-       * @return Score between 0 and 1
-       */
-      @Override
-      public double test(TestContext ctx) {
-        if (ctx.lastAcceptedPose() == null) return 1.0; // First observation from this camera
-
-        double dt = ctx.observation().timestamp() - ctx.lastAcceptedTimestamp();
-        if (dt <= 0.001) return 1.0; // Same frame or timestamp issue
-        if (dt > velocityCheckTimeoutSeconds) return 1.0; // Too long since last, don't penalize
-
-        double distance =
-            ctx.observation()
-                .pose()
-                .toPose2d()
-                .getTranslation()
-                .getDistance(ctx.lastAcceptedPose().getTranslation());
-        double impliedVelocity = distance / dt;
-
-        return 1.0 - normalizedSigmoid(impliedVelocity, maxReasonableVelocityMps, 2.0);
-      }
-    };
-
-    public abstract double test(TestContext ctx);
-  }
-
-  /**
-   * Calculates a normalized sigmoid function with a tunable midpoint and steepness. The output is
-   * always between 0 and 1.
-   *
-   * @param x The input value.
-   * @param midpoint The x-value where the output should be 0.5.
-   * @param steepness The factor controlling the curve's steepness. Higher values result in a
-   *     steeper curve, lower values result in a more gradual curve. Must be greater than 0.
-   * @return The sigmoid output for the given input, between 0 and 1.
-   */
-  public static double normalizedSigmoid(double x, double midpoint, double steepness) {
-    if (steepness <= 0) {
-      throw new IllegalArgumentException("Steepness must be a positive value.");
-    }
-
-    double exponent = -steepness * (x - midpoint);
-    return 1.0 / (1.0 + Math.exp(exponent));
   }
 }
