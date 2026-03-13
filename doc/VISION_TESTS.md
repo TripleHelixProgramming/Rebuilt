@@ -9,6 +9,7 @@ This branch improves how vision observations are filtered and scored.
 3. **TestContext refactoring** - Tests receive context object instead of just the observation
 4. **Velocity consistency test** - Penalizes observations implying impossible movement
 5. **Cross-camera correlation boost** - Rewards observations when multiple cameras agree
+6. **Unit test suite** - 78 tests covering all scoring logic and edge cases
 
 ---
 
@@ -113,3 +114,30 @@ correlationTimeWindowSeconds = 0.050
 correlationPoseThresholdMeters = 0.15
 correlationBoostFactor = 1.3
 ```
+
+---
+
+## Unit Test Suite
+
+The `VisionFilterTest` class provides comprehensive test coverage for the scoring logic. Run with:
+
+```bash
+./gradlew test --tests "frc.robot.subsystems.vision.VisionFilterTest"
+```
+
+**Test categories:**
+
+| Category | Coverage |
+|----------|----------|
+| `Test.unambiguous` | Single/multi-tag ambiguity handling |
+| `Test.pitchError` | Pitch tolerance, symmetry |
+| `Test.rollError` | Roll tolerance |
+| `Test.heightError` | Height tolerance, negative values |
+| `Test.withinBoundaries` | Field boundary enforcement |
+| `Test.moreThanZeroTags` | Zero-tag rejection |
+| `Test.distanceToTags` | Distance penalty curve |
+| `Test.velocityConsistency` | Impossible velocity detection |
+| `scoreObservation` | Weighted geometric mean, test selection |
+| `applyCorrelationBoost` | Majority rule, 2v2 splits, boost limits |
+| `normalizedSigmoid` | Edge cases, steepness behavior |
+| Integration | End-to-end scoring scenarios |

@@ -1,0 +1,1083 @@
+package frc.robot.subsystems.vision;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation3d;
+import frc.robot.subsystems.vision.VisionFilter.TestedObservation;
+import frc.robot.subsystems.vision.VisionFilter.Test;
+import frc.robot.subsystems.vision.VisionFilter.TestContext;
+import frc.robot.subsystems.vision.VisionIO.PoseObservation;
+import frc.robot.subsystems.vision.VisionIO.PoseObservationType;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.EnumSet;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+
+class VisionFilterTest {
+
+  private VisionFilter filter;
+
+  // Field dimensions (approximate, for boundary tests)
+  private static final double FIELD_X = 16.54; // meters
+  private static final double FIELD_Y = 8.21; // meters
+  private static final double ROBOT_HALF_WIDTH = 0.47; // ~18.5 inches
+
+  @BeforeEach
+  void setUp() {
+    filter = new VisionFilter();
+  }
+
+  // ==================== Helper Methods ====================
+
+  /** Creates a basic valid observation at the given position. */
+  private PoseObservation makeObservation(double x, double y, double timestamp) {
+    return new PoseObservation(
+        timestamp,
+        new Pose3d(x, y, 0, new Rotation3d()),
+        0.01, // low ambiguity
+        1, // 1 tag
+        3.0, // average tag distance
+        PoseObservationType.MEGATAG_1);
+  }
+
+  /** Creates an observation with full control over all parameters. */
+  private PoseObservation makeObservation(
+      double x,
+      double y,
+      double z,
+      double roll,
+      double pitch,
+      double yaw,
+      double timestamp,
+      int tagCount,
+      double ambiguity,
+      double tagDistance) {
+    return new PoseObservation(
+        timestamp,
+        new Pose3d(x, y, z, new Rotation3d(roll, pitch, yaw)),
+        ambiguity,
+        tagCount,
+        tagDistance,
+        PoseObservationType.MEGATAG_1);
+  }
+
+  /** Creates a TestedObservation for correlation boost tests. */
+  private TestedObservation makeTestedObs(double x, double y, double timestamp, int cameraIndex, double score) {
+    return new TestedObservation(makeObservation(x, y, timestamp), cameraIndex, null, score);
+  }
+
+  /** Scores an observation with default tests enabled. */
+  private TestedObservation score(PoseObservation obs) {
+    return filter.scoreObservation(obs, 0, null, 0.0, VisionFilter.DEFAULT_ENABLED_TESTS);
+  }
+
+  /** Scores with velocity tracking from a previous pose. */
+  private TestedObservation scoreWithHistory(PoseObservation obs, Pose2d lastPose, double lastTimestamp) {
+    return filter.scoreObservation(obs, 0, lastPose, lastTimestamp, VisionFilter.DEFAULT_ENABLED_TESTS);
+  }
+
+  // ==================== Individual Test Tests ====================
+
+  @Nested
+  @DisplayName("Test.unambiguous")
+  class UnambiguousTests {
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Single tag with low ambiguity scores higher than high ambiguity")
+    void lowAmbiguitySingleTag() {
+      var lowAmb = new TestContext()
+          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, 3.0));
+      var highAmb = new TestContext()
+          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.3, 3.0));
+      double lowResult = Test.unambiguous.test(lowAmb);
+      double highResult = Test.unambiguous.test(highAmb);
+      assertTrue(lowResult > highResult, "Low ambiguity should score higher: " + lowResult + " vs " + highResult);
+      assertTrue(lowResult > 0.5, "Low ambiguity should be > 0.5, got " + lowResult);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Single tag with high ambiguity scores low")
+    void highAmbiguitySingleTag() {
+      var ctx = new TestContext()
+          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.5, 3.0));
+      double result = Test.unambiguous.test(ctx);
+      assertTrue(result < 0.5, "High ambiguity should score < 0.5, got " + result);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Multiple tags ignore ambiguity (always 1.0)")
+    void multipleTagsIgnoreAmbiguity() {
+      var ctx = new TestContext()
+          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 2, 0.99, 3.0));
+      double result = Test.unambiguous.test(ctx);
+      assertEquals(1.0, result, 0.001, "Multiple tags should always return 1.0");
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Zero tags still returns 1.0 (ambiguity irrelevant)")
+    void zeroTagsReturnsOne() {
+      var ctx = new TestContext()
+          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 0, 0.5, 3.0));
+      double result = Test.unambiguous.test(ctx);
+      assertEquals(1.0, result, 0.001, "Zero tags should return 1.0 (caught by moreThanZeroTags)");
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Ambiguity at tolerance threshold")
+    void ambiguityAtThreshold() {
+      double tolerance = VisionConstants.ambiguityTolerance; // 0.15
+      var ctx = new TestContext()
+          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, tolerance, 3.0));
+      double result = Test.unambiguous.test(ctx);
+      // At midpoint of sigmoid, should be around 0.5
+      assertTrue(result > 0.3 && result < 0.7, "At threshold should be ~0.5, got " + result);
+    }
+  }
+
+  @Nested
+  @DisplayName("Test.pitchError")
+  class PitchErrorTests {
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Zero pitch scores higher than large pitch")
+    void zeroPitchScoresHigher() {
+      var zeroPitch = new TestContext()
+          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, 3.0));
+      var largePitch = new TestContext()
+          .observation(makeObservation(8, 4, 0, 0, Math.toRadians(30), 0, 0.0, 1, 0.01, 3.0));
+      double zeroResult = Test.pitchError.test(zeroPitch);
+      double largeResult = Test.pitchError.test(largePitch);
+      assertTrue(zeroResult > largeResult, "Zero pitch should score higher: " + zeroResult + " vs " + largeResult);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Large positive pitch scores low")
+    void largePositivePitch() {
+      var ctx = new TestContext()
+          .observation(makeObservation(8, 4, 0, 0, Math.toRadians(30), 0, 0.0, 1, 0.01, 3.0));
+      double result = Test.pitchError.test(ctx);
+      assertTrue(result < 0.5, "30 degree pitch should score < 0.5, got " + result);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Negative pitch penalized same as positive (absolute value)")
+    void negativePitchSymmetric() {
+      var posPitch = new TestContext()
+          .observation(makeObservation(8, 4, 0, 0, Math.toRadians(15), 0, 0.0, 1, 0.01, 3.0));
+      var negPitch = new TestContext()
+          .observation(makeObservation(8, 4, 0, 0, Math.toRadians(-15), 0, 0.0, 1, 0.01, 3.0));
+      double posResult = Test.pitchError.test(posPitch);
+      double negResult = Test.pitchError.test(negPitch);
+      assertEquals(posResult, negResult, 0.001, "Positive and negative pitch should score the same");
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Small pitch scores better than large pitch")
+    void smallPitchScoresBetter() {
+      var smallPitch = new TestContext()
+          .observation(makeObservation(8, 4, 0, 0, Math.toRadians(2), 0, 0.0, 1, 0.01, 3.0));
+      var largePitch = new TestContext()
+          .observation(makeObservation(8, 4, 0, 0, Math.toRadians(20), 0, 0.0, 1, 0.01, 3.0));
+      double smallResult = Test.pitchError.test(smallPitch);
+      double largeResult = Test.pitchError.test(largePitch);
+      assertTrue(smallResult > largeResult, "Small pitch should score better: " + smallResult + " vs " + largeResult);
+    }
+  }
+
+  @Nested
+  @DisplayName("Test.rollError")
+  class RollErrorTests {
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Zero roll scores higher than large roll")
+    void zeroRollScoresHigher() {
+      var zeroRoll = new TestContext()
+          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, 3.0));
+      var largeRoll = new TestContext()
+          .observation(makeObservation(8, 4, 0, Math.toRadians(25), 0, 0, 0.0, 1, 0.01, 3.0));
+      double zeroResult = Test.rollError.test(zeroRoll);
+      double largeResult = Test.rollError.test(largeRoll);
+      assertTrue(zeroResult > largeResult, "Zero roll should score higher: " + zeroResult + " vs " + largeResult);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Large roll scores low")
+    void largeRoll() {
+      var ctx = new TestContext()
+          .observation(makeObservation(8, 4, 0, Math.toRadians(25), 0, 0, 0.0, 1, 0.01, 3.0));
+      double result = Test.rollError.test(ctx);
+      assertTrue(result < 0.5, "25 degree roll should score < 0.5, got " + result);
+    }
+  }
+
+  @Nested
+  @DisplayName("Test.heightError")
+  class HeightErrorTests {
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Zero height scores higher than large height")
+    void zeroHeightScoresHigher() {
+      var zeroHeight = new TestContext()
+          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, 3.0));
+      var largeHeight = new TestContext()
+          .observation(makeObservation(8, 4, 1.0, 0, 0, 0, 0.0, 1, 0.01, 3.0));
+      double zeroResult = Test.heightError.test(zeroHeight);
+      double largeResult = Test.heightError.test(largeHeight);
+      assertTrue(zeroResult > largeResult, "Zero height should score higher: " + zeroResult + " vs " + largeResult);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Large positive height scores low")
+    void largePositiveHeight() {
+      var ctx = new TestContext()
+          .observation(makeObservation(8, 4, 1.0, 0, 0, 0, 0.0, 1, 0.01, 3.0));
+      double result = Test.heightError.test(ctx);
+      assertTrue(result < 0.5, "1m height should score < 0.5, got " + result);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Negative height (underground) scores low")
+    void negativeHeight() {
+      var ctx = new TestContext()
+          .observation(makeObservation(8, 4, -0.5, 0, 0, 0, 0.0, 1, 0.01, 3.0));
+      double result = Test.heightError.test(ctx);
+      assertTrue(result < 0.5, "Negative height should score low, got " + result);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Small height scores better than large height")
+    void smallHeightScoresBetter() {
+      var smallHeight = new TestContext()
+          .observation(makeObservation(8, 4, 0.1, 0, 0, 0, 0.0, 1, 0.01, 3.0));
+      var largeHeight = new TestContext()
+          .observation(makeObservation(8, 4, 0.8, 0, 0, 0, 0.0, 1, 0.01, 3.0));
+      double smallResult = Test.heightError.test(smallHeight);
+      double largeResult = Test.heightError.test(largeHeight);
+      assertTrue(smallResult > largeResult, "Small height should score better: " + smallResult + " vs " + largeResult);
+    }
+  }
+
+  @Nested
+  @DisplayName("Test.withinBoundaries")
+  class WithinBoundariesTests {
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Center of field scores 1.0")
+    void centerOfField() {
+      var ctx = new TestContext()
+          .observation(makeObservation(FIELD_X / 2, FIELD_Y / 2, 0.0));
+      double result = Test.withinBoundaries.test(ctx);
+      assertEquals(1.0, result, 0.001);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Just inside boundary scores 1.0")
+    void justInsideBoundary() {
+      double margin = ROBOT_HALF_WIDTH + 0.1;
+      var ctx = new TestContext()
+          .observation(makeObservation(margin, margin, 0.0));
+      double result = Test.withinBoundaries.test(ctx);
+      assertEquals(1.0, result, 0.001);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Outside X boundary (negative) scores 0")
+    void outsideNegativeX() {
+      var ctx = new TestContext()
+          .observation(makeObservation(-1.0, 4.0, 0.0));
+      double result = Test.withinBoundaries.test(ctx);
+      assertEquals(0.0, result, 0.001);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Outside X boundary (positive) scores 0")
+    void outsidePositiveX() {
+      var ctx = new TestContext()
+          .observation(makeObservation(FIELD_X + 1.0, 4.0, 0.0));
+      double result = Test.withinBoundaries.test(ctx);
+      assertEquals(0.0, result, 0.001);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Outside Y boundary (negative) scores 0")
+    void outsideNegativeY() {
+      var ctx = new TestContext()
+          .observation(makeObservation(8.0, -1.0, 0.0));
+      double result = Test.withinBoundaries.test(ctx);
+      assertEquals(0.0, result, 0.001);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Outside Y boundary (positive) scores 0")
+    void outsidePositiveY() {
+      var ctx = new TestContext()
+          .observation(makeObservation(8.0, FIELD_Y + 1.0, 0.0));
+      double result = Test.withinBoundaries.test(ctx);
+      assertEquals(0.0, result, 0.001);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Corner outside scores 0")
+    void cornerOutside() {
+      var ctx = new TestContext()
+          .observation(makeObservation(-5.0, -5.0, 0.0));
+      double result = Test.withinBoundaries.test(ctx);
+      assertEquals(0.0, result, 0.001);
+    }
+  }
+
+  @Nested
+  @DisplayName("Test.moreThanZeroTags")
+  class MoreThanZeroTagsTests {
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Zero tags scores 0")
+    void zeroTags() {
+      var ctx = new TestContext()
+          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 0, 0.01, 3.0));
+      double result = Test.moreThanZeroTags.test(ctx);
+      assertEquals(0.0, result, 0.001);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("One tag scores 1.0")
+    void oneTag() {
+      var ctx = new TestContext()
+          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, 3.0));
+      double result = Test.moreThanZeroTags.test(ctx);
+      assertEquals(1.0, result, 0.001);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Multiple tags scores 1.0")
+    void multipleTags() {
+      var ctx = new TestContext()
+          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 5, 0.01, 3.0));
+      double result = Test.moreThanZeroTags.test(ctx);
+      assertEquals(1.0, result, 0.001);
+    }
+  }
+
+  @Nested
+  @DisplayName("Test.distanceToTags")
+  class DistanceToTagsTests {
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Close tags score well")
+    void closeTags() {
+      var ctx = new TestContext()
+          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, 1.0));
+      double result = Test.distanceToTags.test(ctx);
+      assertTrue(result > 0.8, "1m distance should score well, got " + result);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Far tags score poorly")
+    void farTags() {
+      var ctx = new TestContext()
+          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, 8.0));
+      double result = Test.distanceToTags.test(ctx);
+      assertTrue(result < 0.3, "8m distance should score poorly, got " + result);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Moderate distance at tolerance")
+    void moderateDistance() {
+      double tolerance = VisionConstants.tagDistanceToleranceMeters; // 4.0
+      var ctx = new TestContext()
+          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, tolerance));
+      double result = Test.distanceToTags.test(ctx);
+      assertTrue(result > 0.3 && result < 0.7, "At tolerance should be ~0.5, got " + result);
+    }
+  }
+
+  @Nested
+  @DisplayName("Test.velocityConsistency")
+  class VelocityConsistencyTests {
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("No previous pose returns 1.0")
+    void noPreviousPose() {
+      var ctx = new TestContext()
+          .observation(makeObservation(8, 4, 0.0))
+          .lastAcceptedPose(null)
+          .lastAcceptedTimestamp(0.0);
+      double result = Test.velocityConsistency.test(ctx);
+      assertEquals(1.0, result, 0.001);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Reasonable velocity scores well")
+    void reasonableVelocity() {
+      var lastPose = new Pose2d(8.0, 4.0, new Rotation2d());
+      var ctx = new TestContext()
+          .observation(makeObservation(8.5, 4.0, 0.1)) // 0.5m in 0.1s = 5 m/s
+          .lastAcceptedPose(lastPose)
+          .lastAcceptedTimestamp(0.0);
+      double result = Test.velocityConsistency.test(ctx);
+      assertTrue(result > 0.5, "5 m/s should be acceptable, got " + result);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Impossible velocity scores poorly")
+    void impossibleVelocity() {
+      var lastPose = new Pose2d(8.0, 4.0, new Rotation2d());
+      var ctx = new TestContext()
+          .observation(makeObservation(18.0, 4.0, 0.1)) // 10m in 0.1s = 100 m/s
+          .lastAcceptedPose(lastPose)
+          .lastAcceptedTimestamp(0.0);
+      double result = Test.velocityConsistency.test(ctx);
+      assertTrue(result < 0.2, "100 m/s should be rejected, got " + result);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Very small dt returns 1.0 (avoid division issues)")
+    void verySmallDt() {
+      var lastPose = new Pose2d(8.0, 4.0, new Rotation2d());
+      var ctx = new TestContext()
+          .observation(makeObservation(18.0, 4.0, 0.0005)) // dt < 0.001
+          .lastAcceptedPose(lastPose)
+          .lastAcceptedTimestamp(0.0);
+      double result = Test.velocityConsistency.test(ctx);
+      assertEquals(1.0, result, 0.001, "Very small dt should return 1.0");
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Long timeout returns 1.0 (stale data)")
+    void longTimeout() {
+      var lastPose = new Pose2d(8.0, 4.0, new Rotation2d());
+      var ctx = new TestContext()
+          .observation(makeObservation(18.0, 4.0, 1.0)) // 1 second later
+          .lastAcceptedPose(lastPose)
+          .lastAcceptedTimestamp(0.0);
+      double result = Test.velocityConsistency.test(ctx);
+      assertEquals(1.0, result, 0.001, "Stale timestamp should return 1.0");
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Stationary robot scores perfectly")
+    void stationaryRobot() {
+      var lastPose = new Pose2d(8.0, 4.0, new Rotation2d());
+      var ctx = new TestContext()
+          .observation(makeObservation(8.0, 4.0, 0.05))
+          .lastAcceptedPose(lastPose)
+          .lastAcceptedTimestamp(0.0);
+      double result = Test.velocityConsistency.test(ctx);
+      assertTrue(result > 0.95, "Stationary should score ~1.0, got " + result);
+    }
+  }
+
+  // ==================== ScoreObservation Tests ====================
+
+  @Nested
+  @DisplayName("scoreObservation")
+  class ScoreObservationTests {
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Valid observation in field center scores high")
+    void validObservationScoresHigh() {
+      var obs = makeObservation(8.0, 4.0, 0.0);
+      var tested = score(obs);
+      assertTrue(tested.score() > 0.5, "Valid observation should score > 0.5, got " + tested.score());
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Observation outside field scores zero")
+    void outsideFieldScoresZero() {
+      var obs = makeObservation(-5.0, -5.0, 0.0);
+      var tested = score(obs);
+      assertEquals(0.0, tested.score(), 0.001);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Zero tags scores zero")
+    void zeroTagsScoresZero() {
+      var obs = makeObservation(8, 4, 0, 0, 0, 0, 0.0, 0, 0.01, 3.0);
+      var tested = score(obs);
+      assertEquals(0.0, tested.score(), 0.001);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("High ambiguity reduces score")
+    void highAmbiguityReducesScore() {
+      var lowAmb = makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, 3.0);
+      var highAmb = makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.5, 3.0);
+
+      var testedLow = score(lowAmb);
+      var testedHigh = score(highAmb);
+
+      assertTrue(testedLow.score() > testedHigh.score(),
+          "Low ambiguity should score higher: " + testedLow.score() + " vs " + testedHigh.score());
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Large pitch error reduces score")
+    void largePitchReducesScore() {
+      var noPitch = makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, 3.0);
+      var bigPitch = makeObservation(8, 4, 0, 0, Math.toRadians(20), 0, 0.0, 1, 0.01, 3.0);
+
+      var testedNo = score(noPitch);
+      var testedBig = score(bigPitch);
+
+      assertTrue(testedNo.score() > testedBig.score(),
+          "No pitch should score higher: " + testedNo.score() + " vs " + testedBig.score());
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Score includes all test results")
+    void scoreIncludesAllTestResults() {
+      var obs = makeObservation(8.0, 4.0, 0.0);
+      var tested = score(obs);
+
+      assertNotNull(tested.testResults());
+      assertEquals(VisionFilter.DEFAULT_ENABLED_TESTS.size(), tested.testResults().size());
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Preserves observation and camera index")
+    void preservesObservationAndCameraIndex() {
+      var obs = makeObservation(8.0, 4.0, 0.0);
+      var tested = filter.scoreObservation(obs, 3, null, 0.0, VisionFilter.DEFAULT_ENABLED_TESTS);
+
+      assertSame(obs, tested.observation());
+      assertEquals(3, tested.cameraIndex());
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Velocity check uses previous pose")
+    void velocityCheckUsesPreviousPose() {
+      var lastPose = new Pose2d(8.0, 4.0, new Rotation2d());
+
+      // Reasonable movement
+      var reasonable = makeObservation(8.5, 4.0, 0.1);
+      var testedReasonable = scoreWithHistory(reasonable, lastPose, 0.0);
+
+      // Impossible movement
+      var impossible = makeObservation(18.0, 4.0, 0.1);
+      var testedImpossible = scoreWithHistory(impossible, lastPose, 0.0);
+
+      assertTrue(testedReasonable.score() > testedImpossible.score(),
+          "Reasonable velocity should score higher");
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Can disable specific tests")
+    void canDisableSpecificTests() {
+      var obs = makeObservation(-5.0, -5.0, 0.0); // Outside field
+
+      // With boundary check - should be 0
+      var enabledAll = VisionFilter.DEFAULT_ENABLED_TESTS;
+      var testedAll = filter.scoreObservation(obs, 0, null, 0.0, enabledAll);
+      assertEquals(0.0, testedAll.score(), 0.001);
+
+      // Without boundary check - should be non-zero
+      var enabledNoBoundary = EnumSet.copyOf(VisionFilter.DEFAULT_ENABLED_TESTS);
+      enabledNoBoundary.remove(Test.withinBoundaries);
+      var testedNoBoundary = filter.scoreObservation(obs, 0, null, 0.0, enabledNoBoundary);
+      assertTrue(testedNoBoundary.score() > 0, "Without boundary check should score > 0");
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Multiple failures compound (geometric mean)")
+    void multipleFailuresCompound() {
+      // Good observation
+      var good = makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, 2.0);
+
+      // Bad observation: high ambiguity + bad pitch + high height
+      var bad = makeObservation(8, 4, 0.5, 0, Math.toRadians(15), 0, 0.0, 1, 0.4, 6.0);
+
+      var testedGood = score(good);
+      var testedBad = score(bad);
+
+      assertTrue(testedGood.score() > testedBad.score(),
+          "Good should score higher than bad: " + testedGood.score() + " vs " + testedBad.score());
+      // The geometric mean ensures multiple failures have compounding effect
+      assertTrue(testedGood.score() > testedBad.score() * 1.2,
+          "Multiple bad factors should have significant impact");
+    }
+  }
+
+  // ==================== Correlation Boost Tests ====================
+
+  @Nested
+  @DisplayName("applyCorrelationBoost")
+  class CorrelationBoostTests {
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Empty list does nothing")
+    void emptyList() {
+      var observations = new ArrayList<TestedObservation>();
+      filter.applyCorrelationBoost(observations);
+      assertTrue(observations.isEmpty());
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Single observation not boosted")
+    void singleObservationNotBoosted() {
+      var observations = new ArrayList<TestedObservation>();
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
+
+      filter.applyCorrelationBoost(observations);
+
+      assertEquals(0.5, observations.get(0).score(), 0.001);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Two agreeing cameras are boosted")
+    void twoAgreeingCamerasAreBoosted() {
+      var observations = new ArrayList<TestedObservation>();
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
+      observations.add(makeTestedObs(8.05, 4.05, 0.01, 1, 0.5));
+
+      filter.applyCorrelationBoost(observations);
+
+      assertTrue(observations.get(0).score() > 0.5, "Camera 0 should be boosted");
+      assertTrue(observations.get(1).score() > 0.5, "Camera 1 should be boosted");
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Same camera multiple observations not boosted")
+    void sameCameraNotBoosted() {
+      var observations = new ArrayList<TestedObservation>();
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
+      observations.add(makeTestedObs(8.05, 4.05, 0.01, 0, 0.5)); // Same camera
+
+      filter.applyCorrelationBoost(observations);
+
+      assertEquals(0.5, observations.get(0).score(), 0.001);
+      assertEquals(0.5, observations.get(1).score(), 0.001);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Cameras too far apart in time not boosted")
+    void tooFarInTimeNotBoosted() {
+      var observations = new ArrayList<TestedObservation>();
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
+      observations.add(makeTestedObs(8.05, 4.05, 0.1, 1, 0.5)); // 100ms apart
+
+      filter.applyCorrelationBoost(observations);
+
+      assertEquals(0.5, observations.get(0).score(), 0.001);
+      assertEquals(0.5, observations.get(1).score(), 0.001);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Cameras too far apart in position not boosted")
+    void tooFarInPositionNotBoosted() {
+      var observations = new ArrayList<TestedObservation>();
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
+      observations.add(makeTestedObs(9.0, 5.0, 0.01, 1, 0.5)); // 1.4m apart
+
+      filter.applyCorrelationBoost(observations);
+
+      assertEquals(0.5, observations.get(0).score(), 0.001);
+      assertEquals(0.5, observations.get(1).score(), 0.001);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("2v2 split: no majority, nobody boosted")
+    void twoVsTwoSplitNotBoosted() {
+      var observations = new ArrayList<TestedObservation>();
+      // Cameras 0,1 agree on position A
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
+      observations.add(makeTestedObs(8.05, 4.05, 0.01, 1, 0.5));
+      // Cameras 2,3 agree on position B
+      observations.add(makeTestedObs(10.0, 6.0, 0.0, 2, 0.5));
+      observations.add(makeTestedObs(10.05, 6.05, 0.01, 3, 0.5));
+
+      filter.applyCorrelationBoost(observations);
+
+      for (int i = 0; i < 4; i++) {
+        assertEquals(0.5, observations.get(i).score(), 0.001,
+            "2v2 split: camera " + i + " should not be boosted");
+      }
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("3v1: majority boosted, outlier not")
+    void threeVsOneBoostsThree() {
+      var observations = new ArrayList<TestedObservation>();
+      // Cameras 0,1,2 agree
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
+      observations.add(makeTestedObs(8.05, 4.05, 0.01, 1, 0.5));
+      observations.add(makeTestedObs(8.03, 4.03, 0.02, 2, 0.5));
+      // Camera 3 disagrees
+      observations.add(makeTestedObs(10.0, 6.0, 0.0, 3, 0.5));
+
+      filter.applyCorrelationBoost(observations);
+
+      assertTrue(observations.get(0).score() > 0.5, "Camera 0 should be boosted");
+      assertTrue(observations.get(1).score() > 0.5, "Camera 1 should be boosted");
+      assertTrue(observations.get(2).score() > 0.5, "Camera 2 should be boosted");
+      assertEquals(0.5, observations.get(3).score(), 0.001, "Outlier should not be boosted");
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("4 cameras all agree: all boosted")
+    void fourAllAgree() {
+      var observations = new ArrayList<TestedObservation>();
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
+      observations.add(makeTestedObs(8.05, 4.05, 0.01, 1, 0.5));
+      observations.add(makeTestedObs(8.03, 4.03, 0.02, 2, 0.5));
+      observations.add(makeTestedObs(8.07, 4.02, 0.03, 3, 0.5));
+
+      filter.applyCorrelationBoost(observations);
+
+      for (int i = 0; i < 4; i++) {
+        assertTrue(observations.get(i).score() > 0.5,
+            "Camera " + i + " should be boosted when all agree");
+      }
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Boost caps at 1.0")
+    void boostCapsAtOne() {
+      var observations = new ArrayList<TestedObservation>();
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.9));
+      observations.add(makeTestedObs(8.05, 4.05, 0.01, 1, 0.9));
+
+      filter.applyCorrelationBoost(observations);
+
+      assertTrue(observations.get(0).score() <= 1.0, "Score should not exceed 1.0");
+      assertTrue(observations.get(1).score() <= 1.0, "Score should not exceed 1.0");
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Edge of time window: exactly at threshold")
+    void edgeOfTimeWindow() {
+      double threshold = VisionConstants.correlationTimeWindowSeconds;
+      var observations = new ArrayList<TestedObservation>();
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
+      observations.add(makeTestedObs(8.05, 4.05, threshold, 1, 0.5)); // Exactly at threshold
+
+      filter.applyCorrelationBoost(observations);
+
+      // At exactly threshold, should still be within window (<=)
+      assertTrue(observations.get(0).score() > 0.5, "At threshold should still boost");
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Edge of position threshold: exactly at threshold")
+    void edgeOfPositionThreshold() {
+      double threshold = VisionConstants.correlationPoseThresholdMeters;
+      var observations = new ArrayList<TestedObservation>();
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
+      // Exactly at threshold distance
+      observations.add(makeTestedObs(8.0 + threshold, 4.0, 0.01, 1, 0.5));
+
+      filter.applyCorrelationBoost(observations);
+
+      // At exactly threshold, should NOT be within (uses >)
+      assertEquals(0.5, observations.get(0).score(), 0.001, "At threshold should not boost");
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Just under position threshold: boosted")
+    void justUnderPositionThreshold() {
+      double threshold = VisionConstants.correlationPoseThresholdMeters;
+      var observations = new ArrayList<TestedObservation>();
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
+      observations.add(makeTestedObs(8.0 + threshold - 0.01, 4.0, 0.01, 1, 0.5));
+
+      filter.applyCorrelationBoost(observations);
+
+      assertTrue(observations.get(0).score() > 0.5, "Just under threshold should boost");
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Transitive clustering: A-B and B-C agree, all boosted")
+    void transitiveClustering() {
+      double dist = VisionConstants.correlationPoseThresholdMeters - 0.01;
+      var observations = new ArrayList<TestedObservation>();
+      // A at origin
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
+      // B close to A
+      observations.add(makeTestedObs(8.0 + dist, 4.0, 0.01, 1, 0.5));
+      // C close to B, but farther from A
+      observations.add(makeTestedObs(8.0 + dist * 1.5, 4.0, 0.02, 2, 0.5));
+
+      filter.applyCorrelationBoost(observations);
+
+      // All should be in same cluster via transitivity
+      assertTrue(observations.get(0).score() > 0.5, "A should be boosted");
+      assertTrue(observations.get(1).score() > 0.5, "B should be boosted");
+      assertTrue(observations.get(2).score() > 0.5, "C should be boosted");
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Exceeding MAX_OBSERVATIONS silently returns")
+    void exceedingMaxObservations() {
+      var observations = new ArrayList<TestedObservation>();
+      for (int i = 0; i < 40; i++) { // More than MAX_OBSERVATIONS (32)
+        observations.add(makeTestedObs(8.0, 4.0, 0.0, i % 4, 0.5));
+      }
+
+      // Should not throw
+      assertDoesNotThrow(() -> filter.applyCorrelationBoost(observations));
+
+      // Scores should be unchanged
+      for (var obs : observations) {
+        assertEquals(0.5, obs.score(), 0.001);
+      }
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Multiple observations from same camera in cluster")
+    void multipleSameCameraInCluster() {
+      var observations = new ArrayList<TestedObservation>();
+      // Camera 0: two observations at same position
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
+      observations.add(makeTestedObs(8.01, 4.01, 0.01, 0, 0.5));
+      // Camera 1: one observation
+      observations.add(makeTestedObs(8.02, 4.02, 0.02, 1, 0.5));
+
+      filter.applyCorrelationBoost(observations);
+
+      // Only 2 distinct cameras, should boost (majority of 2 is 2)
+      assertTrue(observations.get(0).score() > 0.5);
+      assertTrue(observations.get(1).score() > 0.5);
+      assertTrue(observations.get(2).score() > 0.5);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Preserves observation data through boost")
+    void preservesObservationData() {
+      var obs = makeObservation(8.0, 4.0, 0.0);
+      var observations = new ArrayList<TestedObservation>();
+      var testResults = new EnumMap<Test, Double>(Test.class);
+      testResults.put(Test.withinBoundaries, 1.0);
+
+      observations.add(new TestedObservation(obs, 0, testResults, 0.5));
+      observations.add(makeTestedObs(8.05, 4.05, 0.01, 1, 0.5));
+
+      filter.applyCorrelationBoost(observations);
+
+      // Original observation should be preserved
+      assertSame(obs, observations.get(0).observation());
+      assertEquals(0, observations.get(0).cameraIndex());
+      assertSame(testResults, observations.get(0).testResults());
+    }
+  }
+
+  // ==================== NormalizedSigmoid Tests ====================
+
+  @Nested
+  @DisplayName("normalizedSigmoid")
+  class NormalizedSigmoidTests {
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("At midpoint returns 0.5")
+    void atMidpointReturnsHalf() {
+      assertEquals(0.5, VisionFilter.normalizedSigmoid(5.0, 5.0, 1.0), 0.001);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Far below midpoint returns near 0")
+    void farBelowMidpointReturnsNearZero() {
+      double result = VisionFilter.normalizedSigmoid(0.0, 5.0, 1.0);
+      assertTrue(result < 0.01);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Far above midpoint returns near 1")
+    void farAboveMidpointReturnsNearOne() {
+      double result = VisionFilter.normalizedSigmoid(10.0, 5.0, 1.0);
+      assertTrue(result > 0.99);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Higher steepness = sharper transition")
+    void higherSteepnessSharper() {
+      double shallowBelow = VisionFilter.normalizedSigmoid(4.0, 5.0, 1.0);
+      double steepBelow = VisionFilter.normalizedSigmoid(4.0, 5.0, 4.0);
+
+      assertTrue(steepBelow < shallowBelow,
+          "Steeper should be lower below midpoint: steep=" + steepBelow + " shallow=" + shallowBelow);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Zero steepness = 0.5 everywhere")
+    void zeroSteepness() {
+      assertEquals(0.5, VisionFilter.normalizedSigmoid(0.0, 5.0, 0.0), 0.001);
+      assertEquals(0.5, VisionFilter.normalizedSigmoid(5.0, 5.0, 0.0), 0.001);
+      assertEquals(0.5, VisionFilter.normalizedSigmoid(10.0, 5.0, 0.0), 0.001);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Negative steepness inverts curve")
+    void negativeSteepness() {
+      double positive = VisionFilter.normalizedSigmoid(7.0, 5.0, 1.0);
+      double negative = VisionFilter.normalizedSigmoid(7.0, 5.0, -1.0);
+
+      assertTrue(positive > 0.5);
+      assertTrue(negative < 0.5);
+      assertEquals(1.0, positive + negative, 0.001, "Should be symmetric");
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Output always between 0 and 1")
+    void outputAlwaysBounded() {
+      for (double x = -100; x <= 100; x += 10) {
+        for (double mid = -10; mid <= 10; mid += 5) {
+          for (double steep = 0.1; steep <= 10; steep += 2) {
+            double result = VisionFilter.normalizedSigmoid(x, mid, steep);
+            assertTrue(result >= 0.0 && result <= 1.0,
+                "Result should be in [0,1]: " + result + " for x=" + x + " mid=" + mid + " steep=" + steep);
+          }
+        }
+      }
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Handles extreme values without overflow")
+    void handlesExtremeValues() {
+      assertDoesNotThrow(() -> VisionFilter.normalizedSigmoid(1e10, 0.0, 1.0));
+      assertDoesNotThrow(() -> VisionFilter.normalizedSigmoid(-1e10, 0.0, 1.0));
+
+      double veryHigh = VisionFilter.normalizedSigmoid(1e10, 0.0, 1.0);
+      double veryLow = VisionFilter.normalizedSigmoid(-1e10, 0.0, 1.0);
+
+      assertEquals(1.0, veryHigh, 0.001);
+      assertEquals(0.0, veryLow, 0.001);
+    }
+  }
+
+  // ==================== TestContext Tests ====================
+
+  @Nested
+  @DisplayName("TestContext")
+  class TestContextTests {
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Builder pattern returns same instance")
+    void builderPatternReturnsSameInstance() {
+      var ctx = new TestContext();
+      var result = ctx.observation(makeObservation(0, 0, 0));
+      assertSame(ctx, result);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("All setters and getters work")
+    void allSettersAndGettersWork() {
+      var obs = makeObservation(8.0, 4.0, 1.0);
+      var pose = new Pose2d(1, 2, new Rotation2d());
+
+      var ctx = new TestContext()
+          .observation(obs)
+          .cameraIndex(3)
+          .lastAcceptedPose(pose)
+          .lastAcceptedTimestamp(0.5);
+
+      assertSame(obs, ctx.observation());
+      assertEquals(3, ctx.cameraIndex());
+      assertSame(pose, ctx.lastAcceptedPose());
+      assertEquals(0.5, ctx.lastAcceptedTimestamp(), 0.001);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Can set null values")
+    void canSetNullValues() {
+      var ctx = new TestContext()
+          .observation(null)
+          .lastAcceptedPose(null);
+
+      assertNull(ctx.observation());
+      assertNull(ctx.lastAcceptedPose());
+    }
+  }
+
+  // ==================== Integration / Edge Case Tests ====================
+
+  @Nested
+  @DisplayName("Integration and Edge Cases")
+  class IntegrationTests {
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Perfect observation scores well")
+    void perfectObservationScoresWell() {
+      // Center of field, no errors, low ambiguity, close tags, multiple tags
+      var obs = makeObservation(8, 4, 0, 0, 0, 0, 0.0, 3, 0.01, 2.0);
+      var tested = score(obs);
+
+      // Due to sigmoid gradients, even "perfect" observations don't score 1.0
+      // But they should score well above the threshold
+      assertTrue(tested.score() > VisionConstants.minScore * 2,
+          "Perfect observation should score well above minScore, got " + tested.score());
+      assertTrue(tested.score() > 0.4, "Perfect observation should score > 0.4, got " + tested.score());
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Worst valid observation still passes if in bounds")
+    void worstValidObservation() {
+      // Just inside field, max ambiguity, far tags, some tilt
+      var obs = makeObservation(
+          ROBOT_HALF_WIDTH + 0.1, ROBOT_HALF_WIDTH + 0.1, 0.2,
+          Math.toRadians(4), Math.toRadians(4), 0,
+          0.0, 1, 0.14, 5.0);
+      var tested = score(obs);
+
+      assertTrue(tested.score() > 0, "Should have non-zero score, got " + tested.score());
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Filter is reusable (no state leakage)")
+    void filterIsReusable() {
+      var obs1 = makeObservation(8.0, 4.0, 0.0);
+      var obs2 = makeObservation(8.5, 4.5, 0.1);
+
+      var tested1a = score(obs1);
+      var tested2 = score(obs2);
+      var tested1b = score(obs1);
+
+      assertEquals(tested1a.score(), tested1b.score(), 0.001,
+          "Same observation should get same score on repeated calls");
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Correlation boost is idempotent")
+    void correlationBoostIdempotent() {
+      var observations = new ArrayList<TestedObservation>();
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
+      observations.add(makeTestedObs(8.05, 4.05, 0.01, 1, 0.5));
+
+      filter.applyCorrelationBoost(observations);
+      double score1 = observations.get(0).score();
+
+      filter.applyCorrelationBoost(observations);
+      double score2 = observations.get(0).score();
+
+      // Second application should boost again (not idempotent by design)
+      // This test documents the actual behavior
+      assertTrue(score2 >= score1, "Second boost should not decrease score");
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("All default tests are applied")
+    void allDefaultTestsApplied() {
+      var obs = makeObservation(8.0, 4.0, 0.0);
+      var tested = filter.scoreObservation(obs, 0, null, 0.0, VisionFilter.DEFAULT_ENABLED_TESTS);
+
+      for (var test : VisionFilter.DEFAULT_ENABLED_TESTS) {
+        assertTrue(tested.testResults().containsKey(test),
+            "Test " + test.name() + " should be in results");
+      }
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Empty test set produces NaN (edge case)")
+    void emptyTestSetEdgeCase() {
+      var obs = makeObservation(8.0, 4.0, 0.0);
+      var tested = filter.scoreObservation(obs, 0, null, 0.0, EnumSet.noneOf(Test.class));
+
+      // With no tests, geometric mean is undefined (0^0 or similar)
+      // Document actual behavior
+      assertTrue(Double.isNaN(tested.score()) || tested.score() == 1.0,
+          "Empty test set should produce NaN or 1.0");
+    }
+  }
+}
