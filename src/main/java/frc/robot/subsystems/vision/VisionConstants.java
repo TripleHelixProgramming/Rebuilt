@@ -16,6 +16,7 @@ import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.Filesystem;
+import frc.robot.Robot;
 import frc.robot.subsystems.drive.DriveConstants;
 
 public class VisionConstants {
