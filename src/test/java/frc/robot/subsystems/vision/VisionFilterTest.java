@@ -6,9 +6,9 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
-import frc.robot.subsystems.vision.VisionFilter.TestedObservation;
 import frc.robot.subsystems.vision.VisionFilter.Test;
 import frc.robot.subsystems.vision.VisionFilter.TestContext;
+import frc.robot.subsystems.vision.VisionFilter.TestedObservation;
 import frc.robot.subsystems.vision.VisionIO.PoseObservation;
 import frc.robot.subsystems.vision.VisionIO.PoseObservationType;
 import java.util.ArrayList;
@@ -67,7 +67,8 @@ class VisionFilterTest {
   }
 
   /** Creates a TestedObservation for correlation boost tests. */
-  private TestedObservation makeTestedObs(double x, double y, double timestamp, int cameraIndex, double score) {
+  private TestedObservation makeTestedObs(
+      double x, double y, double timestamp, int cameraIndex, double score) {
     return new TestedObservation(makeObservation(x, y, timestamp), cameraIndex, null, score);
   }
 
@@ -77,8 +78,10 @@ class VisionFilterTest {
   }
 
   /** Scores with velocity tracking from a previous pose. */
-  private TestedObservation scoreWithHistory(PoseObservation obs, Pose2d lastPose, double lastTimestamp) {
-    return filter.scoreObservation(obs, 0, lastPose, lastTimestamp, VisionFilter.DEFAULT_ENABLED_TESTS);
+  private TestedObservation scoreWithHistory(
+      PoseObservation obs, Pose2d lastPose, double lastTimestamp) {
+    return filter.scoreObservation(
+        obs, 0, lastPose, lastTimestamp, VisionFilter.DEFAULT_ENABLED_TESTS);
   }
 
   // ==================== Individual Test Tests ====================
@@ -90,21 +93,22 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Single tag with low ambiguity scores higher than high ambiguity")
     void lowAmbiguitySingleTag() {
-      var lowAmb = new TestContext()
-          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, 3.0));
-      var highAmb = new TestContext()
-          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.3, 3.0));
+      var lowAmb =
+          new TestContext().observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, 3.0));
+      var highAmb =
+          new TestContext().observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.3, 3.0));
       double lowResult = Test.unambiguous.test(lowAmb);
       double highResult = Test.unambiguous.test(highAmb);
-      assertTrue(lowResult > highResult, "Low ambiguity should score higher: " + lowResult + " vs " + highResult);
+      assertTrue(
+          lowResult > highResult,
+          "Low ambiguity should score higher: " + lowResult + " vs " + highResult);
       assertTrue(lowResult > 0.5, "Low ambiguity should be > 0.5, got " + lowResult);
     }
 
     @org.junit.jupiter.api.Test
     @DisplayName("Single tag with high ambiguity scores low")
     void highAmbiguitySingleTag() {
-      var ctx = new TestContext()
-          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.5, 3.0));
+      var ctx = new TestContext().observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.5, 3.0));
       double result = Test.unambiguous.test(ctx);
       assertTrue(result < 0.5, "High ambiguity should score < 0.5, got " + result);
     }
@@ -112,8 +116,7 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Multiple tags ignore ambiguity (always 1.0)")
     void multipleTagsIgnoreAmbiguity() {
-      var ctx = new TestContext()
-          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 2, 0.99, 3.0));
+      var ctx = new TestContext().observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 2, 0.99, 3.0));
       double result = Test.unambiguous.test(ctx);
       assertEquals(1.0, result, 0.001, "Multiple tags should always return 1.0");
     }
@@ -121,8 +124,7 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Zero tags still returns 1.0 (ambiguity irrelevant)")
     void zeroTagsReturnsOne() {
-      var ctx = new TestContext()
-          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 0, 0.5, 3.0));
+      var ctx = new TestContext().observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 0, 0.5, 3.0));
       double result = Test.unambiguous.test(ctx);
       assertEquals(1.0, result, 0.001, "Zero tags should return 1.0 (caught by moreThanZeroTags)");
     }
@@ -131,8 +133,8 @@ class VisionFilterTest {
     @DisplayName("Ambiguity at tolerance threshold")
     void ambiguityAtThreshold() {
       double tolerance = VisionConstants.ambiguityTolerance; // 0.15
-      var ctx = new TestContext()
-          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, tolerance, 3.0));
+      var ctx =
+          new TestContext().observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, tolerance, 3.0));
       double result = Test.unambiguous.test(ctx);
       // At midpoint of sigmoid, should be around 0.5
       assertTrue(result > 0.3 && result < 0.7, "At threshold should be ~0.5, got " + result);
@@ -146,20 +148,24 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Zero pitch scores higher than large pitch")
     void zeroPitchScoresHigher() {
-      var zeroPitch = new TestContext()
-          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, 3.0));
-      var largePitch = new TestContext()
-          .observation(makeObservation(8, 4, 0, 0, Math.toRadians(30), 0, 0.0, 1, 0.01, 3.0));
+      var zeroPitch =
+          new TestContext().observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, 3.0));
+      var largePitch =
+          new TestContext()
+              .observation(makeObservation(8, 4, 0, 0, Math.toRadians(30), 0, 0.0, 1, 0.01, 3.0));
       double zeroResult = Test.pitchError.test(zeroPitch);
       double largeResult = Test.pitchError.test(largePitch);
-      assertTrue(zeroResult > largeResult, "Zero pitch should score higher: " + zeroResult + " vs " + largeResult);
+      assertTrue(
+          zeroResult > largeResult,
+          "Zero pitch should score higher: " + zeroResult + " vs " + largeResult);
     }
 
     @org.junit.jupiter.api.Test
     @DisplayName("Large positive pitch scores low")
     void largePositivePitch() {
-      var ctx = new TestContext()
-          .observation(makeObservation(8, 4, 0, 0, Math.toRadians(30), 0, 0.0, 1, 0.01, 3.0));
+      var ctx =
+          new TestContext()
+              .observation(makeObservation(8, 4, 0, 0, Math.toRadians(30), 0, 0.0, 1, 0.01, 3.0));
       double result = Test.pitchError.test(ctx);
       assertTrue(result < 0.5, "30 degree pitch should score < 0.5, got " + result);
     }
@@ -167,25 +173,32 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Negative pitch penalized same as positive (absolute value)")
     void negativePitchSymmetric() {
-      var posPitch = new TestContext()
-          .observation(makeObservation(8, 4, 0, 0, Math.toRadians(15), 0, 0.0, 1, 0.01, 3.0));
-      var negPitch = new TestContext()
-          .observation(makeObservation(8, 4, 0, 0, Math.toRadians(-15), 0, 0.0, 1, 0.01, 3.0));
+      var posPitch =
+          new TestContext()
+              .observation(makeObservation(8, 4, 0, 0, Math.toRadians(15), 0, 0.0, 1, 0.01, 3.0));
+      var negPitch =
+          new TestContext()
+              .observation(makeObservation(8, 4, 0, 0, Math.toRadians(-15), 0, 0.0, 1, 0.01, 3.0));
       double posResult = Test.pitchError.test(posPitch);
       double negResult = Test.pitchError.test(negPitch);
-      assertEquals(posResult, negResult, 0.001, "Positive and negative pitch should score the same");
+      assertEquals(
+          posResult, negResult, 0.001, "Positive and negative pitch should score the same");
     }
 
     @org.junit.jupiter.api.Test
     @DisplayName("Small pitch scores better than large pitch")
     void smallPitchScoresBetter() {
-      var smallPitch = new TestContext()
-          .observation(makeObservation(8, 4, 0, 0, Math.toRadians(2), 0, 0.0, 1, 0.01, 3.0));
-      var largePitch = new TestContext()
-          .observation(makeObservation(8, 4, 0, 0, Math.toRadians(20), 0, 0.0, 1, 0.01, 3.0));
+      var smallPitch =
+          new TestContext()
+              .observation(makeObservation(8, 4, 0, 0, Math.toRadians(2), 0, 0.0, 1, 0.01, 3.0));
+      var largePitch =
+          new TestContext()
+              .observation(makeObservation(8, 4, 0, 0, Math.toRadians(20), 0, 0.0, 1, 0.01, 3.0));
       double smallResult = Test.pitchError.test(smallPitch);
       double largeResult = Test.pitchError.test(largePitch);
-      assertTrue(smallResult > largeResult, "Small pitch should score better: " + smallResult + " vs " + largeResult);
+      assertTrue(
+          smallResult > largeResult,
+          "Small pitch should score better: " + smallResult + " vs " + largeResult);
     }
   }
 
@@ -196,20 +209,24 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Zero roll scores higher than large roll")
     void zeroRollScoresHigher() {
-      var zeroRoll = new TestContext()
-          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, 3.0));
-      var largeRoll = new TestContext()
-          .observation(makeObservation(8, 4, 0, Math.toRadians(25), 0, 0, 0.0, 1, 0.01, 3.0));
+      var zeroRoll =
+          new TestContext().observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, 3.0));
+      var largeRoll =
+          new TestContext()
+              .observation(makeObservation(8, 4, 0, Math.toRadians(25), 0, 0, 0.0, 1, 0.01, 3.0));
       double zeroResult = Test.rollError.test(zeroRoll);
       double largeResult = Test.rollError.test(largeRoll);
-      assertTrue(zeroResult > largeResult, "Zero roll should score higher: " + zeroResult + " vs " + largeResult);
+      assertTrue(
+          zeroResult > largeResult,
+          "Zero roll should score higher: " + zeroResult + " vs " + largeResult);
     }
 
     @org.junit.jupiter.api.Test
     @DisplayName("Large roll scores low")
     void largeRoll() {
-      var ctx = new TestContext()
-          .observation(makeObservation(8, 4, 0, Math.toRadians(25), 0, 0, 0.0, 1, 0.01, 3.0));
+      var ctx =
+          new TestContext()
+              .observation(makeObservation(8, 4, 0, Math.toRadians(25), 0, 0, 0.0, 1, 0.01, 3.0));
       double result = Test.rollError.test(ctx);
       assertTrue(result < 0.5, "25 degree roll should score < 0.5, got " + result);
     }
@@ -222,20 +239,22 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Zero height scores higher than large height")
     void zeroHeightScoresHigher() {
-      var zeroHeight = new TestContext()
-          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, 3.0));
-      var largeHeight = new TestContext()
-          .observation(makeObservation(8, 4, 1.0, 0, 0, 0, 0.0, 1, 0.01, 3.0));
+      var zeroHeight =
+          new TestContext().observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, 3.0));
+      var largeHeight =
+          new TestContext().observation(makeObservation(8, 4, 1.0, 0, 0, 0, 0.0, 1, 0.01, 3.0));
       double zeroResult = Test.heightError.test(zeroHeight);
       double largeResult = Test.heightError.test(largeHeight);
-      assertTrue(zeroResult > largeResult, "Zero height should score higher: " + zeroResult + " vs " + largeResult);
+      assertTrue(
+          zeroResult > largeResult,
+          "Zero height should score higher: " + zeroResult + " vs " + largeResult);
     }
 
     @org.junit.jupiter.api.Test
     @DisplayName("Large positive height scores low")
     void largePositiveHeight() {
-      var ctx = new TestContext()
-          .observation(makeObservation(8, 4, 1.0, 0, 0, 0, 0.0, 1, 0.01, 3.0));
+      var ctx =
+          new TestContext().observation(makeObservation(8, 4, 1.0, 0, 0, 0, 0.0, 1, 0.01, 3.0));
       double result = Test.heightError.test(ctx);
       assertTrue(result < 0.5, "1m height should score < 0.5, got " + result);
     }
@@ -243,8 +262,8 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Negative height (underground) scores low")
     void negativeHeight() {
-      var ctx = new TestContext()
-          .observation(makeObservation(8, 4, -0.5, 0, 0, 0, 0.0, 1, 0.01, 3.0));
+      var ctx =
+          new TestContext().observation(makeObservation(8, 4, -0.5, 0, 0, 0, 0.0, 1, 0.01, 3.0));
       double result = Test.heightError.test(ctx);
       assertTrue(result < 0.5, "Negative height should score low, got " + result);
     }
@@ -252,13 +271,15 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Small height scores better than large height")
     void smallHeightScoresBetter() {
-      var smallHeight = new TestContext()
-          .observation(makeObservation(8, 4, 0.1, 0, 0, 0, 0.0, 1, 0.01, 3.0));
-      var largeHeight = new TestContext()
-          .observation(makeObservation(8, 4, 0.8, 0, 0, 0, 0.0, 1, 0.01, 3.0));
+      var smallHeight =
+          new TestContext().observation(makeObservation(8, 4, 0.1, 0, 0, 0, 0.0, 1, 0.01, 3.0));
+      var largeHeight =
+          new TestContext().observation(makeObservation(8, 4, 0.8, 0, 0, 0, 0.0, 1, 0.01, 3.0));
       double smallResult = Test.heightError.test(smallHeight);
       double largeResult = Test.heightError.test(largeHeight);
-      assertTrue(smallResult > largeResult, "Small height should score better: " + smallResult + " vs " + largeResult);
+      assertTrue(
+          smallResult > largeResult,
+          "Small height should score better: " + smallResult + " vs " + largeResult);
     }
   }
 
@@ -269,8 +290,7 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Center of field scores 1.0")
     void centerOfField() {
-      var ctx = new TestContext()
-          .observation(makeObservation(FIELD_X / 2, FIELD_Y / 2, 0.0));
+      var ctx = new TestContext().observation(makeObservation(FIELD_X / 2, FIELD_Y / 2, 0.0));
       double result = Test.withinBoundaries.test(ctx);
       assertEquals(1.0, result, 0.001);
     }
@@ -279,8 +299,7 @@ class VisionFilterTest {
     @DisplayName("Just inside boundary scores 1.0")
     void justInsideBoundary() {
       double margin = ROBOT_HALF_WIDTH + 0.1;
-      var ctx = new TestContext()
-          .observation(makeObservation(margin, margin, 0.0));
+      var ctx = new TestContext().observation(makeObservation(margin, margin, 0.0));
       double result = Test.withinBoundaries.test(ctx);
       assertEquals(1.0, result, 0.001);
     }
@@ -288,8 +307,7 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Outside X boundary (negative) scores 0")
     void outsideNegativeX() {
-      var ctx = new TestContext()
-          .observation(makeObservation(-1.0, 4.0, 0.0));
+      var ctx = new TestContext().observation(makeObservation(-1.0, 4.0, 0.0));
       double result = Test.withinBoundaries.test(ctx);
       assertEquals(0.0, result, 0.001);
     }
@@ -297,8 +315,7 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Outside X boundary (positive) scores 0")
     void outsidePositiveX() {
-      var ctx = new TestContext()
-          .observation(makeObservation(FIELD_X + 1.0, 4.0, 0.0));
+      var ctx = new TestContext().observation(makeObservation(FIELD_X + 1.0, 4.0, 0.0));
       double result = Test.withinBoundaries.test(ctx);
       assertEquals(0.0, result, 0.001);
     }
@@ -306,8 +323,7 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Outside Y boundary (negative) scores 0")
     void outsideNegativeY() {
-      var ctx = new TestContext()
-          .observation(makeObservation(8.0, -1.0, 0.0));
+      var ctx = new TestContext().observation(makeObservation(8.0, -1.0, 0.0));
       double result = Test.withinBoundaries.test(ctx);
       assertEquals(0.0, result, 0.001);
     }
@@ -315,8 +331,7 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Outside Y boundary (positive) scores 0")
     void outsidePositiveY() {
-      var ctx = new TestContext()
-          .observation(makeObservation(8.0, FIELD_Y + 1.0, 0.0));
+      var ctx = new TestContext().observation(makeObservation(8.0, FIELD_Y + 1.0, 0.0));
       double result = Test.withinBoundaries.test(ctx);
       assertEquals(0.0, result, 0.001);
     }
@@ -324,8 +339,7 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Corner outside scores 0")
     void cornerOutside() {
-      var ctx = new TestContext()
-          .observation(makeObservation(-5.0, -5.0, 0.0));
+      var ctx = new TestContext().observation(makeObservation(-5.0, -5.0, 0.0));
       double result = Test.withinBoundaries.test(ctx);
       assertEquals(0.0, result, 0.001);
     }
@@ -338,8 +352,7 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Zero tags scores 0")
     void zeroTags() {
-      var ctx = new TestContext()
-          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 0, 0.01, 3.0));
+      var ctx = new TestContext().observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 0, 0.01, 3.0));
       double result = Test.moreThanZeroTags.test(ctx);
       assertEquals(0.0, result, 0.001);
     }
@@ -347,8 +360,7 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("One tag scores 1.0")
     void oneTag() {
-      var ctx = new TestContext()
-          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, 3.0));
+      var ctx = new TestContext().observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, 3.0));
       double result = Test.moreThanZeroTags.test(ctx);
       assertEquals(1.0, result, 0.001);
     }
@@ -356,8 +368,7 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Multiple tags scores 1.0")
     void multipleTags() {
-      var ctx = new TestContext()
-          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 5, 0.01, 3.0));
+      var ctx = new TestContext().observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 5, 0.01, 3.0));
       double result = Test.moreThanZeroTags.test(ctx);
       assertEquals(1.0, result, 0.001);
     }
@@ -370,8 +381,7 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Close tags score well")
     void closeTags() {
-      var ctx = new TestContext()
-          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, 1.0));
+      var ctx = new TestContext().observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, 1.0));
       double result = Test.distanceToTags.test(ctx);
       assertTrue(result > 0.8, "1m distance should score well, got " + result);
     }
@@ -379,8 +389,7 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Far tags score poorly")
     void farTags() {
-      var ctx = new TestContext()
-          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, 8.0));
+      var ctx = new TestContext().observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, 8.0));
       double result = Test.distanceToTags.test(ctx);
       assertTrue(result < 0.3, "8m distance should score poorly, got " + result);
     }
@@ -389,8 +398,8 @@ class VisionFilterTest {
     @DisplayName("Moderate distance at tolerance")
     void moderateDistance() {
       double tolerance = VisionConstants.tagDistanceToleranceMeters; // 4.0
-      var ctx = new TestContext()
-          .observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, tolerance));
+      var ctx =
+          new TestContext().observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, tolerance));
       double result = Test.distanceToTags.test(ctx);
       assertTrue(result > 0.3 && result < 0.7, "At tolerance should be ~0.5, got " + result);
     }
@@ -403,10 +412,11 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("No previous pose returns 1.0")
     void noPreviousPose() {
-      var ctx = new TestContext()
-          .observation(makeObservation(8, 4, 0.0))
-          .lastAcceptedPose(null)
-          .lastAcceptedTimestamp(0.0);
+      var ctx =
+          new TestContext()
+              .observation(makeObservation(8, 4, 0.0))
+              .lastAcceptedPose(null)
+              .lastAcceptedTimestamp(0.0);
       double result = Test.velocityConsistency.test(ctx);
       assertEquals(1.0, result, 0.001);
     }
@@ -415,10 +425,11 @@ class VisionFilterTest {
     @DisplayName("Reasonable velocity scores well")
     void reasonableVelocity() {
       var lastPose = new Pose2d(8.0, 4.0, new Rotation2d());
-      var ctx = new TestContext()
-          .observation(makeObservation(8.5, 4.0, 0.1)) // 0.5m in 0.1s = 5 m/s
-          .lastAcceptedPose(lastPose)
-          .lastAcceptedTimestamp(0.0);
+      var ctx =
+          new TestContext()
+              .observation(makeObservation(8.5, 4.0, 0.1)) // 0.5m in 0.1s = 5 m/s
+              .lastAcceptedPose(lastPose)
+              .lastAcceptedTimestamp(0.0);
       double result = Test.velocityConsistency.test(ctx);
       assertTrue(result > 0.5, "5 m/s should be acceptable, got " + result);
     }
@@ -427,10 +438,11 @@ class VisionFilterTest {
     @DisplayName("Impossible velocity scores poorly")
     void impossibleVelocity() {
       var lastPose = new Pose2d(8.0, 4.0, new Rotation2d());
-      var ctx = new TestContext()
-          .observation(makeObservation(18.0, 4.0, 0.1)) // 10m in 0.1s = 100 m/s
-          .lastAcceptedPose(lastPose)
-          .lastAcceptedTimestamp(0.0);
+      var ctx =
+          new TestContext()
+              .observation(makeObservation(18.0, 4.0, 0.1)) // 10m in 0.1s = 100 m/s
+              .lastAcceptedPose(lastPose)
+              .lastAcceptedTimestamp(0.0);
       double result = Test.velocityConsistency.test(ctx);
       assertTrue(result < 0.2, "100 m/s should be rejected, got " + result);
     }
@@ -439,10 +451,11 @@ class VisionFilterTest {
     @DisplayName("Very small dt returns 1.0 (avoid division issues)")
     void verySmallDt() {
       var lastPose = new Pose2d(8.0, 4.0, new Rotation2d());
-      var ctx = new TestContext()
-          .observation(makeObservation(18.0, 4.0, 0.0005)) // dt < 0.001
-          .lastAcceptedPose(lastPose)
-          .lastAcceptedTimestamp(0.0);
+      var ctx =
+          new TestContext()
+              .observation(makeObservation(18.0, 4.0, 0.0005)) // dt < 0.001
+              .lastAcceptedPose(lastPose)
+              .lastAcceptedTimestamp(0.0);
       double result = Test.velocityConsistency.test(ctx);
       assertEquals(1.0, result, 0.001, "Very small dt should return 1.0");
     }
@@ -451,10 +464,11 @@ class VisionFilterTest {
     @DisplayName("Long timeout returns 1.0 (stale data)")
     void longTimeout() {
       var lastPose = new Pose2d(8.0, 4.0, new Rotation2d());
-      var ctx = new TestContext()
-          .observation(makeObservation(18.0, 4.0, 1.0)) // 1 second later
-          .lastAcceptedPose(lastPose)
-          .lastAcceptedTimestamp(0.0);
+      var ctx =
+          new TestContext()
+              .observation(makeObservation(18.0, 4.0, 1.0)) // 1 second later
+              .lastAcceptedPose(lastPose)
+              .lastAcceptedTimestamp(0.0);
       double result = Test.velocityConsistency.test(ctx);
       assertEquals(1.0, result, 0.001, "Stale timestamp should return 1.0");
     }
@@ -463,10 +477,11 @@ class VisionFilterTest {
     @DisplayName("Stationary robot scores perfectly")
     void stationaryRobot() {
       var lastPose = new Pose2d(8.0, 4.0, new Rotation2d());
-      var ctx = new TestContext()
-          .observation(makeObservation(8.0, 4.0, 0.05))
-          .lastAcceptedPose(lastPose)
-          .lastAcceptedTimestamp(0.0);
+      var ctx =
+          new TestContext()
+              .observation(makeObservation(8.0, 4.0, 0.05))
+              .lastAcceptedPose(lastPose)
+              .lastAcceptedTimestamp(0.0);
       double result = Test.velocityConsistency.test(ctx);
       assertTrue(result > 0.95, "Stationary should score ~1.0, got " + result);
     }
@@ -483,7 +498,8 @@ class VisionFilterTest {
     void validObservationScoresHigh() {
       var obs = makeObservation(8.0, 4.0, 0.0);
       var tested = score(obs);
-      assertTrue(tested.score() > 0.5, "Valid observation should score > 0.5, got " + tested.score());
+      assertTrue(
+          tested.score() > 0.5, "Valid observation should score > 0.5, got " + tested.score());
     }
 
     @org.junit.jupiter.api.Test
@@ -511,7 +527,8 @@ class VisionFilterTest {
       var testedLow = score(lowAmb);
       var testedHigh = score(highAmb);
 
-      assertTrue(testedLow.score() > testedHigh.score(),
+      assertTrue(
+          testedLow.score() > testedHigh.score(),
           "Low ambiguity should score higher: " + testedLow.score() + " vs " + testedHigh.score());
     }
 
@@ -524,7 +541,8 @@ class VisionFilterTest {
       var testedNo = score(noPitch);
       var testedBig = score(bigPitch);
 
-      assertTrue(testedNo.score() > testedBig.score(),
+      assertTrue(
+          testedNo.score() > testedBig.score(),
           "No pitch should score higher: " + testedNo.score() + " vs " + testedBig.score());
     }
 
@@ -561,7 +579,8 @@ class VisionFilterTest {
       var impossible = makeObservation(18.0, 4.0, 0.1);
       var testedImpossible = scoreWithHistory(impossible, lastPose, 0.0);
 
-      assertTrue(testedReasonable.score() > testedImpossible.score(),
+      assertTrue(
+          testedReasonable.score() > testedImpossible.score(),
           "Reasonable velocity should score higher");
     }
 
@@ -594,10 +613,12 @@ class VisionFilterTest {
       var testedGood = score(good);
       var testedBad = score(bad);
 
-      assertTrue(testedGood.score() > testedBad.score(),
+      assertTrue(
+          testedGood.score() > testedBad.score(),
           "Good should score higher than bad: " + testedGood.score() + " vs " + testedBad.score());
       // The geometric mean ensures multiple failures have compounding effect
-      assertTrue(testedGood.score() > testedBad.score() * 1.2,
+      assertTrue(
+          testedGood.score() > testedBad.score() * 1.2,
           "Multiple bad factors should have significant impact");
     }
   }
@@ -693,7 +714,10 @@ class VisionFilterTest {
       filter.applyCorrelationBoost(observations);
 
       for (int i = 0; i < 4; i++) {
-        assertEquals(0.5, observations.get(i).score(), 0.001,
+        assertEquals(
+            0.5,
+            observations.get(i).score(),
+            0.001,
             "2v2 split: camera " + i + " should not be boosted");
       }
     }
@@ -729,8 +753,8 @@ class VisionFilterTest {
       filter.applyCorrelationBoost(observations);
 
       for (int i = 0; i < 4; i++) {
-        assertTrue(observations.get(i).score() > 0.5,
-            "Camera " + i + " should be boosted when all agree");
+        assertTrue(
+            observations.get(i).score() > 0.5, "Camera " + i + " should be boosted when all agree");
       }
     }
 
@@ -896,8 +920,12 @@ class VisionFilterTest {
       double shallowBelow = VisionFilter.normalizedSigmoid(4.0, 5.0, 1.0);
       double steepBelow = VisionFilter.normalizedSigmoid(4.0, 5.0, 4.0);
 
-      assertTrue(steepBelow < shallowBelow,
-          "Steeper should be lower below midpoint: steep=" + steepBelow + " shallow=" + shallowBelow);
+      assertTrue(
+          steepBelow < shallowBelow,
+          "Steeper should be lower below midpoint: steep="
+              + steepBelow
+              + " shallow="
+              + shallowBelow);
     }
 
     @org.junit.jupiter.api.Test
@@ -926,8 +954,16 @@ class VisionFilterTest {
         for (double mid = -10; mid <= 10; mid += 5) {
           for (double steep = 0.1; steep <= 10; steep += 2) {
             double result = VisionFilter.normalizedSigmoid(x, mid, steep);
-            assertTrue(result >= 0.0 && result <= 1.0,
-                "Result should be in [0,1]: " + result + " for x=" + x + " mid=" + mid + " steep=" + steep);
+            assertTrue(
+                result >= 0.0 && result <= 1.0,
+                "Result should be in [0,1]: "
+                    + result
+                    + " for x="
+                    + x
+                    + " mid="
+                    + mid
+                    + " steep="
+                    + steep);
           }
         }
       }
@@ -967,11 +1003,12 @@ class VisionFilterTest {
       var obs = makeObservation(8.0, 4.0, 1.0);
       var pose = new Pose2d(1, 2, new Rotation2d());
 
-      var ctx = new TestContext()
-          .observation(obs)
-          .cameraIndex(3)
-          .lastAcceptedPose(pose)
-          .lastAcceptedTimestamp(0.5);
+      var ctx =
+          new TestContext()
+              .observation(obs)
+              .cameraIndex(3)
+              .lastAcceptedPose(pose)
+              .lastAcceptedTimestamp(0.5);
 
       assertSame(obs, ctx.observation());
       assertEquals(3, ctx.cameraIndex());
@@ -982,9 +1019,7 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Can set null values")
     void canSetNullValues() {
-      var ctx = new TestContext()
-          .observation(null)
-          .lastAcceptedPose(null);
+      var ctx = new TestContext().observation(null).lastAcceptedPose(null);
 
       assertNull(ctx.observation());
       assertNull(ctx.lastAcceptedPose());
@@ -1006,19 +1041,29 @@ class VisionFilterTest {
 
       // Due to sigmoid gradients, even "perfect" observations don't score 1.0
       // But they should score well above the threshold
-      assertTrue(tested.score() > VisionConstants.minScore * 2,
+      assertTrue(
+          tested.score() > VisionConstants.minScore * 2,
           "Perfect observation should score well above minScore, got " + tested.score());
-      assertTrue(tested.score() > 0.4, "Perfect observation should score > 0.4, got " + tested.score());
+      assertTrue(
+          tested.score() > 0.4, "Perfect observation should score > 0.4, got " + tested.score());
     }
 
     @org.junit.jupiter.api.Test
     @DisplayName("Worst valid observation still passes if in bounds")
     void worstValidObservation() {
       // Just inside field, max ambiguity, far tags, some tilt
-      var obs = makeObservation(
-          ROBOT_HALF_WIDTH + 0.1, ROBOT_HALF_WIDTH + 0.1, 0.2,
-          Math.toRadians(4), Math.toRadians(4), 0,
-          0.0, 1, 0.14, 5.0);
+      var obs =
+          makeObservation(
+              ROBOT_HALF_WIDTH + 0.1,
+              ROBOT_HALF_WIDTH + 0.1,
+              0.2,
+              Math.toRadians(4),
+              Math.toRadians(4),
+              0,
+              0.0,
+              1,
+              0.14,
+              5.0);
       var tested = score(obs);
 
       assertTrue(tested.score() > 0, "Should have non-zero score, got " + tested.score());
@@ -1034,7 +1079,10 @@ class VisionFilterTest {
       var tested2 = score(obs2);
       var tested1b = score(obs1);
 
-      assertEquals(tested1a.score(), tested1b.score(), 0.001,
+      assertEquals(
+          tested1a.score(),
+          tested1b.score(),
+          0.001,
           "Same observation should get same score on repeated calls");
     }
 
@@ -1063,7 +1111,8 @@ class VisionFilterTest {
       var tested = filter.scoreObservation(obs, 0, null, 0.0, VisionFilter.DEFAULT_ENABLED_TESTS);
 
       for (var test : VisionFilter.DEFAULT_ENABLED_TESTS) {
-        assertTrue(tested.testResults().containsKey(test),
+        assertTrue(
+            tested.testResults().containsKey(test),
             "Test " + test.name() + " should be in results");
       }
     }
@@ -1076,7 +1125,8 @@ class VisionFilterTest {
 
       // With no tests, geometric mean is undefined (0^0 or similar)
       // Document actual behavior
-      assertTrue(Double.isNaN(tested.score()) || tested.score() == 1.0,
+      assertTrue(
+          Double.isNaN(tested.score()) || tested.score() == 1.0,
           "Empty test set should produce NaN or 1.0");
     }
   }

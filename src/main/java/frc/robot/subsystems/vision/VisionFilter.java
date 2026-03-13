@@ -40,8 +40,10 @@ public class VisionFilter {
 
   // Reusable data structures for cross-camera correlation (avoids allocations)
   private static final int MAX_OBSERVATIONS = 32;
+
   @SuppressWarnings("unchecked")
   private final Set<Integer>[] clusters = new HashSet[MAX_OBSERVATIONS];
+
   private final Map<Integer, Set<Integer>> clusterMap = new HashMap<>();
   private final Set<Integer> camerasInWindow = new HashSet<>();
   private final Set<Integer> camerasInCluster = new HashSet<>();
@@ -109,8 +111,8 @@ public class VisionFilter {
   /**
    * Vision tests that evaluate the quality of pose observations.
    *
-   * <p>Each test returns a score between 0 and 1. Tests have weights that determine their impact
-   * on the final score via weighted geometric mean.
+   * <p>Each test returns a score between 0 and 1. Tests have weights that determine their impact on
+   * the final score via weighted geometric mean.
    */
   public enum Test {
     unambiguous(0.8) {
@@ -346,7 +348,9 @@ public class VisionFilter {
         var orig = observations.get(i);
         double boosted = Math.min(1.0, orig.score() * correlationBoostFactor);
         observations.set(
-            i, new TestedObservation(orig.observation(), orig.cameraIndex(), orig.testResults(), boosted));
+            i,
+            new TestedObservation(
+                orig.observation(), orig.cameraIndex(), orig.testResults(), boosted));
       }
     }
   }
