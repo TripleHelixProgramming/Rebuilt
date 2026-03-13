@@ -7,6 +7,7 @@ Analyzes:
 - Vision outputs (ObservationScore, RobotPosesAccepted, RobotPosesRejected)
 - Timing differences
 - Score distributions
+- False positive detection heuristics (pose jumps, velocity consistency)
 """
 
 import array
@@ -15,9 +16,70 @@ import struct
 import sys
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple, Any, Set
 
 import msgpack
+
+# Constants for analysis
+MAX_REASONABLE_VELOCITY_MPS = 7.5  # ~1.5x typical FRC max speed
+TIMESTAMP_MATCH_TOLERANCE = 0.001  # 1ms tolerance for matching timestamps
+POSE_JUMP_THRESHOLD_METERS = 0.5  # Flag jumps larger than this
+
+# Struct sizes (WPILib serialization)
+# Pose3d = Translation3d (3 doubles) + Rotation3d as Quaternion (4 doubles) = 56 bytes
+POSE3D_STRUCT_SIZE = 56  # 7 doubles * 8 bytes
+
+
+@dataclass
+class Pose3d:
+    """Decoded Pose3d from WPILib struct format."""
+    x: float
+    y: float
+    z: float
+    qw: float  # Quaternion w component
+    qx: float  # Quaternion x component
+    qy: float  # Quaternion y component
+    qz: float  # Quaternion z component
+
+    def distance_2d(self, other: 'Pose3d') -> float:
+        """2D distance (ignoring Z) between two poses."""
+        dx = self.x - other.x
+        dy = self.y - other.y
+        return (dx * dx + dy * dy) ** 0.5
+
+    def distance_3d(self, other: 'Pose3d') -> float:
+        """3D distance between two poses."""
+        dx = self.x - other.x
+        dy = self.y - other.y
+        dz = self.z - other.z
+        return (dx * dx + dy * dy + dz * dz) ** 0.5
+
+
+def decode_pose3d(data: bytes, offset: int = 0) -> Optional[Pose3d]:
+    """Decode a single Pose3d from raw bytes at the given offset."""
+    if len(data) < offset + POSE3D_STRUCT_SIZE:
+        return None
+    try:
+        # WPILib serializes as: x, y, z (Translation3d), then qw, qx, qy, qz (Quaternion)
+        values = struct.unpack_from('<7d', data, offset)
+        return Pose3d(
+            x=values[0], y=values[1], z=values[2],
+            qw=values[3], qx=values[4], qy=values[5], qz=values[6]
+        )
+    except struct.error:
+        return None
+
+
+def decode_pose3d_array(data: bytes) -> List[Pose3d]:
+    """Decode an array of Pose3d structs from raw bytes."""
+    poses = []
+    offset = 0
+    while offset + POSE3D_STRUCT_SIZE <= len(data):
+        pose = decode_pose3d(data, offset)
+        if pose:
+            poses.append(pose)
+        offset += POSE3D_STRUCT_SIZE
+    return poses
 
 # --- WPILib DataLog Reader (from wpilibsuite/allwpilib) ---
 
@@ -259,12 +321,15 @@ def decode_value(record: DataLogRecord, type_: str) -> Any:
         return list(record.getDoubleArray())
     elif type_ == "int64[]":
         return list(record.getIntegerArray())
+    elif "Pose3d" in type_ and type_.startswith("structarray:"):
+        # Decode Pose3d array
+        return decode_pose3d_array(record.data)
     elif type_.startswith("struct:") or type_.startswith("structarray:"):
-        # AdvantageKit struct types - return raw bytes length as indicator
-        return len(record.data)
+        # Other struct types - return raw bytes for potential future decoding
+        return record.data
     else:
-        # Unknown type, return raw bytes length
-        return len(record.data)
+        # Unknown type, return raw bytes
+        return record.data
 
 
 def compute_statistics(values: List[float]) -> Dict[str, float]:
@@ -283,6 +348,456 @@ def compute_statistics(values: List[float]) -> Dict[str, float]:
         "mean": sum(values) / len(values),
         "sum": sum(values)
     }
+
+
+# --- False Positive Analysis Functions ---
+
+
+@dataclass
+class TimestampedScore:
+    """A score with its timestamp for matching across code versions."""
+    timestamp: float
+    score: float
+
+
+@dataclass
+class PoseJump:
+    """Records a suspicious pose discontinuity."""
+    timestamp: float
+    prev_timestamp: float
+    distance_m: float
+    implied_velocity_mps: float
+    score: float
+
+
+@dataclass
+class FalsePositiveAnalysis:
+    """Results of false positive detection heuristics."""
+    # Observations old code accepted but new code rejected
+    newly_rejected_count: int
+    newly_rejected_timestamps: List[float]
+
+    # Pose discontinuities in accepted trajectory
+    pose_jumps: List[PoseJump]
+    max_jump_distance: float
+    jumps_above_threshold: int
+
+    # Velocity consistency violations
+    impossible_velocities: List[PoseJump]
+    max_implied_velocity: float
+
+    # Score comparison for observations both accepted
+    both_accepted_count: int
+    score_improvements: List[Tuple[float, float, float]]  # (timestamp, old_score, new_score)
+    mean_score_change_when_both_accepted: float
+
+
+def find_timestamp_matches(
+    timestamps_a: List[float],
+    timestamps_b: List[float],
+    tolerance: float = TIMESTAMP_MATCH_TOLERANCE
+) -> Tuple[Set[int], Set[int], List[Tuple[int, int]]]:
+    """
+    Find matching timestamps between two lists.
+
+    Returns:
+        - indices in A that have no match in B
+        - indices in B that have no match in A
+        - list of (index_a, index_b) pairs that match
+    """
+    matched_a: Set[int] = set()
+    matched_b: Set[int] = set()
+    matches: List[Tuple[int, int]] = []
+
+    # Sort B indices by timestamp for efficient searching
+    sorted_b = sorted(enumerate(timestamps_b), key=lambda x: x[1])
+
+    for i, ts_a in enumerate(timestamps_a):
+        # Binary search for closest match in B
+        best_j = None
+        best_diff = float('inf')
+
+        for j, ts_b in sorted_b:
+            diff = abs(ts_a - ts_b)
+            if diff < best_diff:
+                best_diff = diff
+                best_j = j
+            elif ts_b > ts_a + tolerance:
+                # No point searching further
+                break
+
+        if best_j is not None and best_diff <= tolerance:
+            if best_j not in matched_b:  # Each B can only match once
+                matched_a.add(i)
+                matched_b.add(best_j)
+                matches.append((i, best_j))
+
+    unmatched_a = set(range(len(timestamps_a))) - matched_a
+    unmatched_b = set(range(len(timestamps_b))) - matched_b
+
+    return unmatched_a, unmatched_b, matches
+
+
+def analyze_pose_trajectory_from_poses(
+    timestamps: List[float],
+    pose_arrays: List[List[Pose3d]],
+    scores: Optional[List[float]] = None
+) -> Tuple[List[PoseJump], List[PoseJump]]:
+    """
+    Analyze accepted pose trajectory for discontinuities.
+
+    Looks at consecutive accepted poses and flags:
+    1. Large position jumps (> POSE_JUMP_THRESHOLD_METERS)
+    2. Implied velocities that exceed MAX_REASONABLE_VELOCITY_MPS
+
+    Args:
+        timestamps: List of timestamps for each pose array
+        pose_arrays: List of Pose3d arrays (one per logged frame)
+        scores: Optional scores to include in results
+
+    Returns:
+        - List of pose jumps above threshold
+        - List of impossible velocity violations
+    """
+    pose_jumps: List[PoseJump] = []
+    velocity_violations: List[PoseJump] = []
+
+    # Flatten all poses with their timestamps
+    all_poses: List[Tuple[float, Pose3d, float]] = []
+    for i, (ts, poses) in enumerate(zip(timestamps, pose_arrays)):
+        if not isinstance(poses, list):
+            continue
+        score = scores[i] if scores and i < len(scores) else 0.0
+        for pose in poses:
+            if isinstance(pose, Pose3d):
+                all_poses.append((ts, pose, score))
+
+    # Sort by timestamp
+    all_poses.sort(key=lambda x: x[0])
+
+    # Analyze consecutive poses
+    for i in range(1, len(all_poses)):
+        prev_ts, prev_pose, prev_score = all_poses[i - 1]
+        curr_ts, curr_pose, curr_score = all_poses[i]
+
+        dt = curr_ts - prev_ts
+        if dt <= 0.001:  # Skip near-simultaneous observations
+            continue
+
+        distance = prev_pose.distance_2d(curr_pose)
+        velocity = distance / dt
+
+        # Check for large jumps
+        if distance > POSE_JUMP_THRESHOLD_METERS:
+            pose_jumps.append(PoseJump(
+                timestamp=curr_ts,
+                prev_timestamp=prev_ts,
+                distance_m=distance,
+                implied_velocity_mps=velocity,
+                score=curr_score
+            ))
+
+        # Check for impossible velocities
+        if velocity > MAX_REASONABLE_VELOCITY_MPS:
+            velocity_violations.append(PoseJump(
+                timestamp=curr_ts,
+                prev_timestamp=prev_ts,
+                distance_m=distance,
+                implied_velocity_mps=velocity,
+                score=curr_score
+            ))
+
+    return pose_jumps, velocity_violations
+
+
+def analyze_false_positives(
+    sim_data: Dict[str, 'VisionEntry']
+) -> Optional[FalsePositiveAnalysis]:
+    """
+    Analyze simulation replay data for potential false positives.
+
+    Compares RealOutputs (original code) vs ReplayOutputs (new code) to identify:
+    1. Observations old code accepted but new code rejected (potential false positives caught)
+    2. Score changes for observations both codes accepted
+
+    IMPORTANT CAVEATS:
+    - This is HEURISTIC analysis, not ground truth
+    - "Newly rejected" observations may include both:
+      - True false positives (correctly rejected bad data)
+      - False negatives (incorrectly rejected good data)
+    - Without ground truth robot position, we cannot definitively classify
+
+    Returns None if required data is not available.
+    """
+    # Find score keys
+    real_score_key = None
+    replay_score_key = None
+
+    for k in sim_data.keys():
+        if "ObservationScore" in k:
+            if "RealOutputs" in k:
+                real_score_key = k
+            elif "ReplayOutputs" in k:
+                replay_score_key = k
+
+    if not real_score_key or not replay_score_key:
+        return None
+
+    real_entry = sim_data[real_score_key]
+    replay_entry = sim_data[replay_score_key]
+
+    # Get timestamps and scores
+    real_timestamps = real_entry.timestamps
+    real_scores = [v for v in real_entry.values if isinstance(v, (int, float))]
+    replay_timestamps = replay_entry.timestamps
+    replay_scores = [v for v in replay_entry.values if isinstance(v, (int, float))]
+
+    if len(real_timestamps) != len(real_scores):
+        real_timestamps = real_timestamps[:len(real_scores)]
+    if len(replay_timestamps) != len(replay_scores):
+        replay_timestamps = replay_timestamps[:len(replay_scores)]
+
+    # Find timestamp matches
+    unmatched_real, _unmatched_replay, matches = find_timestamp_matches(
+        real_timestamps, replay_timestamps
+    )
+
+    # Newly rejected = old code accepted (has timestamp) but new code rejected (no matching timestamp)
+    newly_rejected_timestamps = [real_timestamps[i] for i in unmatched_real]
+
+    # Score comparison for matched observations
+    score_improvements: List[Tuple[float, float, float]] = []
+    for i_real, i_replay in matches:
+        old_score = real_scores[i_real]
+        new_score = replay_scores[i_replay]
+        ts = real_timestamps[i_real]
+        score_improvements.append((ts, old_score, new_score))
+
+    mean_change = 0.0
+    if score_improvements:
+        changes = [new - old for _, old, new in score_improvements]
+        mean_change = sum(changes) / len(changes)
+
+    # Analyze pose trajectories for false positives (bad data that was accepted)
+    # Look for RobotPosesAccepted in both RealOutputs and ReplayOutputs
+    pose_jumps: List[PoseJump] = []
+    velocity_violations: List[PoseJump] = []
+
+    # Analyze OLD code's accepted poses (looking for false positives it let through)
+    real_poses_key = None
+    replay_poses_key = None
+    for k in sim_data.keys():
+        if "RobotPosesAccepted" in k:
+            if "RealOutputs" in k:
+                real_poses_key = k
+            elif "ReplayOutputs" in k:
+                replay_poses_key = k
+
+    # Analyze old code's accepted trajectory
+    if real_poses_key and real_poses_key in sim_data:
+        entry = sim_data[real_poses_key]
+        # Decode bytes to Pose3d arrays
+        pose_arrays: List[List[Pose3d]] = []
+        timestamps_for_poses: List[float] = []
+        for i, val in enumerate(entry.values):
+            if isinstance(val, bytes) and len(val) > 0:
+                decoded = decode_pose3d_array(val)
+                if decoded:
+                    pose_arrays.append(decoded)
+                    if i < len(entry.timestamps):
+                        timestamps_for_poses.append(entry.timestamps[i])
+            elif isinstance(val, list) and val and isinstance(val[0], Pose3d):
+                pose_arrays.append(val)
+                if i < len(entry.timestamps):
+                    timestamps_for_poses.append(entry.timestamps[i])
+
+        if pose_arrays:
+            old_jumps, old_violations = analyze_pose_trajectory_from_poses(
+                timestamps_for_poses,
+                pose_arrays,
+                None  # No per-pose scores available
+            )
+            pose_jumps.extend(old_jumps)
+            velocity_violations.extend(old_violations)
+
+    return FalsePositiveAnalysis(
+        newly_rejected_count=len(unmatched_real),
+        newly_rejected_timestamps=newly_rejected_timestamps,
+        pose_jumps=pose_jumps,
+        max_jump_distance=max((j.distance_m for j in pose_jumps), default=0.0),
+        jumps_above_threshold=sum(1 for j in pose_jumps if j.distance_m > POSE_JUMP_THRESHOLD_METERS),
+        impossible_velocities=velocity_violations,
+        max_implied_velocity=max((v.implied_velocity_mps for v in velocity_violations), default=0.0),
+        both_accepted_count=len(matches),
+        score_improvements=score_improvements,
+        mean_score_change_when_both_accepted=mean_change
+    )
+
+
+def generate_false_positive_report(analysis: FalsePositiveAnalysis) -> List[str]:
+    """Generate report section for false positive analysis."""
+    lines = []
+    lines.append("")
+    lines.append("=" * 80)
+    lines.append("FALSE POSITIVE ANALYSIS (HEURISTIC)")
+    lines.append("=" * 80)
+    lines.append("")
+    lines.append("IMPORTANT CAVEATS:")
+    lines.append("  - This analysis uses HEURISTICS, not ground truth")
+    lines.append("  - Without knowing the robot's actual position, we cannot definitively")
+    lines.append("    classify observations as 'false positives' or 'false negatives'")
+    lines.append("  - The following are INDICATORS that warrant investigation, not proof")
+    lines.append("")
+
+    # Section 1: Newly rejected observations
+    lines.append("-" * 80)
+    lines.append("1. OBSERVATIONS OLD CODE ACCEPTED BUT NEW CODE REJECTED")
+    lines.append("-" * 80)
+    lines.append("")
+    lines.append(f"  Count: {analysis.newly_rejected_count}")
+    lines.append("")
+    lines.append("  Interpretation:")
+    lines.append("    These observations passed the old filter but failed the new filter.")
+    lines.append("    They could be:")
+    lines.append("      a) TRUE FALSE POSITIVES: Bad data the old code incorrectly accepted")
+    lines.append("      b) FALSE NEGATIVES: Good data the new code incorrectly rejects")
+    lines.append("")
+    lines.append("    Without ground truth, we cannot determine which category each falls into.")
+    lines.append("")
+
+    if analysis.newly_rejected_timestamps:
+        # Show time distribution
+        ts = analysis.newly_rejected_timestamps
+        lines.append(f"  Time range: {min(ts):.2f}s to {max(ts):.2f}s")
+
+        # Bucket by 30-second intervals
+        if ts:
+            min_t = min(ts)
+            bucket_size = 30.0
+            buckets: Dict[int, int] = defaultdict(int)
+            for t in ts:
+                bucket = int((t - min_t) / bucket_size)
+                buckets[bucket] += 1
+
+            lines.append("")
+            lines.append("  Distribution over time (30-second buckets):")
+            for b in sorted(buckets.keys())[:10]:  # Show first 10 buckets
+                start = min_t + b * bucket_size
+                lines.append(f"    {start:6.1f}s - {start + bucket_size:6.1f}s: {buckets[b]:>4} rejected")
+            if len(buckets) > 10:
+                lines.append(f"    ... and {len(buckets) - 10} more buckets")
+
+    lines.append("")
+
+    # Section 2: Score comparison for both-accepted
+    lines.append("-" * 80)
+    lines.append("2. SCORE COMPARISON FOR OBSERVATIONS BOTH CODES ACCEPTED")
+    lines.append("-" * 80)
+    lines.append("")
+    lines.append(f"  Observations accepted by both: {analysis.both_accepted_count}")
+    lines.append(f"  Mean score change (new - old): {analysis.mean_score_change_when_both_accepted:+.4f}")
+    lines.append("")
+
+    if analysis.score_improvements:
+        # Analyze score changes
+        improvements = [(ts, old, new) for ts, old, new in analysis.score_improvements if new > old]
+        degradations = [(ts, old, new) for ts, old, new in analysis.score_improvements if new < old]
+        unchanged = [(ts, old, new) for ts, old, new in analysis.score_improvements if abs(new - old) < 0.001]
+
+        lines.append(f"  Score increased (new > old): {len(improvements)} ({100*len(improvements)/len(analysis.score_improvements):.1f}%)")
+        lines.append(f"  Score decreased (new < old): {len(degradations)} ({100*len(degradations)/len(analysis.score_improvements):.1f}%)")
+        lines.append(f"  Score unchanged: {len(unchanged)} ({100*len(unchanged)/len(analysis.score_improvements):.1f}%)")
+        lines.append("")
+
+        if improvements:
+            avg_improvement = sum(new - old for _, old, new in improvements) / len(improvements)
+            lines.append(f"  Average improvement when score increased: +{avg_improvement:.4f}")
+        if degradations:
+            avg_degradation = sum(new - old for _, old, new in degradations) / len(degradations)
+            lines.append(f"  Average degradation when score decreased: {avg_degradation:.4f}")
+
+        lines.append("")
+        lines.append("  Interpretation:")
+        lines.append("    Score increases indicate the new code assigns higher confidence to")
+        lines.append("    observations it considers high-quality. This is expected behavior.")
+        lines.append("    Score decreases are rare and may indicate edge cases worth reviewing.")
+
+    lines.append("")
+
+    # Section 3: Pose trajectory analysis (actual false positive detection)
+    lines.append("-" * 80)
+    lines.append("3. POSE TRAJECTORY ANALYSIS (FALSE POSITIVE DETECTION)")
+    lines.append("-" * 80)
+    lines.append("")
+    lines.append("  This analyzes ACCEPTED poses for suspicious patterns that indicate")
+    lines.append("  bad data that should have been rejected (true false positives).")
+    lines.append("")
+
+    if analysis.pose_jumps or analysis.impossible_velocities:
+        lines.append(f"  Pose jumps > {POSE_JUMP_THRESHOLD_METERS}m: {len(analysis.pose_jumps)}")
+        lines.append(f"  Impossible velocities > {MAX_REASONABLE_VELOCITY_MPS} m/s: {len(analysis.impossible_velocities)}")
+        lines.append(f"  Max jump distance: {analysis.max_jump_distance:.2f}m")
+        lines.append(f"  Max implied velocity: {analysis.max_implied_velocity:.1f} m/s")
+        lines.append("")
+
+        if analysis.impossible_velocities:
+            lines.append("  SUSPICIOUS OBSERVATIONS (impossible velocity):")
+            # Show worst violations
+            sorted_violations = sorted(analysis.impossible_velocities,
+                                       key=lambda x: x.implied_velocity_mps, reverse=True)
+            for v in sorted_violations[:10]:
+                lines.append(f"    t={v.timestamp:.2f}s: {v.distance_m:.2f}m in {(v.timestamp - v.prev_timestamp)*1000:.0f}ms = {v.implied_velocity_mps:.1f} m/s")
+            if len(sorted_violations) > 10:
+                lines.append(f"    ... and {len(sorted_violations) - 10} more")
+            lines.append("")
+
+        lines.append("  Interpretation:")
+        lines.append("    High velocity violations indicate poses that jumped impossibly fast.")
+        lines.append("    These are likely FALSE POSITIVES - bad data that was accepted.")
+        if analysis.impossible_velocities:
+            lines.append("    The new filter's velocity consistency check should catch these.")
+    else:
+        lines.append("  No pose data decoded (RobotPosesAccepted may not be logged).")
+        lines.append("  To enable this analysis, set kLogAcceptedPoses = true in VisionConstants.java")
+
+    lines.append("")
+
+    # Section 4: Limitations
+    lines.append("-" * 80)
+    lines.append("4. LIMITATIONS OF THIS ANALYSIS")
+    lines.append("-" * 80)
+    lines.append("")
+    lines.append("  What we CANNOT determine from logs alone:")
+    lines.append("    - Ground truth robot position (no external reference)")
+    lines.append("    - Why specific observations were rejected (per-test scores not logged)")
+    lines.append("")
+    lines.append("  To enable deeper analysis, consider:")
+    lines.append("    - Setting kLogRejectedPoses = true to see rejected pose values")
+    lines.append("    - Logging individual test scores for rejected observations")
+    lines.append("    - Recording ground truth position data for validation")
+    lines.append("")
+
+    # Section 5: Recommendations
+    lines.append("-" * 80)
+    lines.append("5. RECOMMENDATIONS FOR VALIDATION")
+    lines.append("-" * 80)
+    lines.append("")
+    lines.append("  To validate the new filter is not rejecting good data:")
+    lines.append("")
+    lines.append("  a) VISUAL INSPECTION:")
+    lines.append("     Open both logs in AdvantageScope and compare pose trajectories")
+    lines.append("     Look for cases where the old trajectory is smoother/more accurate")
+    lines.append("")
+    lines.append("  b) GROUND TRUTH COMPARISON:")
+    lines.append("     If field position markers are available, compare accepted poses")
+    lines.append("     to known positions at specific match times")
+    lines.append("")
+    lines.append("  c) COMPETITION TESTING:")
+    lines.append("     Run both filter versions in practice matches and compare")
+    lines.append("     autonomous accuracy and teleop behavior")
+    lines.append("")
+
+    return lines
 
 
 def compare_time_series(name: str, real: VisionEntry, sim: VisionEntry) -> Dict:
@@ -545,6 +1060,11 @@ def generate_report(real_path: str, sim_path: str) -> str:
                 report_lines.append(f"    [{lo:.1f}, {hi:.1f})   {orig:>10} {new:>10} {change:>+10}")
 
     report_lines.append("")
+
+    # False positive analysis
+    fp_analysis = analyze_false_positives(sim_data)
+    if fp_analysis:
+        report_lines.extend(generate_false_positive_report(fp_analysis))
 
     # Summary findings
     report_lines.append("=" * 80)
