@@ -86,6 +86,12 @@ public class VisionConstants {
       DriveConstants.maxDriveSpeed.in(MetersPerSecond) * 1.3; // 30% margin for noise
   public static double velocityCheckTimeoutSeconds = 0.5; // Reset reference after this gap
 
+  // Velocity consistency check thresholds
+  public static double velocityCheckTimeoutSeconds =
+      0.5; // Skip check if no observation for this long
+  public static final double maxReasonableVelocityMps =
+      DriveConstants.drivetrainSpeedLimit.in(MetersPerSecond) * 1.5; // Allow some margin
+
   // Standard deviation baselines
   public static double linearStdDevBaseline = 0.02; // Meters
   public static double angularStdDevBaseline = 0.06; // Radians
