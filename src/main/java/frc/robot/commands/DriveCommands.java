@@ -65,6 +65,12 @@ public class DriveCommands {
         .getTranslation();
   }
 
+  public static final Command getChassisAimingCommand(
+      Drive drive, DoubleSupplier desaturationSupplier) {
+    return DriveCommands.joystickDrive(
+        drive, () -> 0, () -> 0, desaturationSupplier, () -> true, () -> false);
+  }
+
   /**
    * Field relative drive command using two joysticks (controlling linear and angular velocities).
    */
@@ -373,8 +379,19 @@ public class DriveCommands {
                     sumXY += velocitySamples.get(i) * voltageSamples.get(i);
                     sumX2 += velocitySamples.get(i) * velocitySamples.get(i);
                   }
-                  double kS = (sumY * sumX2 - sumX * sumXY) / (n * sumX2 - sumX * sumX);
-                  double kV = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+
+                  // Guard against division by zero: denominator is zero when all velocity
+                  // samples are identical (no variation), which makes linear regression undefined
+                  double denominator = n * sumX2 - sumX * sumX;
+                  if (Math.abs(denominator) < 1e-6) {
+                    System.out.println("********** Drive FF Characterization Results **********");
+                    System.out.println("\tERROR: Insufficient velocity variation in samples.");
+                    System.out.println("\tEnsure the robot accelerates during characterization.");
+                    return;
+                  }
+
+                  double kS = (sumY * sumX2 - sumX * sumXY) / denominator;
+                  double kV = (n * sumXY - sumX * sumY) / denominator;
 
                   NumberFormat formatter = new DecimalFormat("#0.00000");
                   System.out.println("********** Drive FF Characterization Results **********");
@@ -434,12 +451,30 @@ public class DriveCommands {
                       for (int i = 0; i < 4; i++) {
                         wheelDelta += Math.abs(positions[i] - state.positions[i]) / 4.0;
                       }
-                      double wheelRadius =
-                          (state.gyroDelta * driveBaseRadius.in(Meters)) / wheelDelta;
 
+                      // Guard against division by zero: wheelDelta is zero if wheels didn't
+                      // rotate, gyroDelta is zero if robot didn't turn. Either case produces
+                      // invalid results (NaN or Infinity).
                       NumberFormat formatter = new DecimalFormat("#0.000");
                       System.out.println(
                           "********** Wheel Radius Characterization Results **********");
+
+                      if (wheelDelta < 1e-6) {
+                        System.out.println("\tERROR: Wheels did not rotate sufficiently.");
+                        System.out.println(
+                            "\tEnsure the robot spins in place during characterization.");
+                        return;
+                      }
+                      if (state.gyroDelta < 1e-6) {
+                        System.out.println("\tERROR: Robot did not rotate sufficiently.");
+                        System.out.println(
+                            "\tCheck gyro connection and ensure robot spins freely.");
+                        return;
+                      }
+
+                      double wheelRadius =
+                          (state.gyroDelta * driveBaseRadius.in(Meters)) / wheelDelta;
+
                       System.out.println(
                           "\tWheel Delta: " + formatter.format(wheelDelta) + " radians");
                       System.out.println(

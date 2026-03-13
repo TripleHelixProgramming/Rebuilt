@@ -79,11 +79,8 @@ public class VisionConstants {
   public static final double minRobotWidthHalfMeters = minRobotWidth.div(2.0).in(Meters);
   public static final double fieldXLenMeters = frc.game.Field.field_x_len.in(Meters);
   public static final double fieldYLenMeters = frc.game.Field.field_y_len.in(Meters);
-
-  // Velocity consistency check
-  public static double maxReasonableVelocityMps =
-      DriveConstants.maxDriveSpeed.in(MetersPerSecond) * 1.3; // 30% margin for noise
-  public static double velocityCheckTimeoutSeconds = 0.5; // Reset reference after this gap
+  public static Distance maxTravelDistance =
+      DriveConstants.drivetrainSpeedLimit.times(Seconds.of(Robot.defaultPeriodSecs));
 
   // Standard deviation baselines
   public static double linearStdDevBaseline = 0.02; // Meters

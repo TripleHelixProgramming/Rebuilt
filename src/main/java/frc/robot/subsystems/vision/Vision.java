@@ -208,8 +208,11 @@ public class Vision extends SubsystemBase {
           testResults.put(test, test.test(testContext));
         }
 
-        Double totalScore =
-            testResults.values().stream().reduce(1.0, (subtotal, element) -> subtotal * element);
+        // Multiply all test scores - loop avoids stream overhead and boxing
+        double totalScore = 1.0;
+        for (Double score : testResults.values()) {
+          totalScore *= score;
+        }
 
         observations.add(new TestedObservation(observation, cameraIndex, testResults, totalScore));
 

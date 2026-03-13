@@ -46,7 +46,12 @@ public class VisionIOPhotonVisionSim extends VisionIOPhotonVision {
 
   @Override
   public void updateInputs(VisionIOInputs inputs) {
-    visionSim.update(poseSupplier.get());
+    // Guard: poseSupplier may return null during early initialization before
+    // the drive subsystem is fully ready. Skip simulation update in that case.
+    Pose2d robotPose = poseSupplier.get();
+    if (robotPose != null) {
+      visionSim.update(robotPose);
+    }
     super.updateInputs(inputs);
   }
 }

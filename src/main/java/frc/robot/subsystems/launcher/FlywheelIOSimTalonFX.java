@@ -71,13 +71,7 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
     flywheelCurrent = flywheelLeaderTalon.getStatorCurrent();
 
     BaseStatusSignal.setUpdateFrequencyForAll(
-        50.0,
-        flywheelVelocity,
-        flywheelAppliedVolts,
-        flywheelCurrent,
-        flywheelVelocity,
-        flywheelAppliedVolts,
-        flywheelCurrent);
+        50.0, flywheelVelocity, flywheelAppliedVolts, flywheelCurrent);
 
     flywheelFollowerTalon.setControl(
         new Follower(CAN2.flywheelLeader, MotorAlignmentValue.Opposed));
@@ -85,6 +79,7 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
 
   @Override
   public void updateInputs(FlywheelIOInputs inputs) {
+    // Synchronous refresh for leader/follower motors to ensure consistent state
     inputs.connected =
         flywheelConnectedDebounce.calculate(
             BaseStatusSignal.refreshAll(flywheelVelocity, flywheelAppliedVolts, flywheelCurrent)

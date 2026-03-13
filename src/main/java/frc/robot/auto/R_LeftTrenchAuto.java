@@ -3,6 +3,7 @@ package frc.robot.auto;
 import choreo.auto.AutoRoutine;
 import choreo.auto.AutoTrajectory;
 import edu.wpi.first.wpilibj2.command.Commands;
+import frc.robot.commands.DriveCommands;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.feeder.Feeder;
 import frc.robot.subsystems.intake.Intake;
@@ -54,11 +55,12 @@ public class R_LeftTrenchAuto extends AutoMode {
         .onTrue(
             Commands.sequence(
                 redLeftNeutralZone.resetOdometry(),
+                DriveCommands.getChassisAimingCommand(drive, launcher::getTurretDesaturationDelta)
+                    .withTimeout(1.5),
+                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(3.0),
+                Commands.runOnce(feeder::stop, feeder),
                 Commands.parallel(
-                    redLeftNeutralZone.cmd(),
-                    Commands.sequence(
-                        // Commands.runOnce(hopper::deploy, hopper),
-                        intake.getDeployCommand().withTimeout(10.0)))));
+                    redLeftNeutralZone.cmd(), intake.getDeployCommand().withTimeout(10.0))));
 
     redLeftNeutralZone
         .done()
@@ -66,12 +68,19 @@ public class R_LeftTrenchAuto extends AutoMode {
             Commands.sequence(
                 Commands.runOnce(drive::stop, drive),
                 Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
+                Commands.runOnce(feeder::stop, feeder),
                 Commands.parallel(
-                    redLeftTransitionToNZ.cmd(), intake.getDeployCommand().withTimeout(5.0))));
+                    redLeftTransitionToNZ.cmd(),
+                    Commands.sequence(
+                        Commands.waitSeconds(1.0), intake.getDeployCommand().withTimeout(4.0)))));
 
     redLeftTransitionToNZ
         .done()
-        .onTrue(Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0));
+        .onTrue(
+            Commands.sequence(
+                Commands.runOnce(drive::stop),
+                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
+                Commands.runOnce(feeder::stop, feeder)));
 
     return routine;
   }

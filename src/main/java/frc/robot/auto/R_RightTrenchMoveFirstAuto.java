@@ -3,48 +3,45 @@ package frc.robot.auto;
 import choreo.auto.AutoRoutine;
 import choreo.auto.AutoTrajectory;
 import edu.wpi.first.wpilibj2.command.Commands;
-import frc.robot.commands.DriveCommands;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.feeder.Feeder;
 import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.launcher.Launcher;
 
-public class B_RightTrenchAuto extends AutoMode {
+public class R_RightTrenchMoveFirstAuto extends AutoMode {
   Drive drive;
   // Hopper hopper;
   Feeder feeder;
   Intake intake;
   Launcher launcher;
 
-  public B_RightTrenchAuto(
+  public R_RightTrenchMoveFirstAuto(
       Drive drivetrain,
-      // Hopper hopperSubsystem,
       Feeder feederSubsystem,
       Intake intakeSubsystem,
       Launcher launcherSubsystem) {
     super(drivetrain);
     drive = drivetrain;
-    // hopper = hopperSubsystem;
     feeder = feederSubsystem;
     intake = intakeSubsystem;
     launcher = launcherSubsystem;
   }
 
   // Define routine
-  AutoRoutine routine = super.getAutoFactory().newRoutine("B_RightTrenchAuto");
+  AutoRoutine routine = super.getAutoFactory().newRoutine("R_RightTrenchMoveFirstAuto");
 
   // Load trajectories
-  AutoTrajectory blueRightNeutralZone = routine.trajectory("BlueRightNeutralZone");
-  AutoTrajectory blueRightTransitionToNZ = routine.trajectory("BlueRightTransitionToNZ");
+  AutoTrajectory redRightNeutralZone = routine.trajectory("RedRightNeutralZone");
+  AutoTrajectory redRightTransitionToNZ = routine.trajectory("RedRightTransitionToNZ");
 
   @Override
   public String getName() {
-    return "BlueRightTrenchAuto";
+    return "RedRightTrenchMoveFirstAuto";
   }
 
   @Override
   public AutoTrajectory getInitialTrajectory() {
-    return blueRightNeutralZone;
+    return redRightNeutralZone;
   }
 
   @Override
@@ -54,15 +51,11 @@ public class B_RightTrenchAuto extends AutoMode {
         .active()
         .onTrue(
             Commands.sequence(
-                blueRightNeutralZone.resetOdometry(),
-                DriveCommands.getChassisAimingCommand(drive, launcher::getTurretDesaturationDelta)
-                    .withTimeout(1.5),
-                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(3.0),
-                Commands.runOnce(feeder::stop, feeder),
+                redRightNeutralZone.resetOdometry(),
                 Commands.parallel(
-                    blueRightNeutralZone.cmd(), intake.getDeployCommand().withTimeout(10.0))));
+                    redRightNeutralZone.cmd(), intake.getDeployCommand().withTimeout(10.0))));
 
-    blueRightNeutralZone
+    redRightNeutralZone
         .done()
         .onTrue(
             Commands.sequence(
@@ -70,9 +63,9 @@ public class B_RightTrenchAuto extends AutoMode {
                 Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
                 Commands.runOnce(feeder::stop, feeder),
                 Commands.parallel(
-                    blueRightTransitionToNZ.cmd(), intake.getDeployCommand().withTimeout(5.0))));
+                    redRightTransitionToNZ.cmd(), intake.getDeployCommand().withTimeout(5.0))));
 
-    blueRightTransitionToNZ
+    redRightTransitionToNZ
         .done()
         .onTrue(
             Commands.sequence(

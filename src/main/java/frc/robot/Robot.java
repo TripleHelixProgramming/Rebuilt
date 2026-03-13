@@ -11,6 +11,7 @@ import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
@@ -30,14 +31,14 @@ import frc.lib.ControllerSelector.DriverController;
 import frc.lib.ControllerSelector.OperatorConfig;
 import frc.lib.ZorroController.Axis;
 import frc.robot.Constants.DIOPorts;
-import frc.robot.auto.B_DepotAuto;
 import frc.robot.auto.B_LeftTrenchAuto;
-import frc.robot.auto.B_OutpostAuto;
+import frc.robot.auto.B_LeftTrenchMoveFirstAuto;
 import frc.robot.auto.B_RightTrenchAuto;
-import frc.robot.auto.R_DepotAuto;
+import frc.robot.auto.B_RightTrenchMoveFirstAuto;
 import frc.robot.auto.R_LeftTrenchAuto;
-import frc.robot.auto.R_OutpostAuto;
+import frc.robot.auto.R_LeftTrenchMoveFirstAuto;
 import frc.robot.auto.R_RightTrenchAuto;
+import frc.robot.auto.R_RightTrenchMoveFirstAuto;
 import frc.robot.commands.DriveCommands;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.DriveConstants;
@@ -57,9 +58,10 @@ import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.intake.IntakeArmIO;
 import frc.robot.subsystems.intake.IntakeArmIOReal;
 import frc.robot.subsystems.intake.IntakeArmIOSim;
-import frc.robot.subsystems.intake.IntakeRollerIO;
-import frc.robot.subsystems.intake.IntakeRollerIOSimTalonFX;
-import frc.robot.subsystems.intake.IntakeRollerIOTalonFX;
+import frc.robot.subsystems.intake.IntakeConstants.RollerConstants;
+import frc.robot.subsystems.intake.RollerIO;
+import frc.robot.subsystems.intake.RollerIOSimTalonFX;
+import frc.robot.subsystems.intake.RollerIOTalonFX;
 import frc.robot.subsystems.launcher.FlywheelIO;
 import frc.robot.subsystems.launcher.FlywheelIOSimTalonFX;
 import frc.robot.subsystems.launcher.FlywheelIOTalonFX;
@@ -158,7 +160,11 @@ public class Robot extends LoggedRobot {
                 new TurretIOSpark(),
                 new FlywheelIOTalonFX(),
                 new HoodIOSpark());
-        intake = new Intake(new IntakeRollerIOTalonFX(), new IntakeArmIOReal());
+        intake =
+            new Intake(
+                new RollerIOTalonFX(RollerConstants.upperRollerConfig),
+                new RollerIOTalonFX(RollerConstants.lowerRollerConfig),
+                new IntakeArmIOReal());
         // hopper = new Hopper(new HopperIOReal());
         feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
         SmartDashboard.putData(new Compressor(PneumaticsModuleType.REVPH));
@@ -196,7 +202,11 @@ public class Robot extends LoggedRobot {
                 new FlywheelIOSimTalonFX(),
                 new HoodIOSimSpark());
         feeder = new Feeder(new SpindexerIOSimSpark(), new KickerIOSimSpark());
-        intake = new Intake(new IntakeRollerIOSimTalonFX(), new IntakeArmIOSim());
+        intake =
+            new Intake(
+                new RollerIOSimTalonFX(RollerConstants.upperRollerConfig),
+                new RollerIOSimTalonFX(RollerConstants.lowerRollerConfig),
+                new IntakeArmIOSim());
         // hopper = new Hopper(new HopperIOSim());
         break;
 
@@ -231,7 +241,7 @@ public class Robot extends LoggedRobot {
                 new TurretIO() {},
                 new FlywheelIO() {},
                 new HoodIO() {});
-        intake = new Intake(new IntakeRollerIO() {}, new IntakeArmIO() {});
+        intake = new Intake(new RollerIO() {}, new RollerIO() {}, new IntakeArmIO() {});
         // hopper = new Hopper(new HopperIO() {});
         feeder = new Feeder(new SpindexerIO() {}, new KickerIO() {});
         break;
@@ -264,7 +274,13 @@ public class Robot extends LoggedRobot {
     intake.setDefaultCommand(intake.getDefaultCommand());
     // hopper.setDefaultCommand(hopper.getDefaultCommand());
     launcher.setDefaultCommand(
-        Commands.startEnd(launcher::stop, () -> {}, launcher).withName("Stop"));
+        launcher
+            .initializeHoodCommand()
+            .andThen(
+                new RunCommand(
+                        () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()),
+                        launcher)
+                    .withName("Aim at hub")));
   }
 
   /** This function is called periodically during all modes. */
@@ -328,14 +344,6 @@ public class Robot extends LoggedRobot {
   @Override
   public void autonomousInit() {
     drive.setDefaultCommand(Commands.runOnce(drive::stop, drive).withName("Stop"));
-    launcher.setDefaultCommand(
-        launcher
-            .initializeHoodCommand()
-            .andThen(
-                new RunCommand(
-                        () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()),
-                        launcher)
-                    .withName("Aim at hub")));
     autoSelector.scheduleAuto();
     leds.clear();
   }
@@ -350,8 +358,6 @@ public class Robot extends LoggedRobot {
   /** This function is called once when teleop mode is enabled. */
   @Override
   public void teleopInit() {
-    launcher.setDefaultCommand(
-        Commands.startEnd(launcher::stop, () -> {}, launcher).withName("Stop"));
     autoSelector.cancelAuto();
     ControllerSelector.getInstance().scan(true);
     leds.clear();
@@ -455,21 +461,7 @@ public class Robot extends LoggedRobot {
     // zorroDriver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
 
     // Desaturate turret and advance feeder
-    zorroDriver
-        .AIn()
-        .whileTrue(
-            Commands.parallel(
-                DriveCommands.joystickDrive(
-                        drive,
-                        () -> controller.getXTranslationInput(),
-                        () -> controller.getYTranslationInput(),
-                        () -> launcher.desaturateTurret(),
-                        () -> controller.getFieldRelativeInput(),
-                        allianceSelector::fieldRotated)
-                    .withName("Desaturate turret"),
-                Commands.sequence(
-                    Commands.waitUntil(launcher::turretDesaturated),
-                    Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance"))));
+    zorroDriver.AIn().whileTrue(createDesaturateAndShootCommand(controller));
 
     // Launcher
     Trigger launcherEnabled = zorroDriver.axisGreaterThan(Axis.kLeftDial.value, 0.5).debounce(0.1);
@@ -646,21 +638,7 @@ public class Robot extends LoggedRobot {
         .whileTrue(Commands.startEnd(feeder::reverse, () -> {}, feeder).withName("Reverse"));
 
     // Desaturate turret and advance feeder
-    xboxOperator
-        .rightBumper()
-        .whileTrue(
-            Commands.parallel(
-                DriveCommands.joystickDrive(
-                        drive,
-                        () -> driver.getXTranslationInput(),
-                        () -> driver.getYTranslationInput(),
-                        () -> launcher.desaturateTurret(),
-                        () -> driver.getFieldRelativeInput(),
-                        allianceSelector::fieldRotated)
-                    .withName("Desaturate turret"),
-                Commands.sequence(
-                    Commands.waitUntil(launcher::turretDesaturated),
-                    Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance"))));
+    xboxOperator.rightBumper().whileTrue(createDesaturateAndShootCommand(driver));
   }
 
   public void configureAutoOptions() {
@@ -673,16 +651,42 @@ public class Robot extends LoggedRobot {
     autoSelector.addAuto(
         new AutoOption(Alliance.Red, 2, new R_RightTrenchAuto(drive, feeder, intake, launcher)));
     autoSelector.addAuto(
-        new AutoOption(Alliance.Blue, 3, new B_DepotAuto(drive, feeder, intake, launcher)));
+        new AutoOption(
+            Alliance.Blue, 3, new B_LeftTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
     autoSelector.addAuto(
-        new AutoOption(Alliance.Red, 3, new R_DepotAuto(drive, feeder, intake, launcher)));
+        new AutoOption(
+            Alliance.Red, 3, new R_LeftTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
     autoSelector.addAuto(
-        new AutoOption(Alliance.Blue, 4, new B_OutpostAuto(drive, feeder, intake, launcher)));
+        new AutoOption(
+            Alliance.Blue, 4, new B_RightTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
     autoSelector.addAuto(
-        new AutoOption(Alliance.Red, 4, new R_OutpostAuto(drive, feeder, intake, launcher)));
+        new AutoOption(
+            Alliance.Red, 4, new R_RightTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
   }
 
   public static Alliance getAlliance() {
     return allianceSelector.getAllianceColor();
+  }
+
+  private Command createDesaturateAndShootCommand(DriverController driver) {
+    return Commands.parallel(
+        DriveCommands.joystickDrive(
+                drive,
+                driver::getXTranslationInput,
+                driver::getYTranslationInput,
+                // launcher::desaturateTurret,
+                () -> {
+                  if (launcher.isTurretDesaturated()) {
+                    return driver.getRotationInput();
+                  } else {
+                    return launcher.getTurretDesaturationDelta();
+                  }
+                },
+                driver::getFieldRelativeInput,
+                allianceSelector::fieldRotated)
+            .withName("Desaturate turret"),
+        Commands.sequence(
+            Commands.waitUntil(launcher::isTurretDesaturated),
+            Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance")));
   }
 }
