@@ -4,11 +4,9 @@ import static frc.robot.subsystems.vision.VisionConstants.*;
 
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.PneumaticsModuleType;
-import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -29,6 +27,8 @@ import frc.lib.ControllerSelector.ControllerType;
 import frc.lib.ControllerSelector.DriverConfig;
 import frc.lib.ControllerSelector.DriverController;
 import frc.lib.ControllerSelector.OperatorConfig;
+import frc.lib.LoggedCompressor;
+import frc.lib.LoggedPowerDistribution;
 import frc.lib.ZorroController.Axis;
 import frc.robot.Constants.DIOPorts;
 import frc.robot.auto.B_LeftTrenchAuto;
@@ -98,11 +98,12 @@ public class Robot extends LoggedRobot {
       new AllianceSelector(DIOPorts.allianceColorSelector);
   public static final AutoSelector autoSelector =
       new AutoSelector(DIOPorts.autonomousModeSelector, allianceSelector::getAllianceColor);
-  public final PowerDistribution powerDistribution = new PowerDistribution(1, ModuleType.kRev);
+  public final LoggedPowerDistribution powerDistribution =
+      new LoggedPowerDistribution(1, ModuleType.kRev, "PDH");
 
   private final java.util.Set<String> activeCommands = new java.util.LinkedHashSet<>();
 
-  private Compressor compressor;
+  private LoggedCompressor compressor;
 
   // Subsystems
   private Drive drive;
@@ -169,7 +170,7 @@ public class Robot extends LoggedRobot {
                 new IntakeArmIOReal());
         // hopper = new Hopper(new HopperIOReal());
         feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
-        compressor = new Compressor(PneumaticsModuleType.REVPH);
+        compressor = new LoggedCompressor(PneumaticsModuleType.REVPH, "Compressor");
         break;
 
       case SIM: // Running a physics simulator
@@ -301,49 +302,10 @@ public class Robot extends LoggedRobot {
 
     logCANBus("CAN2", Constants.CANBusPorts.CAN2.bus);
     logCANBus("CANHD", Constants.CANBusPorts.CANHD.bus);
-
-    Logger.recordOutput("PDH/Voltage", powerDistribution.getVoltage());
-    Logger.recordOutput("PDH/TotalCurrentAmps", powerDistribution.getTotalCurrent());
-    Logger.recordOutput("PDH/TotalPowerWatts", powerDistribution.getTotalPower());
-    Logger.recordOutput("PDH/TotalEnergyJoules", powerDistribution.getTotalEnergy());
-    Logger.recordOutput("PDH/TemperatureCelsius", powerDistribution.getTemperature());
-    Logger.recordOutput("PDH/SwitchableChannelActive", powerDistribution.getSwitchableChannel());
-    int numChannels = powerDistribution.getNumChannels();
-    double[] channelCurrents = new double[numChannels];
-    for (int i = 0; i < numChannels; i++) channelCurrents[i] = powerDistribution.getCurrent(i);
-    Logger.recordOutput("PDH/ChannelCurrentsAmps", channelCurrents);
-
-    if (compressor != null) {
-      Logger.recordOutput("Compressor/Enabled", compressor.isEnabled());
-      Logger.recordOutput("Compressor/PressureSwitch", compressor.getPressureSwitchValue());
-      Logger.recordOutput("Compressor/CurrentAmps", compressor.getCurrent());
-      Logger.recordOutput("Compressor/PressurePSI", compressor.getPressure());
-    }
-
-    for (int port = 0; port < DriverStation.kJoystickPorts; port++) {
-      if (!DriverStation.isJoystickConnected(port)) continue;
-      String prefix = "HID/Port" + port;
-      Logger.recordOutput(prefix + "/Name", DriverStation.getJoystickName(port));
-      int axisCount = DriverStation.getStickAxisCount(port);
-      double[] axes = new double[axisCount];
-      for (int i = 0; i < axisCount; i++) axes[i] = DriverStation.getStickAxis(port, i);
-      Logger.recordOutput(prefix + "/Axes", axes);
-      int buttonCount = DriverStation.getStickButtonCount(port);
-      boolean[] buttons = new boolean[buttonCount];
-      for (int i = 0; i < buttonCount; i++) buttons[i] = DriverStation.getStickButton(port, i + 1);
-      Logger.recordOutput(prefix + "/Buttons", buttons);
-      int povCount = DriverStation.getStickPOVCount(port);
-      long[] povs = new long[povCount];
-      for (int i = 0; i < povCount; i++) povs[i] = DriverStation.getStickPOV(port, i);
-      Logger.recordOutput(prefix + "/POVs", povs);
-    }
-
-    Logger.recordOutput("Commands/ActiveCommands", activeCommands.toArray(new String[0]));
-    logSubsystem("Drive", drive);
-    logSubsystem("Vision", vision);
-    logSubsystem("Launcher", launcher);
-    logSubsystem("Feeder", feeder);
-    logSubsystem("Intake", intake);
+    powerDistribution.log();
+    if (compressor != null) compressor.log();
+    logHIDs();
+    logScheduler();
 
     GameState.logValues();
     long t2 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
@@ -737,6 +699,35 @@ public class Robot extends LoggedRobot {
         Commands.sequence(
             Commands.waitUntil(launcher::isTurretDesaturated),
             Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance")));
+  }
+
+  private static void logHIDs() {
+    for (int port = 0; port < DriverStation.kJoystickPorts; port++) {
+      if (!DriverStation.isJoystickConnected(port)) continue;
+      String prefix = "HID/Port" + port;
+      Logger.recordOutput(prefix + "/Name", DriverStation.getJoystickName(port));
+      int axisCount = DriverStation.getStickAxisCount(port);
+      double[] axes = new double[axisCount];
+      for (int i = 0; i < axisCount; i++) axes[i] = DriverStation.getStickAxis(port, i);
+      Logger.recordOutput(prefix + "/Axes", axes);
+      int buttonCount = DriverStation.getStickButtonCount(port);
+      boolean[] buttons = new boolean[buttonCount];
+      for (int i = 0; i < buttonCount; i++) buttons[i] = DriverStation.getStickButton(port, i + 1);
+      Logger.recordOutput(prefix + "/Buttons", buttons);
+      int povCount = DriverStation.getStickPOVCount(port);
+      long[] povs = new long[povCount];
+      for (int i = 0; i < povCount; i++) povs[i] = DriverStation.getStickPOV(port, i);
+      Logger.recordOutput(prefix + "/POVs", povs);
+    }
+  }
+
+  private void logScheduler() {
+    Logger.recordOutput("Commands/ActiveCommands", activeCommands.toArray(new String[0]));
+    logSubsystem("Drive", drive);
+    logSubsystem("Vision", vision);
+    logSubsystem("Launcher", launcher);
+    logSubsystem("Feeder", feeder);
+    logSubsystem("Intake", intake);
   }
 
   private static void logCANBus(String name, com.ctre.phoenix6.CANBus bus) {
