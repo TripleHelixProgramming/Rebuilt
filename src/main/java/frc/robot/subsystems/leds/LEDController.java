@@ -180,14 +180,19 @@ public class LEDController extends SubsystemBase {
             autoOption -> LEDSeries.X_AXIS.applyPattern(autoSelectionPattern),
             () -> LEDSeries.X_AXIS.applyPattern(solidYellowPattern.blink(Seconds.of(0.5))));
 
-    // Display yellow at end pixel if alliance disagreement
+    // Display yellow warning pixel if alliance disagreement
     DriverStation.getAlliance()
         .ifPresent(
             alliance -> {
               if (alliance != Robot.allianceSelector.getAllianceColor()) {
-                LEDSeries.X_AXIS.setLED(LEDSeries.X_AXIS.getLength() - 1, Color.kYellow);
+                LEDSeries.X_AXIS_ALLIANCE_WARNING.applyPattern(LEDPattern.solid(Color.kYellow));
               }
             });
+
+    // Display orange-red warning pixel if USB storage is low
+    if (isUSBStorageLow()) {
+      LEDSeries.X_AXIS_WARNING.applyPattern(LEDPattern.solid(Color.kOrangeRed));
+    }
   }
 
   /**
@@ -195,7 +200,7 @@ public class LEDController extends SubsystemBase {
    * alliance color based on hub state. When both hubs are active, shows our alliance color.
    */
   public void displayHubCountdown() {
-    LEDSeries.X_AXIS.applyPattern(hubCountdownPattern);
+    LEDSeries.X_AXIS_FULL.applyPattern(hubCountdownPattern);
   }
 
   /**
@@ -220,6 +225,11 @@ public class LEDController extends SubsystemBase {
       pattern = spindexing ? bounceRippleYellowPattern : solidYellowPattern;
     }
     LEDSeries.Y_AXIS.applyPattern(pattern);
+  }
+
+  /** Returns true when the USB stick at /U has less than 1 GB free. */
+  private boolean isUSBStorageLow() {
+    return new java.io.File("/U").getFreeSpace() < 1024L * 1024 * 1024;
   }
 
   /** Clears all LEDs by applying solid black. */
