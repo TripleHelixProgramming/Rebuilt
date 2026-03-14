@@ -53,7 +53,7 @@ public class SpindexerIOSimSpark implements SpindexerIO {
     flexSim = new SparkFlexSim(flex, gearbox);
 
     spindexerSim =
-        new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
+        new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.00207, motorReduction), gearbox);
   }
 
   @Override

@@ -53,7 +53,7 @@ public class KickerIOSimSpark implements KickerIO {
     flexSim = new SparkFlexSim(flex, gearbox);
 
     kickerSim =
-        new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
+        new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.00052, motorReduction), gearbox);
   }
 
   @Override

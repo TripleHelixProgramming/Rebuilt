@@ -64,7 +64,7 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
     flywheelMotorSim.setMotorType(MotorType.KrakenX60);
 
     flywheelSim =
-        new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
+        new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.00026, motorReduction), gearbox);
 
     flywheelVelocity = flywheelLeaderTalon.getVelocity();
     flywheelAppliedVolts = flywheelLeaderTalon.getMotorVoltage();
