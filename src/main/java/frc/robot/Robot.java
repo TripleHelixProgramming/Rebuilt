@@ -306,6 +306,24 @@ public class Robot extends LoggedRobot {
       Logger.recordOutput("Compressor/PressurePSI", compressor.getPressure());
     }
 
+    for (int port = 0; port < DriverStation.kJoystickPorts; port++) {
+      if (!DriverStation.isJoystickConnected(port)) continue;
+      String prefix = "HID/Port" + port;
+      Logger.recordOutput(prefix + "/Name", DriverStation.getJoystickName(port));
+      int axisCount = DriverStation.getStickAxisCount(port);
+      double[] axes = new double[axisCount];
+      for (int i = 0; i < axisCount; i++) axes[i] = DriverStation.getStickAxis(port, i);
+      Logger.recordOutput(prefix + "/Axes", axes);
+      int buttonCount = DriverStation.getStickButtonCount(port);
+      boolean[] buttons = new boolean[buttonCount];
+      for (int i = 0; i < buttonCount; i++) buttons[i] = DriverStation.getStickButton(port, i + 1);
+      Logger.recordOutput(prefix + "/Buttons", buttons);
+      int povCount = DriverStation.getStickPOVCount(port);
+      long[] povs = new long[povCount];
+      for (int i = 0; i < povCount; i++) povs[i] = DriverStation.getStickPOV(port, i);
+      Logger.recordOutput(prefix + "/POVs", povs);
+    }
+
     Logger.recordOutput("Commands/ActiveCommands", activeCommands.toArray(new String[0]));
     logSubsystem("Drive", drive);
     logSubsystem("Vision", vision);
