@@ -42,7 +42,7 @@
     {"x":{"exp":"6.28985595703125 m", "val":6.28985595703125}, "y":{"exp":"4.29621696472168 m", "val":4.29621696472168}, "heading":{"exp":"1.69515114307497 rad", "val":1.69515114307497}, "intervals":28, "split":false, "fixTranslation":true, "fixHeading":true, "overrideIntervals":false},
     {"x":{"exp":"6.212356090545654 m", "val":6.212356090545654}, "y":{"exp":"6.104437828063965 m", "val":6.104437828063965}, "heading":{"exp":"1.7126927697559444 rad", "val":1.7126927697559444}, "intervals":31, "split":false, "fixTranslation":true, "fixHeading":true, "overrideIntervals":false},
     {"x":{"exp":"6.015511989593506 m", "val":6.015511989593506}, "y":{"exp":"7.5 m", "val":7.5}, "heading":{"exp":"-180 deg", "val":-3.141592653589793}, "intervals":30, "split":false, "fixTranslation":true, "fixHeading":true, "overrideIntervals":false},
-    {"x":{"exp":"4 m", "val":4.0}, "y":{"exp":"7.5 m", "val":7.5}, "heading":{"exp":"180 deg", "val":3.141592653589793}, "intervals":22, "split":false, "fixTranslation":true, "fixHeading":true, "overrideIntervals":false}],
+    {"x":{"exp":"BLTransition.x", "val":4.0}, "y":{"exp":"BLTransition.y", "val":7.5}, "heading":{"exp":"BLTransition.heading", "val":3.141592653589793}, "intervals":22, "split":false, "fixTranslation":true, "fixHeading":true, "overrideIntervals":false}],
   "constraints":[
     {"from":"first", "to":null, "data":{"type":"StopPoint", "props":{}}, "enabled":true},
     {"from":"last", "to":null, "data":{"type":"StopPoint", "props":{}}, "enabled":true},
