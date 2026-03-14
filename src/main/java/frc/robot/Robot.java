@@ -3,6 +3,7 @@ package frc.robot;
 import static frc.robot.subsystems.vision.VisionConstants.*;
 
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
@@ -258,9 +259,13 @@ public class Robot extends LoggedRobot {
     configureControlPanelBindings();
     configureAutoOptions();
 
-    SmartDashboard.putData(
-        "Align Encoders",
-        new InstantCommand(() -> drive.zeroAbsoluteEncoders()).ignoringDisable(true));
+    new Trigger(
+            NetworkTableInstance.getDefault()
+                    .getTable("Triggers")
+                    .getBooleanTopic("Align Encoders")
+                    .subscribe(false)
+                ::get)
+        .onTrue(new InstantCommand(drive::zeroAbsoluteEncoders).ignoringDisable(true));
     SmartDashboard.putData(CommandScheduler.getInstance());
     SmartDashboard.putData(drive);
     SmartDashboard.putData(vision);
