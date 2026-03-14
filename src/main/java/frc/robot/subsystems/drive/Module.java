@@ -167,7 +167,6 @@ public class Module {
     Rotation2d newTurnZero = inputs.turnZero.minus(inputs.turnPosition);
     io.setTurnZero(newTurnZero);
     Preferences.setDouble(zeroRotationKey + index, newTurnZero.getRadians());
-    Logger.recordOutput(
-        "Drive/Module" + index + "/TurnZeroRad", newTurnZero.getRadians());
+    Logger.recordOutput("Drive/Module" + index + "/TurnZeroRad", newTurnZero.getRadians());
   }
 }
