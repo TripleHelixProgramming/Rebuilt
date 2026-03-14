@@ -24,6 +24,7 @@ import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
 
 public class SpindexerIOSimSpark implements SpindexerIO {
+  private static final double SPINDEXER_MOI_KG_M2 = 0.00207;
 
   private final DCMotorSim spindexerSim;
 
@@ -53,7 +54,7 @@ public class SpindexerIOSimSpark implements SpindexerIO {
     flexSim = new SparkFlexSim(flex, gearbox);
 
     spindexerSim =
-        new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.00207, motorReduction), gearbox);
+        new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, SPINDEXER_MOI_KG_M2, motorReduction), gearbox);
   }
 
   @Override
