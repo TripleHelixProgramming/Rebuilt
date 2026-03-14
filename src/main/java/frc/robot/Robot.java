@@ -10,13 +10,12 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.PneumaticsModuleType;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
-import edu.wpi.first.wpilibj.smartdashboard.Field2d;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.game.Field;
@@ -99,9 +98,11 @@ public class Robot extends LoggedRobot {
       new AllianceSelector(DIOPorts.allianceColorSelector);
   public static final AutoSelector autoSelector =
       new AutoSelector(DIOPorts.autonomousModeSelector, allianceSelector::getAllianceColor);
-  public static final Field2d field = new Field2d();
-
   public final PowerDistribution powerDistribution = new PowerDistribution(1, ModuleType.kRev);
+
+  private final java.util.Set<String> activeCommands = new java.util.LinkedHashSet<>();
+
+  private Compressor compressor;
 
   // Subsystems
   private Drive drive;
@@ -168,7 +169,7 @@ public class Robot extends LoggedRobot {
                 new IntakeArmIOReal());
         // hopper = new Hopper(new HopperIOReal());
         feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
-        SmartDashboard.putData(new Compressor(PneumaticsModuleType.REVPH));
+        compressor = new Compressor(PneumaticsModuleType.REVPH);
         break;
 
       case SIM: // Running a physics simulator
@@ -259,6 +260,10 @@ public class Robot extends LoggedRobot {
     configureControlPanelBindings();
     configureAutoOptions();
 
+    CommandScheduler.getInstance().onCommandInitialize(cmd -> activeCommands.add(cmd.getName()));
+    CommandScheduler.getInstance().onCommandFinish(cmd -> activeCommands.remove(cmd.getName()));
+    CommandScheduler.getInstance().onCommandInterrupt(cmd -> activeCommands.remove(cmd.getName()));
+
     new Trigger(
             NetworkTableInstance.getDefault()
                     .getTable("Triggers")
@@ -266,13 +271,6 @@ public class Robot extends LoggedRobot {
                     .subscribe(false)
                 ::get)
         .onTrue(new InstantCommand(drive::zeroAbsoluteEncoders).ignoringDisable(true));
-    SmartDashboard.putData(CommandScheduler.getInstance());
-    SmartDashboard.putData(drive);
-    SmartDashboard.putData(vision);
-    SmartDashboard.putData(launcher);
-    SmartDashboard.putData(feeder);
-    SmartDashboard.putData(intake);
-    SmartDashboard.putData("Field", field);
     Field.plotRegions();
 
     feeder.setDefaultCommand(Commands.startEnd(feeder::stop, () -> {}, feeder).withName("Stop"));
@@ -300,6 +298,20 @@ public class Robot extends LoggedRobot {
     // the Command-based framework to work.
     CommandScheduler.getInstance().run();
     long t1 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+
+    if (compressor != null) {
+      Logger.recordOutput("Compressor/Enabled", compressor.isEnabled());
+      Logger.recordOutput("Compressor/PressureSwitch", compressor.getPressureSwitchValue());
+      Logger.recordOutput("Compressor/CurrentAmps", compressor.getCurrent());
+      Logger.recordOutput("Compressor/PressurePSI", compressor.getPressure());
+    }
+
+    Logger.recordOutput("Commands/ActiveCommands", activeCommands.toArray(new String[0]));
+    logSubsystem("Drive", drive);
+    logSubsystem("Vision", vision);
+    logSubsystem("Launcher", launcher);
+    logSubsystem("Feeder", feeder);
+    logSubsystem("Intake", intake);
 
     GameState.logValues();
     long t2 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
@@ -693,5 +705,16 @@ public class Robot extends LoggedRobot {
         Commands.sequence(
             Commands.waitUntil(launcher::isTurretDesaturated),
             Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance")));
+  }
+
+  private static void logSubsystem(String name, SubsystemBase subsystem) {
+    Command current = subsystem.getCurrentCommand();
+    Command defaultCmd = subsystem.getDefaultCommand();
+    Logger.recordOutput("Subsystems/" + name + "/HasCommand", current != null);
+    Logger.recordOutput(
+        "Subsystems/" + name + "/Command", current != null ? current.getName() : "None");
+    Logger.recordOutput("Subsystems/" + name + "/HasDefault", defaultCmd != null);
+    Logger.recordOutput(
+        "Subsystems/" + name + "/Default", defaultCmd != null ? defaultCmd.getName() : "None");
   }
 }
