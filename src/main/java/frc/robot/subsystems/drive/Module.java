@@ -51,6 +51,8 @@ public class Module {
         new Rotation2d(
             Preferences.getDouble(zeroRotationKey + index, turnZeroFromCancoder.getRadians()));
     io.setTurnZero(turnZeroFromPreferences);
+    Logger.recordOutput(
+        "Drive/Module" + index + "/TurnZeroRad", turnZeroFromPreferences.getRadians());
   }
 
   public void periodic() {
@@ -165,5 +167,6 @@ public class Module {
     Rotation2d newTurnZero = inputs.turnZero.minus(inputs.turnPosition);
     io.setTurnZero(newTurnZero);
     Preferences.setDouble(zeroRotationKey + index, newTurnZero.getRadians());
+    Logger.recordOutput("Drive/Module" + index + "/TurnZeroRad", newTurnZero.getRadians());
   }
 }

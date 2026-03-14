@@ -108,7 +108,7 @@ public final class Constants {
     public static final class CANHD {
       // CAN bus that the devices are located on;
       // All swerve devices must share the same CAN bus
-      public static final CANBus bus = new CANBus("canivore", "./logs/example.hoot");
+      public static final CANBus bus = new CANBus("canivore", "/home/lvuser/logs/");
 
       // Drivetrain
       public static final int backLeftDrive = 10;

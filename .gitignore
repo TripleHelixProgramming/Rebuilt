@@ -186,3 +186,6 @@ compile_commands.json
 
 # Version file
 src/main/java/frc/robot/BuildConstants.java
+
+# Claude configuration
+.claude/
