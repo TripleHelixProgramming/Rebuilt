@@ -67,6 +67,10 @@ public class Intake extends SubsystemBase {
     intakeArmIO.deploy();
   }
 
+  public void retractArm() {
+    intakeArmIO.retract();
+  }
+
   public Boolean isDeployed() {
     return intakeArmInputs.isDeployed.equals(DoubleSolenoid.Value.kForward);
   }
@@ -96,5 +100,13 @@ public class Intake extends SubsystemBase {
             Commands.startEnd(
                 () -> intakeRollerIO.setVelocity(MetersPerSecond.of(-4.0)), () -> {}, this))
         .withName("Reverse");
+  }
+
+  public Command getShakeIntakeCommand() {
+    return Commands.sequence(
+      this.idle().withTimeout(1.0),
+      Commands.runOnce(this::retractArm, this),
+      this.idle().withTimeout(1.0),
+      Commands.runOnce(this::deployArm, this));
   }
 }
