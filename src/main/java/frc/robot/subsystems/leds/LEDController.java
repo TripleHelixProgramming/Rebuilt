@@ -198,9 +198,25 @@ public class LEDController extends SubsystemBase {
   /**
    * Displays a progress bar showing the remaining time in the current match phase. The bar fills in
    * alliance color based on hub state. When both hubs are active, shows our alliance color.
+   *
+   * <p>When FMS is connected, uses the full X-axis range (LEDs 12-35) to maximize visibility.
+   * Otherwise uses X_AXIS_BODY (LEDs 14-35), leaving X_AXIS_WARNING free for other indicators.
    */
   public void displayHubCountdown() {
-    LEDSeries.X_AXIS_FULL.applyPattern(hubCountdownPattern);
+    if (DriverStation.isFMSAttached()) {
+      LEDSeries.X_AXIS_FULL.applyPattern(hubCountdownPattern);
+    } else {
+      LEDSeries.X_AXIS_BODY.applyPattern(hubCountdownPattern);
+    }
+  }
+
+  /**
+   * Displays compressor state on the X_AXIS_WARNING pixel. Green when running, off when not.
+   *
+   * @param isRunning true when the compressor is actively running
+   */
+  public void displayCompressorState(boolean isRunning) {
+    LEDSeries.X_AXIS_WARNING.applyPattern(isRunning ? solidGreenPattern : solidBlackPattern);
   }
 
   /**
