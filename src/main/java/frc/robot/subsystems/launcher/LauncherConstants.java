@@ -124,6 +124,8 @@ public final class LauncherConstants {
     public static final Slot1Configs velocityTorqueCurrentGains =
         new Slot1Configs().withKP(12).withKI(0.0).withKD(0.0).withKS(2.5);
 
+    public static final double maxCurrentAmps = 100.0;
+
     // Simulation
     public static final double kPSim = 0.1;
     public static final DCMotor gearbox = DCMotor.getKrakenX60(2);

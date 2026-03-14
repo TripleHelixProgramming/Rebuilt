@@ -41,6 +41,10 @@ public class RollerIOTalonFX implements RollerIO {
   public RollerIOTalonFX(RollerConfig rollerConfig) {
     motor = new TalonFX(rollerConfig.port, rollerConfig.bus);
     config = new TalonFXConfiguration();
+    config.TorqueCurrent.PeakForwardTorqueCurrent = maxCurrentAmps;
+    config.TorqueCurrent.PeakReverseTorqueCurrent = -maxCurrentAmps;
+    config.CurrentLimits.StatorCurrentLimit = maxCurrentAmps;
+    config.CurrentLimits.StatorCurrentLimitEnable = true;
     config.MotorOutput.Inverted =
         rollerConfig.inverted
             ? InvertedValue.Clockwise_Positive
