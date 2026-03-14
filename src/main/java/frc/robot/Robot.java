@@ -110,6 +110,7 @@ public class Robot extends LoggedRobot {
   private Intake intake;
   // private Hopper hopper;
   private LEDController leds = LEDController.getInstance();
+  private Compressor compressor;
 
   public Robot() {
     // Record metadata
@@ -167,7 +168,8 @@ public class Robot extends LoggedRobot {
                 new IntakeArmIOReal());
         // hopper = new Hopper(new HopperIOReal());
         feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
-        SmartDashboard.putData(new Compressor(PneumaticsModuleType.REVPH));
+        compressor = new Compressor(PneumaticsModuleType.REVPH);
+        SmartDashboard.putData(compressor);
         break;
 
       case SIM: // Running a physics simulator
@@ -368,6 +370,9 @@ public class Robot extends LoggedRobot {
   public void teleopPeriodic() {
     leds.displayHubCountdown();
     leds.displayRobotState(() -> launcher.isOnTarget(), () -> feeder.isSpinning());
+    if (!DriverStation.isFMSAttached()) {
+      leds.displayCompressorState(compressor != null && compressor.isEnabled());
+    }
   }
 
   /** This function is called once when test mode is enabled. */

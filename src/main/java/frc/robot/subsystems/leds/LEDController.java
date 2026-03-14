@@ -180,22 +180,43 @@ public class LEDController extends SubsystemBase {
             autoOption -> LEDSeries.X_AXIS.applyPattern(autoSelectionPattern),
             () -> LEDSeries.X_AXIS.applyPattern(solidYellowPattern.blink(Seconds.of(0.5))));
 
-    // Display yellow at end pixel if alliance disagreement
+    // Display yellow warning pixel if alliance disagreement
     DriverStation.getAlliance()
         .ifPresent(
             alliance -> {
               if (alliance != Robot.allianceSelector.getAllianceColor()) {
-                LEDSeries.X_AXIS.setLED(LEDSeries.X_AXIS.getLength() - 1, Color.kYellow);
+                LEDSeries.X_AXIS_ALLIANCE_WARNING.applyPattern(LEDPattern.solid(Color.kYellow));
               }
             });
+
+    // Display orange-red warning pixel if USB storage is low
+    if (isUSBStorageLow()) {
+      LEDSeries.X_AXIS_WARNING.applyPattern(LEDPattern.solid(Color.kOrangeRed));
+    }
   }
 
   /**
    * Displays a progress bar showing the remaining time in the current match phase. The bar fills in
    * alliance color based on hub state. When both hubs are active, shows our alliance color.
+   *
+   * <p>When FMS is connected, uses the full X-axis range (LEDs 12-35) to maximize visibility.
+   * Otherwise uses X_AXIS_BODY (LEDs 14-35), leaving X_AXIS_WARNING free for other indicators.
    */
   public void displayHubCountdown() {
-    LEDSeries.X_AXIS.applyPattern(hubCountdownPattern);
+    if (DriverStation.isFMSAttached()) {
+      LEDSeries.X_AXIS_FULL.applyPattern(hubCountdownPattern);
+    } else {
+      LEDSeries.X_AXIS_BODY.applyPattern(hubCountdownPattern);
+    }
+  }
+
+  /**
+   * Displays compressor state on the X_AXIS_WARNING pixel. Green when running, off when not.
+   *
+   * @param isRunning true when the compressor is actively running
+   */
+  public void displayCompressorState(boolean isRunning) {
+    LEDSeries.X_AXIS_WARNING.applyPattern(isRunning ? solidGreenPattern : solidBlackPattern);
   }
 
   /**
@@ -220,6 +241,11 @@ public class LEDController extends SubsystemBase {
       pattern = spindexing ? bounceRippleYellowPattern : solidYellowPattern;
     }
     LEDSeries.Y_AXIS.applyPattern(pattern);
+  }
+
+  /** Returns true when the USB stick at /U has less than 1 GB free. */
+  private boolean isUSBStorageLow() {
+    return new java.io.File("/U").getFreeSpace() < 1024L * 1024 * 1024;
   }
 
   /** Clears all LEDs by applying solid black. */
