@@ -299,6 +299,20 @@ public class Robot extends LoggedRobot {
     CommandScheduler.getInstance().run();
     long t1 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
+    logCANBus("CAN2", Constants.CANBusPorts.CAN2.bus);
+    logCANBus("CANHD", Constants.CANBusPorts.CANHD.bus);
+
+    Logger.recordOutput("PDH/Voltage", powerDistribution.getVoltage());
+    Logger.recordOutput("PDH/TotalCurrentAmps", powerDistribution.getTotalCurrent());
+    Logger.recordOutput("PDH/TotalPowerWatts", powerDistribution.getTotalPower());
+    Logger.recordOutput("PDH/TotalEnergyJoules", powerDistribution.getTotalEnergy());
+    Logger.recordOutput("PDH/TemperatureCelsius", powerDistribution.getTemperature());
+    Logger.recordOutput("PDH/SwitchableChannelActive", powerDistribution.getSwitchableChannel());
+    int numChannels = powerDistribution.getNumChannels();
+    double[] channelCurrents = new double[numChannels];
+    for (int i = 0; i < numChannels; i++) channelCurrents[i] = powerDistribution.getCurrent(i);
+    Logger.recordOutput("PDH/ChannelCurrentsAmps", channelCurrents);
+
     if (compressor != null) {
       Logger.recordOutput("Compressor/Enabled", compressor.isEnabled());
       Logger.recordOutput("Compressor/PressureSwitch", compressor.getPressureSwitchValue());
@@ -723,6 +737,15 @@ public class Robot extends LoggedRobot {
         Commands.sequence(
             Commands.waitUntil(launcher::isTurretDesaturated),
             Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance")));
+  }
+
+  private static void logCANBus(String name, com.ctre.phoenix6.CANBus bus) {
+    var status = bus.getStatus();
+    Logger.recordOutput("CANBus/" + name + "/Utilization", status.BusUtilization);
+    Logger.recordOutput("CANBus/" + name + "/BusOffCount", (long) status.BusOffCount);
+    Logger.recordOutput("CANBus/" + name + "/TxFullCount", (long) status.TxFullCount);
+    Logger.recordOutput("CANBus/" + name + "/REC", (long) status.REC);
+    Logger.recordOutput("CANBus/" + name + "/TEC", (long) status.TEC);
   }
 
   private static void logSubsystem(String name, SubsystemBase subsystem) {
