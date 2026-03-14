@@ -301,19 +301,9 @@ public class Robot extends LoggedRobot {
 
     // Profiling output
     if (Constants.PROFILING_ENABLED) {
-      long schedulerMs = (t1 - loopStart) / 1_000_000;
-      long gameStateMs = (t2 - t1) / 1_000_000;
-      long totalMs = (t2 - loopStart) / 1_000_000;
-      if (totalMs > 20) {
-        System.out.println(
-            "[Robot] scheduler="
-                + schedulerMs
-                + "ms gameState="
-                + gameStateMs
-                + "ms total="
-                + totalMs
-                + "ms");
-      }
+      Logger.recordOutput("Profiling/Robot/SchedulerMs", (t1 - loopStart) / 1_000_000);
+      Logger.recordOutput("Profiling/Robot/GameStateMs", (t2 - t1) / 1_000_000);
+      Logger.recordOutput("Profiling/Robot/TotalMs", (t2 - loopStart) / 1_000_000);
     }
 
     // Return to non-RT thread priority (do not modify the first argument)
