@@ -178,30 +178,21 @@ public class Launcher extends SubsystemBase {
         Math.hypot(vectorTurretBaseToTarget.getX(), vectorTurretBaseToTarget.getY());
     Rotation2d dynamicImpactAngle = getImpactAngle(horizontalDistance);
 
-    // Set flywheel speed assuming a motionless robot
+    // Calculate ballistics
     var v0_nominal = getV0Nominal(vectorTurretBaseToTarget, dynamicImpactAngle, nominalKey);
-    var flywheelSetpoint = MetersPerSecond.of(flywheelSetpointfromBallistics(v0_nominal.getNorm()));
-    flywheelIO.setVelocity(flywheelSetpoint);
-    long t1 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
-
     // Get translation velocities (m/s) of the turret caused by motion of the chassis
     var robotRelative = chassisSpeedsSupplier.get();
     var fieldRelative =
         ChassisSpeeds.fromRobotRelativeSpeeds(
             robotRelative, turretBasePose.toPose2d().getRotation());
     var v_base = getTurretBaseSpeeds(turretBasePose.toPose2d().getRotation(), fieldRelative);
-    long t2 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
-
-    // Get actual initial shot speed
-    double initialSpeedMetersPerSec =
-        ballisticsFromFlywheelSetpoint(flywheelInputs.velocityMetersPerSec);
-
-    // Replan shot using actual initial shot speed speed
-    var v0_total = getV0Replanned(vectorTurretBaseToTarget, initialSpeedMetersPerSec, replannedKey);
-    long t3 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t1 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Point turret to align velocity vectors
-    var v0_flywheel = v0_total.minus(v_base);
+    var v0_flywheel = v0_nominal.minus(v_base);
+    var flywheelSetpoint = MetersPerSecond.of(flywheelSetpointfromBallistics(v0_nominal.getNorm()));
+    flywheelIO.setVelocity(flywheelSetpoint);
+    long t2 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Check if v0_flywheel has non-zero horizontal component
     double v0_horizontal = Math.hypot(v0_flywheel.getX(), v0_flywheel.getY());
@@ -220,7 +211,11 @@ public class Launcher extends SubsystemBase {
         RadiansPerSecond.of(robotRelative.omegaRadiansPerSecond).unaryMinus().times(2.0));
     hoodSetpoint = new Rotation2d(v0_horizontal, v0_flywheel.getZ()).minus(ballToHoodOffset);
     hoodIO.setPosition(hoodSetpoint, RadiansPerSecond.of(0));
-    long t4 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t3 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+
+    // Get actual initial shot speed
+    double initialSpeedMetersPerSec =
+        ballisticsFromFlywheelSetpoint(flywheelInputs.velocityMetersPerSec);
 
     // Get actual hood & turret position
     Rotation2d hoodPosition = hoodInputs.position.plus(ballToHoodOffset);
@@ -243,7 +238,7 @@ public class Launcher extends SubsystemBase {
     cachedActualD = vectorTurretBaseToTarget;
     cachedActualV = v0_actual;
     hasCachedAimData = true;
-    long t5 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t4 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Spawn simulated fuel
     fuelSpawnTimer += Robot.defaultPeriodSecs;
@@ -252,27 +247,23 @@ public class Launcher extends SubsystemBase {
 
       fuelNominal.add(
           new BallisticObject(turretBasePose.getTranslation(), v0_nominal, target.getMeasureZ()));
-      fuelReplanned.add(
-          new BallisticObject(turretBasePose.getTranslation(), v0_total, target.getMeasureZ()));
       fuelActual.add(
           new BallisticObject(turretBasePose.getTranslation(), v0_actual, target.getMeasureZ()));
     }
 
     // Profiling output for aim()
     if (Constants.PROFILING_ENABLED) {
-      long totalUs = (t5 - aimStart) / 1_000;
+      long totalUs = (t4 - aimStart) / 1_000;
       if (totalUs > 500) {
         System.out.println(
-            "[Launcher.aim] v0nom="
+            "[Launcher.aim] baseSpeeds="
                 + (t1 - aimStart) / 1_000
-                + "us baseSpeeds="
+                + "us v0nom="
                 + (t2 - t1) / 1_000
-                + "us v0replan="
-                + (t3 - t2) / 1_000
                 + "us setPos="
+                + (t3 - t2) / 1_000
+                + "us getValues="
                 + (t4 - t3) / 1_000
-                + "us rest="
-                + (t5 - t4) / 1_000
                 + "us total="
                 + totalUs
                 + "us");
