@@ -51,17 +51,9 @@ public class Intake extends SubsystemBase {
 
     // Profiling output
     if (Constants.PROFILING_ENABLED) {
-      long totalMs = (t2 - t0) / 1_000_000;
-      if (totalMs > 2) {
-        System.out.println(
-            "[Intake] update="
-                + (t1 - t0) / 1_000_000
-                + "ms log="
-                + (t2 - t1) / 1_000_000
-                + "ms total="
-                + totalMs
-                + "ms");
-      }
+      Logger.recordOutput("Profiling/Intake/UpdateMs", (t1 - t0) / 1_000_000);
+      Logger.recordOutput("Profiling/Intake/LogMs", (t2 - t1) / 1_000_000);
+      Logger.recordOutput("Profiling/Intake/TotalMs", (t2 - t0) / 1_000_000);
     }
   }
 
