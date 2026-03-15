@@ -638,6 +638,26 @@ public class Robot extends LoggedRobot {
     // Switch to X pattern when X button is pressed
     xboxDriver.x().onTrue(Commands.runOnce(drive::stopWithX, drive));
 
+    // Desaturate turret and advance feeder
+    xboxDriver.a().whileTrue(createDesaturateAndShootCommand(controller));
+
+    // Launcher
+    Trigger launcherEnabled = xboxDriver.rightTrigger().debounce(0.1);
+    launcherEnabled
+        .or(() -> DriverStation.isFMSAttached())
+        .whileTrue(
+            launcher
+                .initializeHoodCommand()
+                .andThen(
+                    new RunCommand(
+                            () ->
+                                launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()),
+                            launcher)
+                        .withName("Aim at hub")));
+
+    // Intake
+    xboxDriver.rightBumper().whileTrue(intake.getDeployCommand());
+
     return controller;
   }
 
