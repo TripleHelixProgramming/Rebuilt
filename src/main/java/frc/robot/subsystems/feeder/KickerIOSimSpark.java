@@ -18,6 +18,7 @@ import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
+import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.NEOVortexConstants;
 import frc.robot.Constants.RobotConstants;
@@ -61,12 +62,10 @@ public class KickerIOSimSpark implements KickerIO {
   @Override
   public void updateInputs(KickerIOInputs inputs) {
     // Update simulation state
-    kickerSim.setInput(flexSim.getAppliedOutput() * RobotConstants.kNominalVoltage);
+    double busVoltage = RoboRioSim.getVInVoltage();
+    kickerSim.setInput(flexSim.getAppliedOutput() * busVoltage);
     kickerSim.update(Robot.defaultPeriodSecs);
-    flexSim.iterate(
-        kickerSim.getAngularVelocityRadPerSec(),
-        RobotConstants.kNominalVoltage,
-        Robot.defaultPeriodSecs);
+    flexSim.iterate(kickerSim.getAngularVelocityRadPerSec(), busVoltage, Robot.defaultPeriodSecs);
 
     // Update inputs
     inputs.connected = true;
@@ -77,7 +76,7 @@ public class KickerIOSimSpark implements KickerIO {
 
   @Override
   public void setOpenLoop(Voltage volts) {
-    flexSim.setAppliedOutput(volts.in(Volts) / 12.0);
+    flexSim.setAppliedOutput(volts.in(Volts) / RobotConstants.kNominalVoltage);
   }
 
   @Override

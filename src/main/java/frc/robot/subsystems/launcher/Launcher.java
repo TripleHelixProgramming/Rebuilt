@@ -166,6 +166,11 @@ public class Launcher extends SubsystemBase {
     hoodIO.setOpenLoop(Volts.of(0.0));
   }
 
+  /** Returns the total motor current draw for battery simulation. Flywheel counts 2 motors. */
+  public double getSimCurrentDrawAmps() {
+    return flywheelInputs.currentAmps * 2 + turretInputs.currentAmps + hoodInputs.currentAmps;
+  }
+
   public void aim(Translation3d target) {
     long aimStart = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
