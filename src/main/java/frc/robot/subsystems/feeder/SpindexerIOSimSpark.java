@@ -78,7 +78,7 @@ public class SpindexerIOSimSpark implements SpindexerIO {
 
   @Override
   public void setOpenLoop(Voltage volts) {
-    flexSim.setAppliedOutput(volts.in(Volts) / RoboRioSim.getVInVoltage());
+    flexSim.setAppliedOutput(volts.in(Volts) / RobotConstants.kNominalVoltage);
   }
 
   @Override

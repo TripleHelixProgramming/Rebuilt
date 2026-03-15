@@ -110,7 +110,7 @@ public class HoodIOSimSpark implements HoodIO {
 
   @Override
   public void setOpenLoop(Voltage volts) {
-    maxSim.setAppliedOutput(volts.in(Volts) / RoboRioSim.getVInVoltage());
+    maxSim.setAppliedOutput(volts.in(Volts) / RobotConstants.kNominalVoltage);
   }
 
   @Override

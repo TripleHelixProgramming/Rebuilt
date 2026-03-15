@@ -76,7 +76,7 @@ public class KickerIOSimSpark implements KickerIO {
 
   @Override
   public void setOpenLoop(Voltage volts) {
-    flexSim.setAppliedOutput(volts.in(Volts) / RoboRioSim.getVInVoltage());
+    flexSim.setAppliedOutput(volts.in(Volts) / RobotConstants.kNominalVoltage);
   }
 
   @Override
