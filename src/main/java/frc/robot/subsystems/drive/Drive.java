@@ -425,6 +425,15 @@ public class Drive extends SubsystemBase {
     return maxChassisAngularVelocity.in(RadiansPerSecond);
   }
 
+  /** Returns the total motor current draw across all modules for battery simulation. */
+  public double getSimCurrentDrawAmps() {
+    double total = 0.0;
+    for (var module : modules) {
+      total += module.getSimCurrentDrawAmps();
+    }
+    return total;
+  }
+
   public void zeroAbsoluteEncoders() {
     for (var module : modules) {
       module.setTurnZero();

@@ -18,6 +18,7 @@ import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
+import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.NEOVortexConstants;
 import frc.robot.Constants.RobotConstants;
@@ -62,12 +63,11 @@ public class SpindexerIOSimSpark implements SpindexerIO {
   @Override
   public void updateInputs(SpindexerIOInputs inputs) {
     // Update simulation state
-    spindexerSim.setInput(flexSim.getAppliedOutput() * RobotConstants.kNominalVoltage);
+    double busVoltage = RoboRioSim.getVInVoltage();
+    spindexerSim.setInput(flexSim.getAppliedOutput() * busVoltage);
     spindexerSim.update(Robot.defaultPeriodSecs);
     flexSim.iterate(
-        spindexerSim.getAngularVelocityRadPerSec(),
-        RobotConstants.kNominalVoltage,
-        Robot.defaultPeriodSecs);
+        spindexerSim.getAngularVelocityRadPerSec(), busVoltage, Robot.defaultPeriodSecs);
 
     // Update inputs
     inputs.connected = true;
@@ -78,7 +78,7 @@ public class SpindexerIOSimSpark implements SpindexerIO {
 
   @Override
   public void setOpenLoop(Voltage volts) {
-    flexSim.setAppliedOutput(volts.in(Volts) / 12.0);
+    flexSim.setAppliedOutput(volts.in(Volts) / RobotConstants.kNominalVoltage);
   }
 
   @Override
