@@ -9,6 +9,8 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.PneumaticsModuleType;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
+import edu.wpi.first.wpilibj.simulation.BatterySim;
+import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -110,6 +112,11 @@ public class Robot extends LoggedRobot {
   private Intake intake;
   // private Hopper hopper;
   private LEDController leds = LEDController.getInstance();
+  private Compressor compressor;
+
+  // Battery simulation constants
+  private static final double COMPRESSOR_CURRENT_AMPS = 18.0; // typical FRC compressor stall
+  private static final double ELECTRONICS_OVERHEAD_AMPS = 4.5; // RoboRIO + radio + PDH + misc
 
   public Robot() {
     // Record metadata
@@ -167,7 +174,8 @@ public class Robot extends LoggedRobot {
                 new IntakeArmIOReal());
         // hopper = new Hopper(new HopperIOReal());
         feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
-        SmartDashboard.putData(new Compressor(PneumaticsModuleType.REVPH));
+        compressor = new Compressor(PneumaticsModuleType.REVPH);
+        SmartDashboard.putData(compressor);
         break;
 
       case SIM: // Running a physics simulator
@@ -208,6 +216,7 @@ public class Robot extends LoggedRobot {
                 new RollerIOSimTalonFX(RollerConstants.lowerRollerConfig),
                 new IntakeArmIOSim());
         // hopper = new Hopper(new HopperIOSim());
+        compressor = new Compressor(PneumaticsModuleType.REVPH);
         break;
 
       case REPLAY: // Replaying a log
@@ -394,6 +403,17 @@ public class Robot extends LoggedRobot {
   /** This function is called periodically whilst in simulation. */
   @Override
   public void simulationPeriodic() {
+    // Update battery voltage based on total current draw this cycle
+    double compressorAmps = compressor.isEnabled() ? COMPRESSOR_CURRENT_AMPS : 0.0;
+    RoboRioSim.setVInVoltage(
+        BatterySim.calculateDefaultBatteryLoadedVoltage(
+            drive.getSimCurrentDrawAmps(),
+            launcher.getSimCurrentDrawAmps(),
+            feeder.getSimCurrentDrawAmps(),
+            intake.getSimCurrentDrawAmps(),
+            compressorAmps,
+            ELECTRONICS_OVERHEAD_AMPS));
+
     leds.displayHubCountdown();
     leds.displayRobotState(() -> launcher.isOnTarget(), () -> feeder.isSpinning());
   }
