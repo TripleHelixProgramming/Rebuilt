@@ -2,6 +2,7 @@ package frc.robot;
 
 import static frc.robot.subsystems.vision.VisionConstants.*;
 
+import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -118,6 +119,7 @@ public class Robot extends LoggedRobot {
 
   // Battery simulation constants
   private static final double ELECTRONICS_OVERHEAD_AMPS = 4.5; // RoboRIO + radio + PDH + misc
+  private final LinearFilter vBusFilter = LinearFilter.singlePoleIIR(0.04, Robot.defaultPeriodSecs);
 
   public Robot() {
     // Record metadata
@@ -265,11 +267,6 @@ public class Robot extends LoggedRobot {
     VisionThread.getInstance().start();
     CanandgyroThread.getInstance().start();
 
-    // Seed battery voltage so SparkSim.iterate() never receives vbus=0 on the first tick
-    if (Constants.currentMode == Constants.Mode.SIM) {
-      RoboRioSim.setVInVoltage(12.0);
-    }
-
     // Start AdvantageKit logger
     Logger.start();
 
@@ -415,13 +412,16 @@ public class Robot extends LoggedRobot {
     // Update battery voltage based on total current draw this cycle
     pneumaticsSimulator.update(Robot.defaultPeriodSecs);
     RoboRioSim.setVInVoltage(
-        BatterySim.calculateDefaultBatteryLoadedVoltage(
-            drive.getSimCurrentDrawAmps(),
-            launcher.getSimCurrentDrawAmps(),
-            feeder.getSimCurrentDrawAmps(),
-            intake.getSimCurrentDrawAmps(),
-            pneumaticsSimulator.getCompressorCurrentAmps(),
-            ELECTRONICS_OVERHEAD_AMPS));
+        vBusFilter.calculate(
+            Math.max(
+                0.0,
+                BatterySim.calculateDefaultBatteryLoadedVoltage(
+                    drive.getSimCurrentDrawAmps(),
+                    launcher.getSimCurrentDrawAmps(),
+                    feeder.getSimCurrentDrawAmps(),
+                    intake.getSimCurrentDrawAmps(),
+                    pneumaticsSimulator.getCompressorCurrentAmps(),
+                    ELECTRONICS_OVERHEAD_AMPS))));
 
     leds.displayHubCountdown();
     leds.displayRobotState(() -> launcher.isOnTarget(), () -> feeder.isSpinning());
@@ -642,24 +642,10 @@ public class Robot extends LoggedRobot {
     //     PathCommands.dockToTargetPoint(drive, new Translation2d(8.2296, 4.1148), Meters.of(2)));
 
     // Switch to X pattern when X button is pressed
-    xboxDriver.x().onTrue(Commands.runOnce(drive::stopWithX, drive));
+    // xboxDriver.x().onTrue(Commands.runOnce(drive::stopWithX, drive));
 
     // Desaturate turret and advance feeder
     xboxDriver.a().whileTrue(createDesaturateAndShootCommand(controller));
-
-    // Launcher
-    Trigger launcherEnabled = xboxDriver.rightTrigger().debounce(0.1);
-    launcherEnabled
-        .or(() -> DriverStation.isFMSAttached())
-        .whileTrue(
-            launcher
-                .initializeHoodCommand()
-                .andThen(
-                    new RunCommand(
-                            () ->
-                                launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()),
-                            launcher)
-                        .withName("Aim at hub")));
 
     // Intake
     xboxDriver.rightBumper().whileTrue(intake.getDeployCommand());
