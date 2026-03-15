@@ -102,6 +102,11 @@ public class Intake extends SubsystemBase {
         .withName("Intake");
   }
 
+  /** Returns the total motor current draw for battery simulation. */
+  public double getSimCurrentDrawAmps() {
+    return upperRollerInputs.currentAmps + lowerRollerInputs.currentAmps;
+  }
+
   public Command getReverseCommand() {
     return Commands.sequence(
             Commands.runOnce(this::deployArm, this),

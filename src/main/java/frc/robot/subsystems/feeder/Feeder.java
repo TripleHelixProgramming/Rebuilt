@@ -81,4 +81,9 @@ public class Feeder extends SubsystemBase {
   public boolean isSpinning() {
     return spindexerInputs.velocityMetersPerSec >= 0.5;
   }
+
+  /** Returns the total motor current draw for battery simulation. */
+  public double getSimCurrentDrawAmps() {
+    return spindexerInputs.currentAmps + kickerInputs.currentAmps;
+  }
 }
