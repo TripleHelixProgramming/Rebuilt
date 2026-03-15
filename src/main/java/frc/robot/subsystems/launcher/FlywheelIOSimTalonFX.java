@@ -28,6 +28,8 @@ import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
 
 public class FlywheelIOSimTalonFX implements FlywheelIO {
+  private static final double FLYWHEEL_MOI_KG_M2 = 0.00026;
+
   private final DCMotorSim flywheelSim;
 
   private final TalonFX flywheelLeaderTalon;
@@ -64,7 +66,9 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
     flywheelMotorSim.setMotorType(MotorType.KrakenX60);
 
     flywheelSim =
-        new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
+        new DCMotorSim(
+            LinearSystemId.createDCMotorSystem(gearbox, FLYWHEEL_MOI_KG_M2, motorReduction),
+            gearbox);
 
     flywheelVelocity = flywheelLeaderTalon.getVelocity();
     flywheelAppliedVolts = flywheelLeaderTalon.getMotorVoltage();
