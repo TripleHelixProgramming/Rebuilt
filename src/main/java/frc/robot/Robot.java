@@ -10,6 +10,7 @@ import edu.wpi.first.wpilibj.PneumaticsModuleType;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
 import edu.wpi.first.wpilibj.simulation.BatterySim;
+import edu.wpi.first.wpilibj.simulation.REVPHSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -113,9 +114,9 @@ public class Robot extends LoggedRobot {
   // private Hopper hopper;
   private LEDController leds = LEDController.getInstance();
   private Compressor compressor;
+  private PneumaticsSimulator pneumaticsSimulator;
 
   // Battery simulation constants
-  private static final double COMPRESSOR_CURRENT_AMPS = 18.0; // typical FRC compressor stall
   private static final double ELECTRONICS_OVERHEAD_AMPS = 4.5; // RoboRIO + radio + PDH + misc
 
   public Robot() {
@@ -210,13 +211,15 @@ public class Robot extends LoggedRobot {
                 new FlywheelIOSimTalonFX(),
                 new HoodIOSimSpark());
         feeder = new Feeder(new SpindexerIOSimSpark(), new KickerIOSimSpark());
+        var intakeArmIOSim = new IntakeArmIOSim();
         intake =
             new Intake(
                 new RollerIOSimTalonFX(RollerConstants.upperRollerConfig),
                 new RollerIOSimTalonFX(RollerConstants.lowerRollerConfig),
-                new IntakeArmIOSim());
+                intakeArmIOSim);
         // hopper = new Hopper(new HopperIOSim());
-        compressor = new Compressor(PneumaticsModuleType.REVPH);
+        pneumaticsSimulator =
+            new PneumaticsSimulator(intakeArmIOSim.intakeArmPneumatic, new REVPHSim(1));
         break;
 
       case REPLAY: // Replaying a log
@@ -404,14 +407,14 @@ public class Robot extends LoggedRobot {
   @Override
   public void simulationPeriodic() {
     // Update battery voltage based on total current draw this cycle
-    double compressorAmps = compressor.isEnabled() ? COMPRESSOR_CURRENT_AMPS : 0.0;
+    pneumaticsSimulator.update(Robot.defaultPeriodSecs);
     RoboRioSim.setVInVoltage(
         BatterySim.calculateDefaultBatteryLoadedVoltage(
             drive.getSimCurrentDrawAmps(),
             launcher.getSimCurrentDrawAmps(),
             feeder.getSimCurrentDrawAmps(),
             intake.getSimCurrentDrawAmps(),
-            compressorAmps,
+            pneumaticsSimulator.getCompressorCurrentAmps(),
             ELECTRONICS_OVERHEAD_AMPS));
 
     leds.displayHubCountdown();
