@@ -181,6 +181,7 @@ public class Robot extends LoggedRobot {
 
       case SIM: // Running a physics simulator
         // Log to NT
+        Logger.addDataReceiver(new WPILOGWriter("logs/"));
         Logger.addDataReceiver(new NT4Publisher());
 
         // Instantiate physics sim IO implementations
@@ -263,6 +264,11 @@ public class Robot extends LoggedRobot {
     SparkOdometryThread.getInstance().start();
     VisionThread.getInstance().start();
     CanandgyroThread.getInstance().start();
+
+    // Seed battery voltage so SparkSim.iterate() never receives vbus=0 on the first tick
+    if (Constants.currentMode == Constants.Mode.SIM) {
+      RoboRioSim.setVInVoltage(12.0);
+    }
 
     // Start AdvantageKit logger
     Logger.start();
