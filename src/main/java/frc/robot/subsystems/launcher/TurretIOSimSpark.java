@@ -26,6 +26,7 @@ import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
 
 public class TurretIOSimSpark implements TurretIO {
+  private static final double TURRET_MOI_KG_M2 = 0.237;
 
   private final DCMotorSim turnSim;
 
@@ -72,7 +73,8 @@ public class TurretIOSimSpark implements TurretIO {
     turnSparkSim = new SparkMaxSim(turnSpark, gearbox);
 
     turnSim =
-        new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.4, motorReduction), gearbox);
+        new DCMotorSim(
+            LinearSystemId.createDCMotorSystem(gearbox, TURRET_MOI_KG_M2, motorReduction), gearbox);
 
     turnSim.setState(2.0 * Math.PI - mechanismOffset.getRadians(), 0);
     turnSparkSim.setPosition(turnSim.getAngularPositionRad());

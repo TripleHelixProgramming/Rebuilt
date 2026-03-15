@@ -24,6 +24,7 @@ import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
 
 public class KickerIOSimSpark implements KickerIO {
+  private static final double KICKER_MOI_KG_M2 = 0.00052;
 
   private final DCMotorSim kickerSim;
 
@@ -53,7 +54,8 @@ public class KickerIOSimSpark implements KickerIO {
     flexSim = new SparkFlexSim(flex, gearbox);
 
     kickerSim =
-        new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
+        new DCMotorSim(
+            LinearSystemId.createDCMotorSystem(gearbox, KICKER_MOI_KG_M2, motorReduction), gearbox);
   }
 
   @Override
