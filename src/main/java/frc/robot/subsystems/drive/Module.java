@@ -162,6 +162,11 @@ public class Module {
     return inputs.driveVelocityRadPerSec;
   }
 
+  /** Returns the total motor current draw for battery simulation. */
+  public double getSimCurrentDrawAmps() {
+    return inputs.driveCurrentAmps + inputs.turnCurrentAmps;
+  }
+
   /** Sets the zero position of the turn axis to the current rotation */
   public void setTurnZero() {
     Rotation2d newTurnZero = inputs.turnZero.minus(inputs.turnPosition);

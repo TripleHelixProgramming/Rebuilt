@@ -20,6 +20,7 @@ import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
+import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
 import frc.robot.Constants.RobotConstants;
@@ -88,7 +89,8 @@ public class HoodIOSimSpark implements HoodIO {
   @Override
   public void updateInputs(HoodIOInputs inputs) {
     // Update simulation state
-    hoodSim.setInput(maxSim.getAppliedOutput() * RobotConstants.kNominalVoltage);
+    double busVoltage = RoboRioSim.getVInVoltage();
+    hoodSim.setInput(maxSim.getAppliedOutput() * busVoltage);
     hoodSim.update(Robot.defaultPeriodSecs);
 
     if (maxSim.getPosition() > maxPosRad) {
@@ -96,10 +98,7 @@ public class HoodIOSimSpark implements HoodIO {
       maxSim.setPosition(maxPosRad);
     }
 
-    maxSim.iterate(
-        hoodSim.getAngularVelocityRadPerSec(),
-        RobotConstants.kNominalVoltage,
-        Robot.defaultPeriodSecs);
+    maxSim.iterate(hoodSim.getAngularVelocityRadPerSec(), busVoltage, Robot.defaultPeriodSecs);
 
     // Update inputs
     inputs.connected = true;
@@ -111,7 +110,7 @@ public class HoodIOSimSpark implements HoodIO {
 
   @Override
   public void setOpenLoop(Voltage volts) {
-    maxSim.setAppliedOutput(volts.in(Volts) / 12.0);
+    maxSim.setAppliedOutput(volts.in(Volts) / RobotConstants.kNominalVoltage);
   }
 
   @Override

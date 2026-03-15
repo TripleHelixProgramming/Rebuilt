@@ -188,4 +188,8 @@ compile_commands.json
 src/main/java/frc/robot/BuildConstants.java
 
 # Claude configuration
+.mcp.json
 .claude/
+
+# External tools cloned into workspace
+wpilog-mcp/
