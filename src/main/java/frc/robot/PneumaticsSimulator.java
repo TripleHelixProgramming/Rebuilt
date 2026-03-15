@@ -93,7 +93,8 @@ public class PneumaticsSimulator {
       pressurePsi = Math.min(pressurePsi + dPdtPsiPerSec * dtSeconds, P_CUTOFF_PSI);
     }
 
-    // Sync HAL state so Compressor.isEnabled() / getPressureSwitchValue() / PDH current are accurate
+    // Sync HAL state so Compressor.isEnabled() / getPressureSwitchValue() / PDH current are
+    // accurate
     revphSim.setCompressorOn(compressorRunning);
     revphSim.setPressureSwitch(pressurePsi >= P_CUTOFF_PSI);
     revphSim.setCompressorCurrent(compressorCurrentAmps);
