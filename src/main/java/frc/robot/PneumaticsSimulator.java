@@ -56,7 +56,7 @@ public class PneumaticsSimulator {
   private double pressurePsi = P_CUTOFF_PSI;
   private boolean compressorRunning = false;
   private double compressorCurrentAmps = 0.0;
-  private DoubleSolenoid.Value lastSolenoidValue = DoubleSolenoid.Value.kOff;
+  private DoubleSolenoid.Value lastSolenoidValue = DoubleSolenoid.Value.kReverse;
 
   private final DoubleSolenoidSim intakeArmSim;
   private final REVPHSim revphSim;
