@@ -26,7 +26,7 @@ import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
 
 public class TurretIOSimSpark implements TurretIO {
-  private static final double TURRET_MOI_KG_M2 = 0.152;
+  private static final double TURRET_MOI_KG_M2 = 0.237;
 
   private final DCMotorSim turnSim;
 
