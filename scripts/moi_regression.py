@@ -45,6 +45,8 @@ MECHANISMS = {
         G=1.0, n_motors=2, kt=0.01940,  # 2x Kraken X60
         wheel_radius=0.0381,             # 1.5 in  (LauncherConstants)
         smooth_hw=5, alpha_thresh=30.0, label="Flywheel",
+        # spin-up detection: large alpha threshold, 15% rise minimum, 0.05 s pad
+        spinup=dict(alpha_thresh=30.0, min_rise=0.15, min_duration=0.05, pad=0.05),
     ),
     "kicker": dict(
         vel_entry="/Kicker/VelocityMetersPerSec",
@@ -53,6 +55,7 @@ MECHANISMS = {
         G=1.0, n_motors=1, kt=0.01706,  # NEO Vortex
         wheel_radius=0.0381,             # 1.5 in  (FeederConstants.KickerConstants)
         smooth_hw=3, alpha_thresh=5.0, label="Kicker",
+        spinup=dict(alpha_thresh=5.0, min_rise=0.15, min_duration=0.05, pad=0.05),
     ),
     "spindexer": dict(
         vel_entry="/Spindexer/VelocityMetersPerSec",
@@ -61,6 +64,7 @@ MECHANISMS = {
         G=1.0, n_motors=1, kt=0.01706,  # NEO Vortex
         wheel_radius=0.0762,             # 3.0 in  (FeederConstants.SpindexerConstants)
         smooth_hw=3, alpha_thresh=5.0, label="Spindexer",
+        spinup=dict(alpha_thresh=5.0, min_rise=0.15, min_duration=0.05, pad=0.05),
     ),
     "turret": dict(
         vel_entry="/Turret/VelocityRadPerSec",
@@ -69,6 +73,8 @@ MECHANISMS = {
         G=54.0, n_motors=1, kt=0.0108,        # NEO 550
         wheel_radius=None,                     # already rad/s at output shaft
         smooth_hw=3, alpha_thresh=1.0, label="Turret",
+        # turret sweeps back and forth; use a gentler threshold
+        spinup=dict(alpha_thresh=1.0, min_rise=0.10, min_duration=0.05, pad=0.05),
     ),
 }
 
@@ -110,6 +116,74 @@ def nearest_interp(ts_query, ts_ref, vals_ref):
     closer_left = left & (np.abs(ts_ref[idx - 1] - ts_query) < np.abs(ts_ref[idx] - ts_query))
     idx[closer_left] -= 1
     return vals_ref[idx]
+
+
+# ---------------------------------------------------------------------------
+# Spin-up window detection
+
+
+def find_spinup_windows(ts, omega, hw=5, alpha_thresh=5.0, min_rise=0.15,
+                        max_rise_frac=0.95, min_duration=0.05, pad=0.0):
+    """
+    Find time windows in which the mechanism is accelerating from near-zero.
+
+    Algorithm:
+      1. Smooth omega and compute alpha via central differences.
+      2. A sample is "accelerating" if alpha > alpha_thresh AND
+         omega < max_rise_frac * peak_omega  (excludes deceleration / overshoot).
+      3. Contiguous accelerating runs are grouped into candidate windows.
+      4. Windows are kept only if the velocity rise within the window
+         exceeds min_rise * peak_omega (filters out noise blips).
+      5. Optional symmetric time padding is applied.
+
+    Parameters
+    ----------
+    ts            : 1-D array of timestamps (seconds)
+    omega         : 1-D array of angular velocity (rad/s)
+    hw            : smoothing half-width (samples)
+    alpha_thresh  : minimum angular acceleration to consider (rad/s^2)
+    min_rise      : minimum velocity rise as fraction of peak (0-1)
+    max_rise_frac : ignore samples above this fraction of peak velocity
+                    (prevents deceleration from being counted as spin-up)
+    min_duration  : minimum window duration in seconds
+    pad           : extra seconds added symmetrically around each window
+
+    Returns
+    -------
+    list of (t_start, t_end) tuples
+    """
+    ts    = np.asarray(ts,    float)
+    omega = np.asarray(omega, float)
+
+    omega_sm = smooth(omega, hw)
+    alpha_sm = smooth(gradient_cd(omega_sm, ts), hw)
+
+    peak = np.percentile(np.abs(omega_sm), 99)  # robust peak
+    if peak < 1e-6:
+        return []
+
+    accel_mask = (alpha_sm > alpha_thresh) & (omega_sm < max_rise_frac * peak)
+
+    windows = []
+    in_window = False
+    for i in range(len(ts)):
+        if accel_mask[i] and not in_window:
+            i_start = i
+            in_window = True
+        elif not accel_mask[i] and in_window:
+            in_window = False
+            t0, t1 = ts[i_start], ts[i - 1]
+            rise = omega_sm[i - 1] - omega_sm[i_start]
+            if rise >= min_rise * peak and (t1 - t0) >= min_duration:
+                windows.append((t0 - pad, t1 + pad))
+    # handle window still open at end of log
+    if in_window:
+        t0, t1 = ts[i_start], ts[-1]
+        rise = omega_sm[-1] - omega_sm[i_start]
+        if rise >= min_rise * peak and (t1 - t0) >= min_duration:
+            windows.append((t0 - pad, t1 + pad))
+
+    return windows
 
 
 # ---------------------------------------------------------------------------
@@ -182,8 +256,12 @@ def read_log_series(log_path):
 
 def extract_samples(series, cfg):
     """
-    Return (alpha, omega, torque) for samples with |alpha| > alpha_thresh.
-    Derivatives are computed within this log only (no cross-log boundary artifacts).
+    Return (alpha, omega, torque) for samples within detected spin-up windows
+    that also satisfy |alpha| > alpha_thresh.
+
+    If no spin-up windows are found (mechanism never ran in this log), returns
+    empty arrays. Derivatives are computed within this log only so there are
+    no cross-log boundary artifacts.
     """
     vel_key   = cfg["vel_entry"]
     curr_key  = cfg["curr_entry"]
@@ -203,6 +281,27 @@ def extract_samples(series, cfg):
     omega_sm  = smooth(omega_raw, hw)
     alpha_raw = gradient_cd(omega_sm, vel_ts)
     alpha_sm  = smooth(alpha_raw, hw)
+
+    # Restrict to spin-up windows when config provides spinup parameters.
+    spinup_cfg = cfg.get("spinup")
+    if spinup_cfg is not None:
+        windows = find_spinup_windows(
+            vel_ts, omega_sm,
+            hw=hw,
+            alpha_thresh=spinup_cfg["alpha_thresh"],
+            min_rise=spinup_cfg["min_rise"],
+            min_duration=spinup_cfg["min_duration"],
+            pad=spinup_cfg["pad"],
+        )
+        if not windows:
+            return np.array([]), np.array([]), np.array([])
+        in_window = np.zeros(len(vel_ts), dtype=bool)
+        for t0, t1 in windows:
+            in_window |= (vel_ts >= t0) & (vel_ts <= t1)
+        # restrict all arrays to spin-up windows
+        vel_ts   = vel_ts[in_window]
+        omega_sm = omega_sm[in_window]
+        alpha_sm = alpha_sm[in_window]
 
     curr_interp = nearest_interp(vel_ts, curr_ts, curr_raw)
     tau_scale   = cfg["G"] * cfg["n_motors"] * cfg["kt"]
