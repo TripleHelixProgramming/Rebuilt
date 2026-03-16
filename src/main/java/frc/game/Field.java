@@ -10,8 +10,8 @@ import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.units.measure.Distance;
-import frc.robot.Robot;
 import java.util.List;
+import org.littletonrobotics.junction.Logger;
 
 public class Field {
   // Measured
@@ -190,7 +190,8 @@ public class Field {
 
   public static void plotRegions() {
     for (Region region : Region.values()) {
-      Robot.field.getObject(region.name()).setPoses(rectangleToPoses(region.rect));
+      Logger.recordOutput(
+          "Field/Regions/" + region.name(), rectangleToPoses(region.rect).toArray(new Pose2d[0]));
     }
   }
 
