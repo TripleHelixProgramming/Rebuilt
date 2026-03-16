@@ -322,6 +322,7 @@ public class Robot extends LoggedRobot {
     logHIDs();
     logScheduler();
 
+    Logger.recordOutput("USB/FreeSpaceMB", getUSBStorageFreeSpace() / 1024 / 1024);
     GameState.logValues();
     long t2 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
@@ -394,6 +395,9 @@ public class Robot extends LoggedRobot {
   public void teleopPeriodic() {
     leds.displayHubCountdown();
     leds.displayRobotState(() -> launcher.isOnTarget(), () -> feeder.isSpinning());
+    if (!DriverStation.isFMSAttached()) {
+      leds.displayCompressorState(compressor != null && compressor.isEnabled());
+    }
   }
 
   /** This function is called once when test mode is enabled. */
@@ -712,6 +716,12 @@ public class Robot extends LoggedRobot {
 
   public static Alliance getAlliance() {
     return allianceSelector.getAllianceColor();
+  }
+
+  /** Returns the number of free bytes on the USB log drive at /U, or Long.MAX_VALUE in sim. */
+  public static long getUSBStorageFreeSpace() {
+    if (Constants.currentMode != Constants.Mode.REAL) return Long.MAX_VALUE;
+    return new java.io.File("/U").getFreeSpace();
   }
 
   private Command createDesaturateAndShootCommand(DriverController driver) {
