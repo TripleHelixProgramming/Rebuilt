@@ -20,12 +20,14 @@ import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
+import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.NEO550Constants;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
 
 public class TurretIOSimSpark implements TurretIO {
+  private static final double TURRET_MOI_KG_M2 = 0.237;
 
   private final DCMotorSim turnSim;
 
@@ -72,7 +74,8 @@ public class TurretIOSimSpark implements TurretIO {
     turnSparkSim = new SparkMaxSim(turnSpark, gearbox);
 
     turnSim =
-        new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.4, motorReduction), gearbox);
+        new DCMotorSim(
+            LinearSystemId.createDCMotorSystem(gearbox, TURRET_MOI_KG_M2, motorReduction), gearbox);
 
     turnSim.setState(2.0 * Math.PI - mechanismOffset.getRadians(), 0);
     turnSparkSim.setPosition(turnSim.getAngularPositionRad());
@@ -81,12 +84,11 @@ public class TurretIOSimSpark implements TurretIO {
   @Override
   public void updateInputs(TurretIOInputs inputs) {
     // Update simulation state
-    turnSim.setInput(turnSparkSim.getAppliedOutput() * RobotConstants.kNominalVoltage);
+    double busVoltage = RoboRioSim.getVInVoltage();
+    turnSim.setInput(turnSparkSim.getAppliedOutput() * busVoltage);
     turnSim.update(Robot.defaultPeriodSecs);
     turnSparkSim.iterate(
-        turnSim.getAngularVelocityRadPerSec(),
-        RobotConstants.kNominalVoltage,
-        Robot.defaultPeriodSecs);
+        turnSim.getAngularVelocityRadPerSec(), busVoltage, Robot.defaultPeriodSecs);
 
     // Update inputs
     inputs.motorControllerConnected = true;

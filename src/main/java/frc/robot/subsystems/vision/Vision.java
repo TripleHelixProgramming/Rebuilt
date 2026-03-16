@@ -149,6 +149,8 @@ public class Vision extends SubsystemBase {
     for (int cameraIndex = 0; cameraIndex < io.length; cameraIndex++) {
       // Update disconnected alert
       disconnectedAlerts[cameraIndex].set(!inputs[cameraIndex].connected);
+      Logger.recordOutput(
+          "Faults/Vision/Camera" + cameraIndex + "Disconnected", !inputs[cameraIndex].connected);
 
       // Initialize logging values
       tagPoses.clear();

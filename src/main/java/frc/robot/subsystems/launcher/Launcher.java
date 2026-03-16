@@ -108,6 +108,10 @@ public class Launcher extends SubsystemBase {
     turretDisconnectedAlert.set(!turretInputs.motorControllerConnected);
     flywheelDisconnectedAlert.set(!flywheelInputs.connected);
     hoodDisconnectedAlert.set(!hoodInputs.connected);
+    Logger.recordOutput(
+        "Faults/Launcher/TurretDisconnected", !turretInputs.motorControllerConnected);
+    Logger.recordOutput("Faults/Launcher/FlywheelDisconnected", !flywheelInputs.connected);
+    Logger.recordOutput("Faults/Launcher/HoodDisconnected", !hoodInputs.connected);
 
     // Log cached aim data (deferred from aim() to avoid Logger overhead in hot path)
     if (hasCachedAimData) {
@@ -164,6 +168,11 @@ public class Launcher extends SubsystemBase {
     turretIO.setOpenLoop(Volts.of(0.0));
     flywheelIO.setOpenLoop(Volts.of(0.0));
     hoodIO.setOpenLoop(Volts.of(0.0));
+  }
+
+  /** Returns the total motor current draw for battery simulation. Flywheel counts 2 motors. */
+  public double getSimCurrentDrawAmps() {
+    return flywheelInputs.currentAmps * 2 + turretInputs.currentAmps + hoodInputs.currentAmps;
   }
 
   public void aim(Translation3d target) {
