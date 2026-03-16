@@ -74,6 +74,8 @@ public class Module {
     // Update alerts
     driveDisconnectedAlert.set(!inputs.driveConnected);
     turnDisconnectedAlert.set(!inputs.turnConnected);
+    Logger.recordOutput("Faults/Module" + index + "/DriveDisconnected", !inputs.driveConnected);
+    Logger.recordOutput("Faults/Module" + index + "/TurnDisconnected", !inputs.turnConnected);
     long t3 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Profiling output

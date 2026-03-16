@@ -108,6 +108,10 @@ public class Launcher extends SubsystemBase {
     turretDisconnectedAlert.set(!turretInputs.motorControllerConnected);
     flywheelDisconnectedAlert.set(!flywheelInputs.connected);
     hoodDisconnectedAlert.set(!hoodInputs.connected);
+    Logger.recordOutput(
+        "Faults/Launcher/TurretDisconnected", !turretInputs.motorControllerConnected);
+    Logger.recordOutput("Faults/Launcher/FlywheelDisconnected", !flywheelInputs.connected);
+    Logger.recordOutput("Faults/Launcher/HoodDisconnected", !hoodInputs.connected);
 
     // Log cached aim data (deferred from aim() to avoid Logger overhead in hot path)
     if (hasCachedAimData) {

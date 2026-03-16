@@ -270,6 +270,9 @@ public class Robot extends LoggedRobot {
     // Start AdvantageKit logger
     Logger.start();
 
+    // Disable LiveWindow telemetry (subsystem motor sendables) — eliminates SmartDashboard overhead
+    edu.wpi.first.wpilibj.livewindow.LiveWindow.disableAllTelemetry();
+
     configureControlPanelBindings();
     configureAutoOptions();
 
@@ -760,6 +763,25 @@ public class Robot extends LoggedRobot {
     logSubsystem("Launcher", launcher);
     logSubsystem("Feeder", feeder);
     logSubsystem("Intake", intake);
+    logAlerts();
+  }
+
+  // Third-party library alerts (PathPlanner, Choreo, PhotonVision) still publish to SmartDashboard
+  // via their own Alert objects, so we read them back from NT.
+  private static void logAlerts() {
+    logAlertGroup("PathPlanner");
+    logAlertGroup("Choreo");
+    logAlertGroup("PhotonAlerts");
+  }
+
+  private static void logAlertGroup(String group) {
+    var table = NetworkTableInstance.getDefault().getTable("SmartDashboard").getSubTable(group);
+    Logger.recordOutput(
+        "Alerts/" + group + "/Errors", table.getEntry("errors").getStringArray(new String[0]));
+    Logger.recordOutput(
+        "Alerts/" + group + "/Warnings", table.getEntry("warnings").getStringArray(new String[0]));
+    Logger.recordOutput(
+        "Alerts/" + group + "/Infos", table.getEntry("infos").getStringArray(new String[0]));
   }
 
   private static void logCANBus(String name, com.ctre.phoenix6.CANBus bus) {
