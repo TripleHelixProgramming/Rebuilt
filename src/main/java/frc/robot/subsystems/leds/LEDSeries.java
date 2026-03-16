@@ -17,10 +17,22 @@ public enum LEDSeries implements LEDReader, LEDWriter {
   ALL(P.ALL),
 
   // Primary segments by robot axis
-  // Y_AXIS: LEDs 0-11, aligned along robot Y axis (pose-seek, spindexer/target state)
-  // X_AXIS: LEDs 12-35, aligned along robot X axis (auto selection, hub countdown)
+  // Y_AXIS:                 LEDs 0-11,  aligned along robot Y axis (pose-seek, spindexer/target
+  // state)
+  // X_AXIS_FULL:            LEDs 12-35, full X-axis range
+  //   X_AXIS_WARNING:         LED  12,    reserved warning pixel (USB storage in disabled,
+  // compressor in teleop)
+  //                           LED  13,    implicit gap
+  //   X_AXIS_BODY:            LEDs 14-35, hub countdown range
+  //     X_AXIS:                 LEDs 14-33, auto selection blocks
+  //                             LED  34,    implicit gap
+  //     X_AXIS_ALLIANCE_WARNING:LED  35,    reserved warning pixel (alliance disagreement)
   Y_AXIS(P.Y_AXIS),
+  X_AXIS_FULL(P.X_AXIS_FULL),
+  X_AXIS_WARNING(P.X_AXIS_WARNING),
+  X_AXIS_BODY(P.X_AXIS_BODY),
   X_AXIS(P.X_AXIS),
+  X_AXIS_ALLIANCE_WARNING(P.X_AXIS_ALLIANCE_WARNING),
 
   // Pose-seek segments (within Y_AXIS)
   // Layout: [Y_LEFT] [ROT_LEFT] [X_CENTER] [ROT_RIGHT] [Y_RIGHT]
@@ -39,7 +51,13 @@ public enum LEDSeries implements LEDReader, LEDWriter {
 
     // Primary segments by robot axis
     static final Portion Y_AXIS = new Portion(LEDStrip.MAIN, 0, 11, false);
-    static final Portion X_AXIS = new Portion(LEDStrip.MAIN, 12, 35, false);
+    static final Portion X_AXIS_FULL = new Portion(LEDStrip.MAIN, 12, 35, false);
+    static final Portion X_AXIS_WARNING = new Portion(LEDStrip.MAIN, 12, 12, false);
+    // LED 13 is an implicit gap between the warning pixel and the body
+    static final Portion X_AXIS_BODY = new Portion(LEDStrip.MAIN, 14, 35, false);
+    static final Portion X_AXIS = new Portion(LEDStrip.MAIN, 14, 33, false);
+    // LED 34 is an implicit gap between auto selection blocks and the alliance warning pixel
+    static final Portion X_AXIS_ALLIANCE_WARNING = new Portion(LEDStrip.MAIN, 35, 35, false);
 
     // Pose-seek portions (within Y_AXIS): [Y_LEFT][ROT_LEFT][X_CENTER][ROT_RIGHT][Y_RIGHT]
     //                                     [0-1]  [2-3]     [4-7]     [8-9]      [10-11]
