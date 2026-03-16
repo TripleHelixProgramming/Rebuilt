@@ -4,22 +4,20 @@ import static frc.robot.subsystems.vision.VisionConstants.*;
 
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.wpilibj.Compressor;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.PneumaticsModuleType;
-import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
 import edu.wpi.first.wpilibj.simulation.BatterySim;
 import edu.wpi.first.wpilibj.simulation.REVPHSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
-import edu.wpi.first.wpilibj.smartdashboard.Field2d;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.game.Field;
@@ -33,6 +31,8 @@ import frc.lib.ControllerSelector.ControllerType;
 import frc.lib.ControllerSelector.DriverConfig;
 import frc.lib.ControllerSelector.DriverController;
 import frc.lib.ControllerSelector.OperatorConfig;
+import frc.lib.LoggedCompressor;
+import frc.lib.LoggedPowerDistribution;
 import frc.lib.ZorroController.Axis;
 import frc.robot.Constants.DIOPorts;
 import frc.robot.auto.B_LeftTrenchAuto;
@@ -102,9 +102,10 @@ public class Robot extends LoggedRobot {
       new AllianceSelector(DIOPorts.allianceColorSelector);
   public static final AutoSelector autoSelector =
       new AutoSelector(DIOPorts.autonomousModeSelector, allianceSelector::getAllianceColor);
-  public static final Field2d field = new Field2d();
+  public final LoggedPowerDistribution powerDistribution =
+      new LoggedPowerDistribution(1, ModuleType.kRev, "PDH");
 
-  public final PowerDistribution powerDistribution = new PowerDistribution(1, ModuleType.kRev);
+  private final java.util.Set<String> activeCommands = new java.util.LinkedHashSet<>();
 
   // Subsystems
   private Drive drive;
@@ -114,7 +115,7 @@ public class Robot extends LoggedRobot {
   private Intake intake;
   // private Hopper hopper;
   private LEDController leds = LEDController.getInstance();
-  private Compressor compressor;
+  private LoggedCompressor compressor;
   private PneumaticsSimulator pneumaticsSimulator;
 
   // Battery simulation constants
@@ -177,8 +178,7 @@ public class Robot extends LoggedRobot {
                 new IntakeArmIOReal());
         // hopper = new Hopper(new HopperIOReal());
         feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
-        compressor = new Compressor(PneumaticsModuleType.REVPH);
-        SmartDashboard.putData(compressor);
+        compressor = new LoggedCompressor(PneumaticsModuleType.REVPH, "Compressor");
         break;
 
       case SIM: // Running a physics simulator
@@ -270,19 +270,23 @@ public class Robot extends LoggedRobot {
     // Start AdvantageKit logger
     Logger.start();
 
+    // Disable LiveWindow telemetry (subsystem motor sendables) — eliminates SmartDashboard overhead
+    edu.wpi.first.wpilibj.livewindow.LiveWindow.disableAllTelemetry();
+
     configureControlPanelBindings();
     configureAutoOptions();
 
-    SmartDashboard.putData(
-        "Align Encoders",
-        new InstantCommand(() -> drive.zeroAbsoluteEncoders()).ignoringDisable(true));
-    SmartDashboard.putData(CommandScheduler.getInstance());
-    SmartDashboard.putData(drive);
-    SmartDashboard.putData(vision);
-    SmartDashboard.putData(launcher);
-    SmartDashboard.putData(feeder);
-    SmartDashboard.putData(intake);
-    SmartDashboard.putData("Field", field);
+    CommandScheduler.getInstance().onCommandInitialize(cmd -> activeCommands.add(cmd.getName()));
+    CommandScheduler.getInstance().onCommandFinish(cmd -> activeCommands.remove(cmd.getName()));
+    CommandScheduler.getInstance().onCommandInterrupt(cmd -> activeCommands.remove(cmd.getName()));
+
+    new Trigger(
+            NetworkTableInstance.getDefault()
+                    .getTable("Triggers")
+                    .getBooleanTopic("Align Encoders")
+                    .subscribe(false)
+                ::get)
+        .onTrue(new InstantCommand(drive::zeroAbsoluteEncoders).ignoringDisable(true));
     Field.plotRegions();
 
     feeder.setDefaultCommand(Commands.startEnd(feeder::stop, () -> {}, feeder).withName("Stop"));
@@ -310,6 +314,13 @@ public class Robot extends LoggedRobot {
     // the Command-based framework to work.
     CommandScheduler.getInstance().run();
     long t1 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+
+    logCANBus("CAN2", Constants.CANBusPorts.CAN2.bus);
+    logCANBus("CANHD", Constants.CANBusPorts.CANHD.bus);
+    powerDistribution.log();
+    if (compressor != null) compressor.log();
+    logHIDs();
+    logScheduler();
 
     GameState.logValues();
     long t2 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
@@ -723,5 +734,73 @@ public class Robot extends LoggedRobot {
         Commands.sequence(
             Commands.waitUntil(launcher::isTurretDesaturated),
             Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance")));
+  }
+
+  private static void logHIDs() {
+    for (int port = 0; port < DriverStation.kJoystickPorts; port++) {
+      if (!DriverStation.isJoystickConnected(port)) continue;
+      String prefix = "HID/Port" + port;
+      Logger.recordOutput(prefix + "/Name", DriverStation.getJoystickName(port));
+      int axisCount = DriverStation.getStickAxisCount(port);
+      double[] axes = new double[axisCount];
+      for (int i = 0; i < axisCount; i++) axes[i] = DriverStation.getStickAxis(port, i);
+      Logger.recordOutput(prefix + "/Axes", axes);
+      int buttonCount = DriverStation.getStickButtonCount(port);
+      boolean[] buttons = new boolean[buttonCount];
+      for (int i = 0; i < buttonCount; i++) buttons[i] = DriverStation.getStickButton(port, i + 1);
+      Logger.recordOutput(prefix + "/Buttons", buttons);
+      int povCount = DriverStation.getStickPOVCount(port);
+      long[] povs = new long[povCount];
+      for (int i = 0; i < povCount; i++) povs[i] = DriverStation.getStickPOV(port, i);
+      Logger.recordOutput(prefix + "/POVs", povs);
+    }
+  }
+
+  private void logScheduler() {
+    Logger.recordOutput("Commands/ActiveCommands", activeCommands.toArray(new String[0]));
+    logSubsystem("Drive", drive);
+    logSubsystem("Vision", vision);
+    logSubsystem("Launcher", launcher);
+    logSubsystem("Feeder", feeder);
+    logSubsystem("Intake", intake);
+    logAlerts();
+  }
+
+  // Third-party library alerts (PathPlanner, Choreo, PhotonVision) still publish to SmartDashboard
+  // via their own Alert objects, so we read them back from NT.
+  private static void logAlerts() {
+    logAlertGroup("PathPlanner");
+    logAlertGroup("Choreo");
+    logAlertGroup("PhotonAlerts");
+  }
+
+  private static void logAlertGroup(String group) {
+    var table = NetworkTableInstance.getDefault().getTable("SmartDashboard").getSubTable(group);
+    Logger.recordOutput(
+        "Alerts/" + group + "/Errors", table.getEntry("errors").getStringArray(new String[0]));
+    Logger.recordOutput(
+        "Alerts/" + group + "/Warnings", table.getEntry("warnings").getStringArray(new String[0]));
+    Logger.recordOutput(
+        "Alerts/" + group + "/Infos", table.getEntry("infos").getStringArray(new String[0]));
+  }
+
+  private static void logCANBus(String name, com.ctre.phoenix6.CANBus bus) {
+    var status = bus.getStatus();
+    Logger.recordOutput("CANBus/" + name + "/Utilization", status.BusUtilization);
+    Logger.recordOutput("CANBus/" + name + "/BusOffCount", (long) status.BusOffCount);
+    Logger.recordOutput("CANBus/" + name + "/TxFullCount", (long) status.TxFullCount);
+    Logger.recordOutput("CANBus/" + name + "/REC", (long) status.REC);
+    Logger.recordOutput("CANBus/" + name + "/TEC", (long) status.TEC);
+  }
+
+  private static void logSubsystem(String name, SubsystemBase subsystem) {
+    Command current = subsystem.getCurrentCommand();
+    Command defaultCmd = subsystem.getDefaultCommand();
+    Logger.recordOutput("Subsystems/" + name + "/HasCommand", current != null);
+    Logger.recordOutput(
+        "Subsystems/" + name + "/Command", current != null ? current.getName() : "None");
+    Logger.recordOutput("Subsystems/" + name + "/HasDefault", defaultCmd != null);
+    Logger.recordOutput(
+        "Subsystems/" + name + "/Default", defaultCmd != null ? defaultCmd.getName() : "None");
   }
 }

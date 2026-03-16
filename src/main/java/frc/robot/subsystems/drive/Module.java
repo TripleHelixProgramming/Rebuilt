@@ -51,6 +51,8 @@ public class Module {
         new Rotation2d(
             Preferences.getDouble(zeroRotationKey + index, turnZeroFromCancoder.getRadians()));
     io.setTurnZero(turnZeroFromPreferences);
+    Logger.recordOutput(
+        "Drive/Module" + index + "/TurnZeroRad", turnZeroFromPreferences.getRadians());
   }
 
   public void periodic() {
@@ -72,6 +74,8 @@ public class Module {
     // Update alerts
     driveDisconnectedAlert.set(!inputs.driveConnected);
     turnDisconnectedAlert.set(!inputs.turnConnected);
+    Logger.recordOutput("Faults/Module" + index + "/DriveDisconnected", !inputs.driveConnected);
+    Logger.recordOutput("Faults/Module" + index + "/TurnDisconnected", !inputs.turnConnected);
     long t3 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Profiling output
@@ -170,5 +174,6 @@ public class Module {
     Rotation2d newTurnZero = inputs.turnZero.minus(inputs.turnPosition);
     io.setTurnZero(newTurnZero);
     Preferences.setDouble(zeroRotationKey + index, newTurnZero.getRadians());
+    Logger.recordOutput("Drive/Module" + index + "/TurnZeroRad", newTurnZero.getRadians());
   }
 }

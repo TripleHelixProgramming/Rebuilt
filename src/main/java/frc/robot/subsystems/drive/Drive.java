@@ -218,7 +218,9 @@ public class Drive extends SubsystemBase {
     long t6 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Update gyro alert
-    gyroDisconnectedAlert.set(!gyroInputs.connected && Constants.currentMode != Mode.SIM);
+    boolean gyroDisconnected = !gyroInputs.connected && Constants.currentMode != Mode.SIM;
+    gyroDisconnectedAlert.set(gyroDisconnected);
+    Logger.recordOutput("Faults/Drive/GyroDisconnected", gyroDisconnected);
 
     // Profiling output
     if (Constants.PROFILING_ENABLED) {

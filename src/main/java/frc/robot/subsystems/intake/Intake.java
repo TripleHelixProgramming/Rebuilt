@@ -48,6 +48,8 @@ public class Intake extends SubsystemBase {
 
     upperRollerDisconnectedAlert.set(!upperRollerInputs.connected);
     lowerRollerDisconnectedAlert.set(!lowerRollerInputs.connected);
+    Logger.recordOutput("Faults/Intake/UpperRollerDisconnected", !upperRollerInputs.connected);
+    Logger.recordOutput("Faults/Intake/LowerRollerDisconnected", !lowerRollerInputs.connected);
 
     // Profiling output
     if (Constants.PROFILING_ENABLED) {
