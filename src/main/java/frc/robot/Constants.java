@@ -50,6 +50,7 @@ public final class Constants {
     public static final class NEOConstants {
       public static final AngularVelocity kFreeSpeed = RPM.of(5676);
       public static final int kDefaultSupplyCurrentLimit = 60;
+      public static final int kDefaultStatorCurrentLimit = 100;
     }
 
     public static final class NEO550Constants {
@@ -60,11 +61,13 @@ public final class Constants {
     public static final class NEOVortexConstants {
       public static final AngularVelocity kFreeSpeed = RPM.of(6784);
       public static final int kDefaultSupplyCurrentLimit = 60;
+      public static final int kDefaultStatorCurrentLimit = 100;
     }
 
     public static final class KrakenX60Constants {
       public static final AngularVelocity kFreeSpeed = RPM.of(6000);
       public static final int kDefaultSupplyCurrentLimit = 60;
+      public static final int kDefaultStatorCurrentLimit = 100;
     }
   }
 
@@ -108,7 +111,7 @@ public final class Constants {
     public static final class CANHD {
       // CAN bus that the devices are located on;
       // All swerve devices must share the same CAN bus
-      public static final CANBus bus = new CANBus("canivore", "./logs/example.hoot");
+      public static final CANBus bus = new CANBus("canivore", "/home/lvuser/logs/");
 
       // Drivetrain
       public static final int backLeftDrive = 10;

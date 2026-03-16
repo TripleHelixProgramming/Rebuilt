@@ -22,6 +22,7 @@ import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.Constants.CANBusPorts.CAN2;
+import frc.robot.Constants.MotorConstants.KrakenX60Constants;
 import frc.robot.Robot;
 
 public class FlywheelIOTalonFX implements FlywheelIO {
@@ -55,7 +56,14 @@ public class FlywheelIOTalonFX implements FlywheelIO {
         .withNeutralMode(NeutralModeValue.Brake);
     config.Slot0 = velocityVoltageGains;
     config.Slot1 = velocityTorqueCurrentGains;
+    config.TorqueCurrent.PeakForwardTorqueCurrent = KrakenX60Constants.kDefaultStatorCurrentLimit;
+    config.TorqueCurrent.PeakReverseTorqueCurrent = -KrakenX60Constants.kDefaultStatorCurrentLimit;
+    config.CurrentLimits.StatorCurrentLimit = KrakenX60Constants.kDefaultStatorCurrentLimit;
+    config.CurrentLimits.StatorCurrentLimitEnable = true;
+    config.CurrentLimits.SupplyCurrentLimit = KrakenX60Constants.kDefaultSupplyCurrentLimit;
+    config.CurrentLimits.SupplyCurrentLimitEnable = true;
     tryUntilOk(5, () -> flywheelLeaderTalon.getConfigurator().apply(config, 0.25));
+    tryUntilOk(5, () -> flywheelFollowerTalon.getConfigurator().apply(config, 0.25));
 
     flywheelVelocity = flywheelLeaderTalon.getVelocity();
     flywheelAcceleration = flywheelLeaderTalon.getAcceleration();
