@@ -19,6 +19,7 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
+import frc.robot.Constants.MotorConstants.KrakenX60Constants;
 import frc.robot.subsystems.intake.IntakeConstants.RollerConfig;
 
 public class RollerIOTalonFX implements RollerIO {
@@ -41,6 +42,12 @@ public class RollerIOTalonFX implements RollerIO {
   public RollerIOTalonFX(RollerConfig rollerConfig) {
     motor = new TalonFX(rollerConfig.port, rollerConfig.bus);
     config = new TalonFXConfiguration();
+    config.TorqueCurrent.PeakForwardTorqueCurrent = KrakenX60Constants.kDefaultStatorCurrentLimit;
+    config.TorqueCurrent.PeakReverseTorqueCurrent = -KrakenX60Constants.kDefaultStatorCurrentLimit;
+    config.CurrentLimits.StatorCurrentLimit = KrakenX60Constants.kDefaultStatorCurrentLimit;
+    config.CurrentLimits.StatorCurrentLimitEnable = true;
+    config.CurrentLimits.SupplyCurrentLimit = KrakenX60Constants.kDefaultSupplyCurrentLimit;
+    config.CurrentLimits.SupplyCurrentLimitEnable = true;
     config.MotorOutput.Inverted =
         rollerConfig.inverted
             ? InvertedValue.Clockwise_Positive
