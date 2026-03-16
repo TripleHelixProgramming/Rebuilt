@@ -78,33 +78,40 @@ public class LEDController extends SubsystemBase {
 
     // X feedback on center LEDs (robot-relative: positive = forward)
     var x = robotRelativeDelta.getMeasureX().in(Centimeters);
-    Color xColor =
-        Math.abs(x) < LEDConstants.kPoseSeekXToleranceCm
-            ? Color.kWhite
-            : x > 0 ? Color.kGreen : Color.kRed;
-    LEDSeries.POSE_X_CENTER.applyPattern(LEDPattern.solid(xColor));
-
+     if (Math.abs(x) < LEDConstants.kPoseSeekHeadingToleranceDegrees) {
+      LEDSeries.POSE_X.applyPattern(LEDPattern.solid(Color.kWhite));
+    } else if (x > 0) {
+      // Need to move forward
+      LEDSeries.POSE_X.applyPattern(LEDPattern.solid(Color.kRed));
+    } else {
+      // Need to move backward
+      LEDSeries.POSE_X.applyPattern(LEDPattern.solid(Color.kGreen));
+    }
+    
     // Heading feedback on rotation LEDs (angular error is frame-independent)
     var theta = MathUtil.inputModulus(delta.getRotation().getDegrees(), -180, 180);
-    Color headingColor =
-        Math.abs(theta) < LEDConstants.kPoseSeekHeadingToleranceDegrees
-            ? Color.kWhite
-            : theta > 0 ? Color.kMagenta : Color.kCyan;
-    LEDSeries.POSE_ROTATION.applyPattern(LEDPattern.solid(headingColor));
+     if (Math.abs(theta) < LEDConstants.kPoseSeekHeadingToleranceDegrees) {
+      LEDSeries.POSE_ROTATION.applyPattern(LEDPattern.solid(Color.kWhite));
+    } else if (theta > 0) {
+      // Need to rotate ccw
+      LEDSeries.POSE_ROTATION_X.applyPattern(LEDPattern.solid(Color.kRed));
+      LEDSeries.POSE_ROTATION_Y.applyPattern(LEDPattern.solid(Color.kGreen));
+    } else {
+      // Need to rotate cw
+      LEDSeries.POSE_ROTATION_X.applyPattern(LEDPattern.solid(Color.kGreen));
+      LEDSeries.POSE_ROTATION_Y.applyPattern(LEDPattern.solid(Color.kRed));
+    }
 
     // Y feedback on end LEDs (robot-relative: positive = move left)
     var y = robotRelativeDelta.getMeasureY().in(Centimeters);
     if (Math.abs(y) < LEDConstants.kPoseSeekYToleranceCm) {
-      LEDSeries.POSE_Y_LEFT.applyPattern(LEDPattern.solid(Color.kWhite));
-      LEDSeries.POSE_Y_RIGHT.applyPattern(LEDPattern.solid(Color.kWhite));
+      LEDSeries.POSE_Y.applyPattern(LEDPattern.solid(Color.kWhite));
     } else if (y > 0) {
       // Need to move left
-      LEDSeries.POSE_Y_LEFT.applyPattern(LEDPattern.solid(Color.kGreen));
-      LEDSeries.POSE_Y_RIGHT.applyPattern(LEDPattern.solid(Color.kRed));
+      LEDSeries.POSE_Y.applyPattern(LEDPattern.solid(Color.kGreen));
     } else {
       // Need to move right
-      LEDSeries.POSE_Y_LEFT.applyPattern(LEDPattern.solid(Color.kRed));
-      LEDSeries.POSE_Y_RIGHT.applyPattern(LEDPattern.solid(Color.kGreen));
+      LEDSeries.POSE_Y.applyPattern(LEDPattern.solid(Color.kRed));
     }
   }
 

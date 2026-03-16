@@ -37,12 +37,11 @@ public enum LEDSeries implements LEDReader, LEDWriter {
   // Pose-seek segments (within Y_AXIS)
   // Layout: [Y_LEFT] [ROT_LEFT] [X_CENTER] [ROT_RIGHT] [Y_RIGHT]
   //         [0-1]    [2-3]      [4-7]      [8-9]       [10-11]
-  POSE_Y_LEFT(P.POSE_Y_LEFT),
-  POSE_Y_RIGHT(P.POSE_Y_RIGHT),
-  POSE_ROTATION_LEFT(P.POSE_ROT_LEFT),
-  POSE_ROTATION_RIGHT(P.POSE_ROT_RIGHT),
-  POSE_ROTATION(P.POSE_ROT_LEFT, P.POSE_ROT_RIGHT),
-  POSE_X_CENTER(P.POSE_X_CENTER);
+  POSE_Y(P.POSE_Y),
+  POSE_ROTATION_X(P.POSE_ROTATION_X),
+  POSE_ROTATION_Y(P.POSE_ROTATION_Y),
+  POSE_X(P.POSE_X),
+  POSE_ROTATION(P.POSE_ROTATION_X, P.POSE_ROTATION_Y);
 
   /** Portion definitions - single source of truth for physical layout. */
   private static final class P {
@@ -61,11 +60,10 @@ public enum LEDSeries implements LEDReader, LEDWriter {
 
     // Pose-seek portions (within Y_AXIS): [Y_LEFT][ROT_LEFT][X_CENTER][ROT_RIGHT][Y_RIGHT]
     //                                     [0-1]  [2-3]     [4-7]     [8-9]      [10-11]
-    static final Portion POSE_Y_LEFT = new Portion(LEDStrip.MAIN, 0, 1, false);
-    static final Portion POSE_ROT_LEFT = new Portion(LEDStrip.MAIN, 2, 3, false);
-    static final Portion POSE_X_CENTER = new Portion(LEDStrip.MAIN, 4, 7, false);
-    static final Portion POSE_ROT_RIGHT = new Portion(LEDStrip.MAIN, 8, 9, false);
-    static final Portion POSE_Y_RIGHT = new Portion(LEDStrip.MAIN, 10, 11, false);
+    static final Portion POSE_Y = new Portion(LEDStrip.MAIN, 3, 6, false);
+    static final Portion POSE_ROTATION_Y = new Portion(LEDStrip.MAIN, 8, 11, false);
+    static final Portion POSE_ROTATION_X = new Portion(LEDStrip.MAIN, 12, 15, false);
+    static final Portion POSE_X = new Portion(LEDStrip.MAIN, 17, 20, false);
   }
 
   /** Defines a portion of a strip. */
