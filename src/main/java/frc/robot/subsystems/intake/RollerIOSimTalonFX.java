@@ -21,7 +21,7 @@ import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
-import frc.robot.Constants.RobotConstants;
+import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import frc.robot.Robot;
 import frc.robot.subsystems.intake.IntakeConstants.RollerConfig;
 
@@ -82,7 +82,7 @@ public class RollerIOSimTalonFX implements RollerIO {
 
     // Update simulation state
     var motorSim = motor.getSimState();
-    motorSim.setSupplyVoltage(RobotConstants.kNominalVoltage);
+    motorSim.setSupplyVoltage(RoboRioSim.getVInVoltage());
     rollerSim.setInput(motorSim.getMotorVoltage());
     rollerSim.update(Robot.defaultPeriodSecs);
     motorSim.setRawRotorPosition(rollerSim.getAngularPositionRotations() * motorReduction);

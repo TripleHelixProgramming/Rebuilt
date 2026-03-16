@@ -65,6 +65,18 @@ The `ascope-assets/` directory contains custom robot models and camera configura
 
 ---
 
+## Utility Controls
+
+### Align Encoders
+
+Resets the swerve drive absolute encoders. This can be triggered while the robot is disabled.
+
+1. Open [Glass](https://docs.wpilib.org/en/stable/docs/software/dashboards/glass/index.html).
+2. Go to **NetworkTables → Triggers → Align Encoders**.
+3. Toggle the value to `true`.
+
+---
+
 ## Contributing
 
 1. Fork or branch from `main`.

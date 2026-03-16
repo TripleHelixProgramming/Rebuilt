@@ -42,6 +42,8 @@ public class Feeder extends SubsystemBase {
 
     spindexerDisconnectedAlert.set(!spindexerInputs.connected);
     kickerDisconnectedAlert.set(!kickerInputs.connected);
+    Logger.recordOutput("Faults/Feeder/SpindexerDisconnected", !spindexerInputs.connected);
+    Logger.recordOutput("Faults/Feeder/KickerDisconnected", !kickerInputs.connected);
 
     // Profiling output
     if (Constants.PROFILING_ENABLED) {
@@ -80,5 +82,10 @@ public class Feeder extends SubsystemBase {
 
   public boolean isSpinning() {
     return spindexerInputs.velocityMetersPerSec >= 0.5;
+  }
+
+  /** Returns the total motor current draw for battery simulation. */
+  public double getSimCurrentDrawAmps() {
+    return spindexerInputs.currentAmps + kickerInputs.currentAmps;
   }
 }
