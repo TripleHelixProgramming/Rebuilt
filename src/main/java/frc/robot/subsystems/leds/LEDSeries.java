@@ -29,12 +29,12 @@ public enum LEDSeries implements LEDReader, LEDWriter {
   //     X_AXIS_ALLIANCE_WARNING:LED  35,    reserved warning pixel (alliance disagreement)
   Y_AXIS(P.Y_AXIS),
   X_AXIS_FULL(P.X_AXIS_FULL),
-  WARNING_Y(P.WARNING_Y),
+  WARNING_ALLIANCE(P.WARNING_ALLIANCE),
   X_AXIS_BODY(P.X_AXIS_BODY),
-  X_AXIS(P.X_AXIS),
-  WARNING_X(P.WARNING_X),
+  WARNING_STORAGE(P.WARNING_STORAGE),
+  WARNING_COMPRESSOR(P.WARNING_COMPRESSOR),
 
-  //Auto selection
+  // Auto selection
   AUTO_SELECTION(P.AUTO_SELECTION),
 
   // Pose-seek segments (within Y_AXIS)
@@ -46,7 +46,6 @@ public enum LEDSeries implements LEDReader, LEDWriter {
   POSE_X(P.POSE_X),
   POSE_ROTATION(P.POSE_ROTATION_X, P.POSE_ROTATION_Y);
 
-
   /** Portion definitions - single source of truth for physical layout. */
   private static final class P {
     // Full strip (all 24 LEDs)
@@ -55,14 +54,14 @@ public enum LEDSeries implements LEDReader, LEDWriter {
     // Primary segments by robot axis
     static final Portion Y_AXIS = new Portion(LEDStrip.MAIN, 0, 11, false);
     static final Portion X_AXIS_FULL = new Portion(LEDStrip.MAIN, 12, 35, false);
-    static final Portion WARNING_Y = new Portion(LEDStrip.MAIN, 22, 23, false);
     // LED 13 is an implicit gap between the warning pixel and the body
-    static final Portion X_AXIS_BODY = new Portion(LEDStrip.MAIN, 14, 35, false);
-    static final Portion X_AXIS = new Portion(LEDStrip.MAIN, 14, 33, false);
+    static final Portion X_AXIS_BODY = new Portion(LEDStrip.MAIN, 15, 35, false);
     // LED 34 is an implicit gap between auto selection blocks and the alliance warning pixel
-    static final Portion WARNING_X = new Portion(LEDStrip.MAIN, 0, 1, false);
+    static final Portion WARNING_STORAGE = new Portion(LEDStrip.MAIN, 0, 1, false);
+    static final Portion WARNING_COMPRESSOR = new Portion(LEDStrip.MAIN, 12, 13, false);
+    static final Portion WARNING_ALLIANCE = new Portion(LEDStrip.MAIN, 22, 23, false);
 
-    //Auto selection
+    // Auto selection
     static final Portion AUTO_SELECTION = new Portion(LEDStrip.MAIN, 24, 35, false);
 
     // Pose-seek portions (within Y_AXIS): [Y_LEFT][ROT_LEFT][X_CENTER][ROT_RIGHT][Y_RIGHT]

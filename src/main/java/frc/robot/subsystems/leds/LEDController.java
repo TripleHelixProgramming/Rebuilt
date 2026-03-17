@@ -78,7 +78,7 @@ public class LEDController extends SubsystemBase {
 
     // X feedback on center LEDs (robot-relative: positive = forward)
     var x = robotRelativeDelta.getMeasureX().in(Centimeters);
-     if (Math.abs(x) < LEDConstants.kPoseSeekHeadingToleranceDegrees) {
+    if (Math.abs(x) < LEDConstants.kPoseSeekHeadingToleranceDegrees) {
       LEDSeries.POSE_X.applyPattern(LEDPattern.solid(Color.kWhite));
     } else if (x > 0) {
       // Need to move forward
@@ -90,7 +90,7 @@ public class LEDController extends SubsystemBase {
 
     // Heading feedback on rotation LEDs (angular error is frame-independent)
     var theta = MathUtil.inputModulus(delta.getRotation().getDegrees(), -180, 180);
-     if (Math.abs(theta) < LEDConstants.kPoseSeekHeadingToleranceDegrees) {
+    if (Math.abs(theta) < LEDConstants.kPoseSeekHeadingToleranceDegrees) {
       LEDSeries.POSE_ROTATION.applyPattern(LEDPattern.solid(Color.kWhite));
     } else if (theta > 0) {
       // Need to rotate ccw
@@ -192,13 +192,13 @@ public class LEDController extends SubsystemBase {
         .ifPresent(
             alliance -> {
               if (alliance != Robot.allianceSelector.getAllianceColor()) {
-                LEDSeries.WARNING_Y.applyPattern(LEDPattern.solid(Color.kYellow));
+                LEDSeries.WARNING_ALLIANCE.applyPattern(LEDPattern.solid(Color.kYellow));
               }
             });
 
     // Display orange-red warning pixel if USB storage is low
     if (isUSBStorageLow()) {
-      LEDSeries.WARNING_X.applyPattern(LEDPattern.solid(Color.kOrangeRed));
+      LEDSeries.WARNING_STORAGE.applyPattern(LEDPattern.solid(Color.kOrangeRed));
     }
   }
 
@@ -223,7 +223,7 @@ public class LEDController extends SubsystemBase {
    * @param isRunning true when the compressor is actively running
    */
   public void displayCompressorState(boolean isRunning) {
-    LEDSeries.WARNING_Y.applyPattern(isRunning ? solidGreenPattern : solidBlackPattern);
+    LEDSeries.WARNING_COMPRESSOR.applyPattern(isRunning ? solidGreenPattern : solidBlackPattern);
   }
 
   /**
