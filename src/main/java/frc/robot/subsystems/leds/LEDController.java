@@ -79,10 +79,10 @@ public class LEDController extends SubsystemBase {
       LEDSeries.POSE_X.applyPattern(LEDPattern.solid(Color.kWhite));
     } else if (x > 0) {
       // Need to move forward
-      LEDSeries.POSE_X.applyPattern(LEDPattern.solid(Color.kRed));
+      LEDSeries.POSE_X.applyPattern(LEDPattern.solid(Color.kGreen));
     } else {
       // Need to move backward
-      LEDSeries.POSE_X.applyPattern(LEDPattern.solid(Color.kGreen));
+      LEDSeries.POSE_X.applyPattern(LEDPattern.solid(Color.kRed));
     }
 
     // Heading feedback on rotation LEDs (angular error is frame-independent)
@@ -90,13 +90,13 @@ public class LEDController extends SubsystemBase {
     if (Math.abs(theta) < LEDConstants.kPoseSeekHeadingToleranceDegrees) {
       LEDSeries.POSE_ROTATION.applyPattern(LEDPattern.solid(Color.kWhite));
     } else if (theta > 0) {
-      // Need to rotate ccw
-      LEDSeries.POSE_ROTATION_X.applyPattern(LEDPattern.solid(Color.kRed));
-      LEDSeries.POSE_ROTATION_Y.applyPattern(LEDPattern.solid(Color.kGreen));
-    } else {
-      // Need to rotate cw
+      // Need to rotate CCW
       LEDSeries.POSE_ROTATION_X.applyPattern(LEDPattern.solid(Color.kGreen));
       LEDSeries.POSE_ROTATION_Y.applyPattern(LEDPattern.solid(Color.kRed));
+    } else {
+      // Need to rotate CW
+      LEDSeries.POSE_ROTATION_X.applyPattern(LEDPattern.solid(Color.kRed));
+      LEDSeries.POSE_ROTATION_Y.applyPattern(LEDPattern.solid(Color.kGreen));
     }
 
     // Y feedback on end LEDs (robot-relative: positive = move left)
@@ -105,10 +105,10 @@ public class LEDController extends SubsystemBase {
       LEDSeries.POSE_Y.applyPattern(LEDPattern.solid(Color.kWhite));
     } else if (y > 0) {
       // Need to move left
-      LEDSeries.POSE_Y.applyPattern(LEDPattern.solid(Color.kGreen));
+      LEDSeries.POSE_Y.applyPattern(LEDPattern.solid(Color.kRed));
     } else {
       // Need to move right
-      LEDSeries.POSE_Y.applyPattern(LEDPattern.solid(Color.kRed));
+      LEDSeries.POSE_Y.applyPattern(LEDPattern.solid(Color.kGreen));
     }
   }
 
