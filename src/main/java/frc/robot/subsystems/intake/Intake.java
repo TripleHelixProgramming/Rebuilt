@@ -10,6 +10,8 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
+import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 import org.littletonrobotics.junction.Logger;
 
 public class Intake extends SubsystemBase {
@@ -23,6 +25,11 @@ public class Intake extends SubsystemBase {
 
   private final Alert upperRollerDisconnectedAlert;
   private final Alert lowerRollerDisconnectedAlert;
+
+  // Injected after both subsystems are created to avoid a circular dependency.
+  // When set, getDeployCommand() and getReverseCommand() will deploy the hopper first if needed.
+  private BooleanSupplier hopperIsDeployed;
+  private Supplier<Command> hopperDeployCommand;
 
   public Intake(RollerIO upperRollerIO, RollerIO lowerRollerIO, IntakeArmIO intakeArmIO) {
     this.upperRollerIO = upperRollerIO;
@@ -85,13 +92,31 @@ public class Intake extends SubsystemBase {
     return intakeArmInputs.isDeployed == DoubleSolenoid.Value.kReverse;
   }
 
+  /**
+   * Configures the hopper deploy interlock for getDeployCommand() and getReverseCommand(). Must be
+   * called after both the Intake and Hopper subsystems are created.
+   *
+   * @param hopperIsDeployed supplier returning true when the hopper is deployed
+   * @param hopperDeployCommand factory that returns a fresh command to deploy the hopper
+   */
+  public void setDeployInterlock(
+      BooleanSupplier hopperIsDeployed, Supplier<Command> hopperDeployCommand) {
+    this.hopperIsDeployed = hopperIsDeployed;
+    this.hopperDeployCommand = hopperDeployCommand;
+  }
+
+  public Command getStopCommand() {
+    return Commands.startEnd(this::stop, () -> {}, this).withName("Retract and stop");
+  }
+
   @Override
   public Command getDefaultCommand() {
-    return Commands.startEnd(this::stop, () -> {}, this).withName("Retract and stop");
+    return getStopCommand();
   }
 
   public Command getDeployCommand() {
     return Commands.sequence(
+            hopperInterlock(),
             Commands.runOnce(this::deployArm, this),
             this.idle().withTimeout(0.5),
             Commands.startEnd(
@@ -111,6 +136,7 @@ public class Intake extends SubsystemBase {
 
   public Command getReverseCommand() {
     return Commands.sequence(
+            hopperInterlock(),
             Commands.runOnce(this::deployArm, this),
             this.idle().withTimeout(0.5),
             Commands.startEnd(
@@ -121,5 +147,13 @@ public class Intake extends SubsystemBase {
                 () -> {},
                 this))
         .withName("Reverse");
+  }
+
+  /** Returns the hopper deploy interlock step, or a no-op if no interlock has been configured. */
+  private Command hopperInterlock() {
+    if (hopperIsDeployed == null) {
+      return Commands.none();
+    }
+    return Commands.either(Commands.none(), hopperDeployCommand.get(), hopperIsDeployed);
   }
 }

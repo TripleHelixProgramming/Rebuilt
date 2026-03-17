@@ -15,6 +15,7 @@ import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.ConditionalCommand;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -59,10 +60,15 @@ import frc.robot.subsystems.feeder.KickerIOSpark;
 import frc.robot.subsystems.feeder.SpindexerIO;
 import frc.robot.subsystems.feeder.SpindexerIOSimSpark;
 import frc.robot.subsystems.feeder.SpindexerIOSpark;
+import frc.robot.subsystems.hopper.Hopper;
+import frc.robot.subsystems.hopper.HopperIO;
+import frc.robot.subsystems.hopper.HopperIOReal;
+import frc.robot.subsystems.hopper.HopperIOSim;
 import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.intake.IntakeArmIO;
 import frc.robot.subsystems.intake.IntakeArmIOReal;
 import frc.robot.subsystems.intake.IntakeArmIOSim;
+import frc.robot.subsystems.intake.IntakeConstants;
 import frc.robot.subsystems.intake.IntakeConstants.RollerConstants;
 import frc.robot.subsystems.intake.RollerIO;
 import frc.robot.subsystems.intake.RollerIOSimTalonFX;
@@ -114,7 +120,7 @@ public class Robot extends LoggedRobot {
   private Launcher launcher;
   private Feeder feeder;
   private Intake intake;
-  // private Hopper hopper;
+  private Hopper hopper;
   private LEDController leds = LEDController.getInstance();
   private LoggedCompressor compressor;
   private PneumaticsSimulator pneumaticsSimulator;
@@ -172,12 +178,12 @@ public class Robot extends LoggedRobot {
                 new TurretIOSpark(),
                 new FlywheelIOTalonFX(),
                 new HoodIOSpark());
+        hopper = new Hopper(new HopperIOReal());
         intake =
             new Intake(
                 new RollerIOTalonFX(RollerConstants.upperRollerConfig),
                 new RollerIOTalonFX(RollerConstants.lowerRollerConfig),
                 new IntakeArmIOReal());
-        // hopper = new Hopper(new HopperIOReal());
         feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
         compressor = new LoggedCompressor(PneumaticsModuleType.REVPH, "Compressor");
         break;
@@ -215,13 +221,13 @@ public class Robot extends LoggedRobot {
                 new FlywheelIOSimTalonFX(),
                 new HoodIOSimSpark());
         feeder = new Feeder(new SpindexerIOSimSpark(), new KickerIOSimSpark());
+        hopper = new Hopper(new HopperIOSim());
         var intakeArmIOSim = new IntakeArmIOSim();
         intake =
             new Intake(
                 new RollerIOSimTalonFX(RollerConstants.upperRollerConfig),
                 new RollerIOSimTalonFX(RollerConstants.lowerRollerConfig),
                 intakeArmIOSim);
-        // hopper = new Hopper(new HopperIOSim());
         pneumaticsSimulator =
             new PneumaticsSimulator(intakeArmIOSim.intakeArmPneumatic, new REVPHSim(1));
         break;
@@ -257,8 +263,8 @@ public class Robot extends LoggedRobot {
                 new TurretIO() {},
                 new FlywheelIO() {},
                 new HoodIO() {});
+        hopper = new Hopper(new HopperIO() {});
         intake = new Intake(new RollerIO() {}, new RollerIO() {}, new IntakeArmIO() {});
-        // hopper = new Hopper(new HopperIO() {});
         feeder = new Feeder(new SpindexerIO() {}, new KickerIO() {});
         break;
     }
@@ -273,6 +279,15 @@ public class Robot extends LoggedRobot {
 
     // Disable LiveWindow telemetry (subsystem motor sendables) — eliminates SmartDashboard overhead
     edu.wpi.first.wpilibj.livewindow.LiveWindow.disableAllTelemetry();
+
+    // Wire the hopper/intake interlocks. Done here (after both subsystems exist) to avoid a
+    // circular dependency between the two subsystems.
+    intake.setDeployInterlock(
+        hopper::isDeployed,
+        () -> hopper.getDeployCommand().withTimeout(IntakeConstants.kInterlockSettleSeconds));
+    hopper.setRetractInterlock(
+        intake::isStowed,
+        () -> intake.getStopCommand().withTimeout(IntakeConstants.kInterlockSettleSeconds));
 
     configureControlPanelBindings();
     configureAutoOptions();
@@ -292,7 +307,6 @@ public class Robot extends LoggedRobot {
 
     feeder.setDefaultCommand(Commands.startEnd(feeder::stop, () -> {}, feeder).withName("Stop"));
     intake.setDefaultCommand(intake.getDefaultCommand());
-    // hopper.setDefaultCommand(hopper.getDefaultCommand());
     launcher.setDefaultCommand(
         launcher
             .initializeHoodCommand()
@@ -371,6 +385,7 @@ public class Robot extends LoggedRobot {
   /** This function is called once when autonomous mode is enabled. */
   @Override
   public void autonomousInit() {
+    hopper.getRetractCommand().schedule();
     drive.setDefaultCommand(Commands.runOnce(drive::stop, drive).withName("Stop"));
     autoSelector.scheduleAuto();
     leds.clear();
@@ -386,6 +401,7 @@ public class Robot extends LoggedRobot {
   /** This function is called once when teleop mode is enabled. */
   @Override
   public void teleopInit() {
+    if (!hopper.isDeployed() && !hopper.isStowed()) hopper.getRetractCommand().schedule();
     autoSelector.cancelAuto();
     ControllerSelector.getInstance().scan(true);
     leds.clear();
@@ -501,8 +517,12 @@ public class Robot extends LoggedRobot {
                     drive)
                 .ignoringDisable(true));
 
-    // Switch to X pattern when button D is pressed
-    // zorroDriver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
+    // Toggle hopper: deploy if stowed, stow if deployed (retracting intake first if needed)
+    zorroDriver
+        .DIn()
+        .onTrue(
+            new ConditionalCommand(
+                hopper.getRetractCommand(), hopper.getDeployCommand(), hopper::isDeployed));
 
     // Desaturate turret and advance feeder
     zorroDriver.AIn().whileTrue(createDesaturateAndShootCommand(controller));
@@ -523,27 +543,6 @@ public class Robot extends LoggedRobot {
 
     // Intake
     zorroDriver.HIn().whileTrue(intake.getDeployCommand());
-    // zorroDriver.HIn().and(() -> hopper.isDeployed()).onTrue(intake.getDeployCommand());
-    // zorroDriver.HIn().negate().and(() -> hopper.isDeployed()).onTrue(intake.getDefaultCommand());
-
-    // Hopper
-    // zorroDriver
-    //     .FDown()
-    //     .onTrue(Commands.startEnd(hopper::deploy, () -> {}, hopper).withName("Deploy"));
-
-    // zorroDriver
-    //     .FUp()
-    //     .onTrue(
-    //         new ConditionalCommand(
-    //             // If intake is stowed, immediately retract hopper
-    //             hopper.getDefaultCommand(),
-    //             // If intake is deployed, retract it first before retracting hopper
-    //             Commands.parallel(
-    //                 intake.getDefaultCommand(),
-    //
-    // hopper.idle().withTimeout(Seconds.of(2)).andThen(hopper.getDefaultCommand())),
-    //             // Condition to check
-    //             () -> intake.isStowed()));
 
     return controller;
   }
