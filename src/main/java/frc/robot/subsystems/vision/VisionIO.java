@@ -15,6 +15,9 @@ public interface VisionIO {
   @AutoLog
   public static class VisionIOInputs {
     public boolean connected = false;
+    public double fps = 0.0;
+    public double latencyMs = 0.0;
+    public double bestReprojError = 0.0;
     public TargetObservation latestTargetObservation =
         new TargetObservation(Rotation2d.kZero, Rotation2d.kZero, Rotation2d.kZero, 0, -1, -1);
     public PoseObservation[] poseObservations = new PoseObservation[0];
