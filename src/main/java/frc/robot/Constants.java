@@ -133,8 +133,8 @@ public final class Constants {
 
   public static final class PneumaticChannels {
     // hopper
-    public static final int hopperForward = 15;
-    public static final int hopperReverse = 14;
+    public static final int hopperForward = 14;
+    public static final int hopperReverse = 15;
 
     // intake arm
     public static final int intakeArmForward = 0;
