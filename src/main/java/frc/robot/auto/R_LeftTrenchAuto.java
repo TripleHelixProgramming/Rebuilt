@@ -39,7 +39,7 @@ public class R_LeftTrenchAuto extends AutoMode {
 
   @Override
   public String getName() {
-    return "BlueLeftTrenchAuto";
+    return "RedLeftTrenchAuto";
   }
 
   @Override

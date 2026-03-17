@@ -35,7 +35,7 @@ public class R_LeftTrenchMoveFirstAuto extends AutoMode {
 
   @Override
   public String getName() {
-    return "BlueLeftTrenchMoveFirstAuto";
+    return "RedLeftTrenchMoveFirstAuto";
   }
 
   @Override
