@@ -59,7 +59,9 @@ public class VisionIOPhotonVision implements VisionIO {
 
     for (var result : camera.getAllUnreadResults()) {
       // Track diagnostics from the most recent result (loop overwrites with latest)
-      inputs.latencyMs = result.getLatencyMillis();
+      inputs.latencyMs =
+          (result.metadata.publishTimestampMicros - result.metadata.captureTimestampMicros)
+              / 1000.0;
       // Update latest target observation
       if (result.hasTargets()) {
         var bestTarget = result.getBestTarget();
