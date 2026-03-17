@@ -50,8 +50,8 @@ public class VisionIOPhotonVision implements VisionIO {
   public void updateInputs(VisionIOInputs inputs) {
     inputs.connected = camera.isConnected();
     inputs.fps = fpsSubscriber.get();
-    inputs.latencyMs = 0.0;
-    inputs.bestReprojError = 0.0;
+    // latencyMs and bestReprojError are NOT reset here — they retain their last valid value
+    // when no new results are available this cycle.
 
     // Clear reusable collections
     tagIds.clear();
