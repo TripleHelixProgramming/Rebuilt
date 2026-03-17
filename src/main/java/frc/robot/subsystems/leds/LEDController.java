@@ -76,52 +76,58 @@ public class LEDController extends SubsystemBase {
     // X feedback on center LEDs (robot-relative: positive = forward)
     var x = robotRelativeDelta.getMeasureX().in(Centimeters);
     if (Math.abs(x) < LEDConstants.kPoseSeekXToleranceCm) {
-      LEDSeries.POSE_X.applyPattern(LEDPattern.solid(Color.kWhite));
+      LEDSeries.POSE_X.applyPattern(solidWhitePattern);
     } else if (x > 0) {
       // Need to move forward
-      LEDSeries.POSE_X.applyPattern(LEDPattern.solid(Color.kGreen));
+      LEDSeries.POSE_X.applyPattern(solidGreenPattern);
     } else {
       // Need to move backward
-      LEDSeries.POSE_X.applyPattern(LEDPattern.solid(Color.kRed));
+      LEDSeries.POSE_X.applyPattern(solidRedPattern);
     }
 
     // Heading feedback on rotation LEDs (angular error is frame-independent)
     var theta = MathUtil.inputModulus(delta.getRotation().getDegrees(), -180, 180);
     if (Math.abs(theta) < LEDConstants.kPoseSeekHeadingToleranceDegrees) {
-      LEDSeries.POSE_ROTATION.applyPattern(LEDPattern.solid(Color.kWhite));
+      LEDSeries.POSE_ROTATION.applyPattern(solidWhitePattern);
     } else if (theta > 0) {
       // Need to rotate CCW
-      LEDSeries.POSE_ROTATION_X.applyPattern(LEDPattern.solid(Color.kGreen));
-      LEDSeries.POSE_ROTATION_Y.applyPattern(LEDPattern.solid(Color.kRed));
+      LEDSeries.POSE_ROTATION_X.applyPattern(solidGreenPattern);
+      LEDSeries.POSE_ROTATION_Y.applyPattern(solidRedPattern);
     } else {
       // Need to rotate CW
-      LEDSeries.POSE_ROTATION_X.applyPattern(LEDPattern.solid(Color.kRed));
-      LEDSeries.POSE_ROTATION_Y.applyPattern(LEDPattern.solid(Color.kGreen));
+      LEDSeries.POSE_ROTATION_X.applyPattern(solidRedPattern);
+      LEDSeries.POSE_ROTATION_Y.applyPattern(solidGreenPattern);
     }
 
     // Y feedback on end LEDs (robot-relative: positive = move left)
     var y = robotRelativeDelta.getMeasureY().in(Centimeters);
     if (Math.abs(y) < LEDConstants.kPoseSeekYToleranceCm) {
-      LEDSeries.POSE_Y.applyPattern(LEDPattern.solid(Color.kWhite));
+      LEDSeries.POSE_Y.applyPattern(solidWhitePattern);
     } else if (y > 0) {
       // Need to move left
-      LEDSeries.POSE_Y.applyPattern(LEDPattern.solid(Color.kRed));
+      LEDSeries.POSE_Y.applyPattern(solidRedPattern);
     } else {
       // Need to move right
-      LEDSeries.POSE_Y.applyPattern(LEDPattern.solid(Color.kGreen));
+      LEDSeries.POSE_Y.applyPattern(solidGreenPattern);
     }
   }
 
   // ==================== PRE-ALLOCATED PATTERNS ====================
 
-  /** Solid black pattern (LEDs off). */
+  /** LEDs off */
   public static final LEDPattern solidBlackPattern = LEDPattern.solid(Color.kBlack);
 
-  /** Solid yellow pattern. */
+  /** Solid color patterns */
   public static final LEDPattern solidYellowPattern = LEDPattern.solid(Color.kYellow);
 
-  /** Solid green pattern. */
+  public static final LEDPattern solidRedPattern = LEDPattern.solid(Color.kRed);
   public static final LEDPattern solidGreenPattern = LEDPattern.solid(Color.kGreen);
+  public static final LEDPattern solidWhitePattern = LEDPattern.solid(Color.kWhite);
+  public static final LEDPattern solidOrangeRedPattern = LEDPattern.solid(Color.kOrangeRed);
+
+  /** Blinking yellow pattern (0.5s period) for missing auto selection. */
+  public static final LEDPattern blinkingYellowPattern =
+      LEDPattern.solid(Color.kYellow).blink(Seconds.of(0.5));
 
   /** Bounce ripple pattern in yellow (spindexing, not on target). */
   public static final LEDPattern bounceRippleYellowPattern =
@@ -178,14 +184,14 @@ public class LEDController extends SubsystemBase {
         .get()
         .ifPresentOrElse(
             autoOption -> LEDSeries.AUTO_SELECTION.applyPattern(autoSelectionPattern),
-            () -> LEDSeries.AUTO_SELECTION.applyPattern(solidYellowPattern.blink(Seconds.of(0.5))));
+            () -> LEDSeries.AUTO_SELECTION.applyPattern(blinkingYellowPattern));
 
     // Display yellow warning pixel if alliance disagreement
     DriverStation.getAlliance()
         .ifPresent(
             alliance -> {
               if (alliance != Robot.allianceSelector.getAllianceColor()) {
-                LEDSeries.WARNING_ALLIANCE.applyPattern(LEDPattern.solid(Color.kYellow));
+                LEDSeries.WARNING_ALLIANCE.applyPattern(solidYellowPattern);
               } else {
                 LEDSeries.WARNING_ALLIANCE.applyPattern(solidBlackPattern);
               }
@@ -193,7 +199,7 @@ public class LEDController extends SubsystemBase {
 
     // Display orange-red warning pixel if USB storage is low
     if (isUSBStorageLow()) {
-      LEDSeries.WARNING_STORAGE.applyPattern(LEDPattern.solid(Color.kOrangeRed));
+      LEDSeries.WARNING_STORAGE.applyPattern(solidOrangeRedPattern);
     } else {
       LEDSeries.WARNING_STORAGE.applyPattern(solidBlackPattern);
     }
