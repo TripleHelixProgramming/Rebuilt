@@ -10,6 +10,8 @@ package frc.robot.subsystems.vision;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.networktables.DoubleSubscriber;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -20,6 +22,8 @@ import org.photonvision.PhotonCamera;
 public class VisionIOPhotonVision implements VisionIO {
   protected final PhotonCamera camera;
   protected final Transform3d robotToCamera;
+
+  private final DoubleSubscriber fpsSubscriber;
 
   // Reusable collections to avoid allocations per loop
   private final Set<Short> tagIds = new HashSet<>();
@@ -34,17 +38,28 @@ public class VisionIOPhotonVision implements VisionIO {
   public VisionIOPhotonVision(String name, Transform3d robotToCamera) {
     camera = new PhotonCamera(name);
     this.robotToCamera = robotToCamera;
+    fpsSubscriber =
+        NetworkTableInstance.getDefault()
+            .getTable("photonvision")
+            .getSubTable(name)
+            .getDoubleTopic("fps")
+            .subscribe(0.0);
   }
 
   @Override
   public void updateInputs(VisionIOInputs inputs) {
     inputs.connected = camera.isConnected();
+    inputs.fps = fpsSubscriber.get();
+    inputs.latencyMs = 0.0;
+    inputs.bestReprojError = 0.0;
 
     // Clear reusable collections
     tagIds.clear();
     poseObservations.clear();
 
     for (var result : camera.getAllUnreadResults()) {
+      // Track diagnostics from the most recent result (loop overwrites with latest)
+      inputs.latencyMs = result.getLatencyMillis();
       // Update latest target observation
       if (result.hasTargets()) {
         var bestTarget = result.getBestTarget();
@@ -83,6 +98,9 @@ public class VisionIOPhotonVision implements VisionIO {
         // In practice, multitagResult should only exist with 2+ targets, but we guard defensively.
         int targetCount = result.targets.size();
         double avgTagDistance = targetCount > 0 ? totalTagDistance / targetCount : 0.0;
+
+        // Track reprojection error from the most recent multitag result
+        inputs.bestReprojError = multitagResult.estimatedPose.bestReprojErr;
 
         // Add observation
         poseObservations.add(
