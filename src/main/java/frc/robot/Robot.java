@@ -672,10 +672,11 @@ public class Robot extends LoggedRobot {
     var keyboard = new CommandGenericHID(port);
 
     // WPILib sim keyboard axis layout:
-    //   Axis 0: A (negative) / D (positive) — strafe
-    //   Axis 1: W (negative) / S (positive) — forward/back
-    //   Axis 2: Left arrow (negative) / Right arrow (positive) — rotation
-    //   Button 1 (Space): reset heading
+    //   Axis 0: A (negative) / D (positive)        — strafe
+    //   Axis 1: W (negative) / S (positive)        — forward/back
+    //   Axis 2: Left arrow (decrease) / Right arrow (increase) — rotation
+    //           (configure in DS sim keyboard editor; see README for settings)
+    //   Button 1 (Z): reset heading
     var controller =
         new DriverController() {
           public double getXTranslationInput() {
@@ -704,7 +705,7 @@ public class Robot extends LoggedRobot {
             () -> controller.getFieldRelativeInput(),
             allianceSelector::fieldRotated));
 
-    // Reset heading to 0° when Space (button 1) is pressed
+    // Reset heading to 0° when Z (button 1) is pressed
     keyboard
         .button(1)
         .onTrue(

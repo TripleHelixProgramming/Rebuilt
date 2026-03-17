@@ -77,6 +77,30 @@ Resets the swerve drive absolute encoders. This can be triggered while the robot
 
 ---
 
+## Simulation
+
+### Keyboard Driver
+
+When running in simulation, a keyboard (`Keyboard 0`) can be used as a driver controller. WASD controls translation and axis 2 controls rotation. Z resets heading.
+
+**Configuring rotation (axis 2) for left/right arrow keys:**
+
+> **Note:** These settings are not persistent and must be re-applied each time the simulator is opened.
+
+1. Open the sim Driver Station.
+2. Go to **DS → Keyboard 0 settings**.
+3. Update the axis 2 bindings:
+
+| Setting | Default | Change to |
+|---|---|---|
+| Increase key | `e` | Right arrow |
+| Decrease key | `r` | Left arrow |
+| Key rate | `0.01` | `0.050` |
+| Decay rate | `0` | `0.050` |
+| Max absolute value | `1.0` | `1.0` |
+
+---
+
 ## Contributing
 
 1. Fork or branch from `main`.
