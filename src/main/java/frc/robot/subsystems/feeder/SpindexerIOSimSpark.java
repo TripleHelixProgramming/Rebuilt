@@ -18,12 +18,14 @@ import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
+import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.NEOVortexConstants;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
 
 public class SpindexerIOSimSpark implements SpindexerIO {
+  private static final double SPINDEXER_MOI_KG_M2 = 0.00207;
 
   private final DCMotorSim spindexerSim;
 
@@ -53,18 +55,19 @@ public class SpindexerIOSimSpark implements SpindexerIO {
     flexSim = new SparkFlexSim(flex, gearbox);
 
     spindexerSim =
-        new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
+        new DCMotorSim(
+            LinearSystemId.createDCMotorSystem(gearbox, SPINDEXER_MOI_KG_M2, motorReduction),
+            gearbox);
   }
 
   @Override
   public void updateInputs(SpindexerIOInputs inputs) {
     // Update simulation state
-    spindexerSim.setInput(flexSim.getAppliedOutput() * RobotConstants.kNominalVoltage);
+    double busVoltage = RoboRioSim.getVInVoltage();
+    spindexerSim.setInput(flexSim.getAppliedOutput() * busVoltage);
     spindexerSim.update(Robot.defaultPeriodSecs);
     flexSim.iterate(
-        spindexerSim.getAngularVelocityRadPerSec(),
-        RobotConstants.kNominalVoltage,
-        Robot.defaultPeriodSecs);
+        spindexerSim.getAngularVelocityRadPerSec(), busVoltage, Robot.defaultPeriodSecs);
 
     // Update inputs
     inputs.connected = true;
@@ -75,7 +78,7 @@ public class SpindexerIOSimSpark implements SpindexerIO {
 
   @Override
   public void setOpenLoop(Voltage volts) {
-    flexSim.setAppliedOutput(volts.in(Volts) / 12.0);
+    flexSim.setAppliedOutput(volts.in(Volts) / RobotConstants.kNominalVoltage);
   }
 
   @Override

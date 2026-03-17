@@ -78,11 +78,20 @@ public class Drive extends SubsystemBase {
       };
   private SwerveDrivePoseEstimator visionPose =
       new SwerveDrivePoseEstimator(kinematics, rawGyroRotation, lastModulePositions, new Pose2d());
-  private Boolean firstVisionEstimate = true;
+  private boolean firstVisionEstimate = true;
 
+  private static final ChassisSpeeds ZERO_SPEEDS = new ChassisSpeeds();
   private final SwerveModuleState[] emptyModuleStates = new SwerveModuleState[] {};
+  // Pre-allocated for getModuleStates()/getModulePositions() to avoid array allocation each call
+  private final SwerveModuleState[] measuredStates = new SwerveModuleState[4];
+  private final SwerveModulePosition[] measuredPositions = new SwerveModulePosition[4];
   private SwerveModulePosition[] modulePositions = new SwerveModulePosition[4];
-  private SwerveModulePosition[] moduleDeltas = new SwerveModulePosition[4];
+  // Pre-allocated to avoid allocations in odometry loop - fields are mutated in place
+  private final SwerveModulePosition[] moduleDeltas =
+      new SwerveModulePosition[] {
+        new SwerveModulePosition(), new SwerveModulePosition(),
+        new SwerveModulePosition(), new SwerveModulePosition()
+      };
   private ChassisSpeeds chassisSpeeds;
 
   // PID controllers for following Choreo trajectories
@@ -183,11 +192,11 @@ public class Drive extends SubsystemBase {
       // Read wheel positions and deltas from each module
       for (int moduleIndex = 0; moduleIndex < 4; moduleIndex++) {
         modulePositions[moduleIndex] = modules[moduleIndex].getOdometryPositions()[i];
-        moduleDeltas[moduleIndex] =
-            new SwerveModulePosition(
-                modulePositions[moduleIndex].distanceMeters
-                    - lastModulePositions[moduleIndex].distanceMeters,
-                modulePositions[moduleIndex].angle);
+        // Mutate pre-allocated delta objects to avoid allocations
+        moduleDeltas[moduleIndex].distanceMeters =
+            modulePositions[moduleIndex].distanceMeters
+                - lastModulePositions[moduleIndex].distanceMeters;
+        moduleDeltas[moduleIndex].angle = modulePositions[moduleIndex].angle;
         lastModulePositions[moduleIndex] = modulePositions[moduleIndex];
       }
 
@@ -209,7 +218,9 @@ public class Drive extends SubsystemBase {
     long t6 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Update gyro alert
-    gyroDisconnectedAlert.set(!gyroInputs.connected && Constants.currentMode != Mode.SIM);
+    boolean gyroDisconnected = !gyroInputs.connected && Constants.currentMode != Mode.SIM;
+    gyroDisconnectedAlert.set(gyroDisconnected);
+    Logger.recordOutput("Faults/Drive/GyroDisconnected", gyroDisconnected);
 
     // Profiling output
     if (Constants.PROFILING_ENABLED) {
@@ -300,7 +311,7 @@ public class Drive extends SubsystemBase {
 
   /** Stops the drive. */
   public void stop() {
-    runVelocity(new ChassisSpeeds());
+    runVelocity(ZERO_SPEEDS);
   }
 
   /**
@@ -331,20 +342,18 @@ public class Drive extends SubsystemBase {
   /** Returns the module states (turn angles and drive velocities) for all of the modules. */
   @AutoLogOutput(key = "SwerveStates/Measured")
   private SwerveModuleState[] getModuleStates() {
-    SwerveModuleState[] states = new SwerveModuleState[4];
     for (int i = 0; i < 4; i++) {
-      states[i] = modules[i].getState();
+      measuredStates[i] = modules[i].getState();
     }
-    return states;
+    return measuredStates;
   }
 
   /** Returns the module positions (turn angles and drive positions) for all of the modules. */
   private SwerveModulePosition[] getModulePositions() {
-    SwerveModulePosition[] states = new SwerveModulePosition[4];
     for (int i = 0; i < 4; i++) {
-      states[i] = modules[i].getPosition();
+      measuredPositions[i] = modules[i].getPosition();
     }
-    return states;
+    return measuredPositions;
   }
 
   /** Returns the measured chassis speeds of the robot. */
@@ -416,6 +425,15 @@ public class Drive extends SubsystemBase {
   /** Returns the maximum angular speed in radians per sec. */
   public double getMaxAngularSpeedRadPerSec() {
     return maxChassisAngularVelocity.in(RadiansPerSecond);
+  }
+
+  /** Returns the total motor current draw across all modules for battery simulation. */
+  public double getSimCurrentDrawAmps() {
+    double total = 0.0;
+    for (var module : modules) {
+      total += module.getSimCurrentDrawAmps();
+    }
+    return total;
   }
 
   public void zeroAbsoluteEncoders() {

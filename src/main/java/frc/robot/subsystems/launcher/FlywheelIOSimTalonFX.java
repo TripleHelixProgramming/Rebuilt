@@ -23,11 +23,13 @@ import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
+import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import frc.robot.Constants.CANBusPorts.CAN2;
-import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
 
 public class FlywheelIOSimTalonFX implements FlywheelIO {
+  private static final double FLYWHEEL_MOI_KG_M2 = 0.00026;
+
   private final DCMotorSim flywheelSim;
 
   private final TalonFX flywheelLeaderTalon;
@@ -64,20 +66,16 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
     flywheelMotorSim.setMotorType(MotorType.KrakenX60);
 
     flywheelSim =
-        new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
+        new DCMotorSim(
+            LinearSystemId.createDCMotorSystem(gearbox, FLYWHEEL_MOI_KG_M2, motorReduction),
+            gearbox);
 
     flywheelVelocity = flywheelLeaderTalon.getVelocity();
     flywheelAppliedVolts = flywheelLeaderTalon.getMotorVoltage();
     flywheelCurrent = flywheelLeaderTalon.getStatorCurrent();
 
     BaseStatusSignal.setUpdateFrequencyForAll(
-        50.0,
-        flywheelVelocity,
-        flywheelAppliedVolts,
-        flywheelCurrent,
-        flywheelVelocity,
-        flywheelAppliedVolts,
-        flywheelCurrent);
+        50.0, flywheelVelocity, flywheelAppliedVolts, flywheelCurrent);
 
     flywheelFollowerTalon.setControl(
         new Follower(CAN2.flywheelLeader, MotorAlignmentValue.Opposed));
@@ -85,6 +83,7 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
 
   @Override
   public void updateInputs(FlywheelIOInputs inputs) {
+    // Synchronous refresh for leader/follower motors to ensure consistent state
     inputs.connected =
         flywheelConnectedDebounce.calculate(
             BaseStatusSignal.refreshAll(flywheelVelocity, flywheelAppliedVolts, flywheelCurrent)
@@ -92,7 +91,7 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
 
     // Update simulation state
     var flywheelMotorSim = flywheelLeaderTalon.getSimState();
-    flywheelMotorSim.setSupplyVoltage(RobotConstants.kNominalVoltage);
+    flywheelMotorSim.setSupplyVoltage(RoboRioSim.getVInVoltage());
     flywheelSim.setInput(flywheelMotorSim.getMotorVoltage());
     flywheelSim.update(Robot.defaultPeriodSecs);
     flywheelMotorSim.setRawRotorPosition(

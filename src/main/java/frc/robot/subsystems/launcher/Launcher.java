@@ -108,6 +108,10 @@ public class Launcher extends SubsystemBase {
     turretDisconnectedAlert.set(!turretInputs.motorControllerConnected);
     flywheelDisconnectedAlert.set(!flywheelInputs.connected);
     hoodDisconnectedAlert.set(!hoodInputs.connected);
+    Logger.recordOutput(
+        "Faults/Launcher/TurretDisconnected", !turretInputs.motorControllerConnected);
+    Logger.recordOutput("Faults/Launcher/FlywheelDisconnected", !flywheelInputs.connected);
+    Logger.recordOutput("Faults/Launcher/HoodDisconnected", !hoodInputs.connected);
 
     // Log cached aim data (deferred from aim() to avoid Logger overhead in hot path)
     if (hasCachedAimData) {
@@ -164,6 +168,11 @@ public class Launcher extends SubsystemBase {
     turretIO.setOpenLoop(Volts.of(0.0));
     flywheelIO.setOpenLoop(Volts.of(0.0));
     hoodIO.setOpenLoop(Volts.of(0.0));
+  }
+
+  /** Returns the total motor current draw for battery simulation. Flywheel counts 2 motors. */
+  public double getSimCurrentDrawAmps() {
+    return flywheelInputs.currentAmps * 2 + turretInputs.currentAmps + hoodInputs.currentAmps;
   }
 
   public void aim(Translation3d target) {
@@ -357,9 +366,11 @@ public class Launcher extends SubsystemBase {
     double dz = d.getZ();
 
     double denominator = 2 * (dz + dr * impactAngle.getTan());
+    // Guard: denominator <= 0 means target is unreachable with this impact angle (would require
+    // negative velocity or infinite speed). Using < 1e-6 threshold also catches near-zero values
+    // that would cause numerical instability in sqrt(g / denominator).
     if (denominator < 1e-6) {
       Logger.recordOutput("Launcher/" + key + "/Reachable", false);
-      // log(d, v0, key);
       return v0nominalLast;
     }
     double v_0r = dr * Math.sqrt(g / denominator);
@@ -396,18 +407,21 @@ public class Launcher extends SubsystemBase {
     double v_sq = v_flywheel * v_flywheel;
     double discriminant = v_sq * v_sq - g * (g * dr * dr + 2 * dz * v_sq);
 
+    // Guard: discriminant < 0 means target is beyond maximum range for current flywheel speed.
+    // Using < 1e-6 threshold adds safety margin against sqrt of tiny negative values from
+    // floating-point errors at the edge of reachable range.
     if (discriminant < 1e-6) {
-      // Unreachable target at this speed
       Logger.recordOutput("Launcher/" + key + "/Reachable", false);
-      // log(d, v0, key);
       return v0replannedLast;
     }
 
-    // High-arc solution
+    // High-arc solution (lower trajectory would use v_sq - sqrt(discriminant))
     double tanTheta = (v_sq + Math.sqrt(discriminant)) / (g * dr);
 
+    // sin(2*atan(x)) = 2x/(1+x²) - avoids two trig function calls
     Logger.recordOutput(
-        "Launcher/" + key + "/PredictedRange", (v_sq * Math.sin(2 * Math.atan(tanTheta))) / g);
+        "Launcher/" + key + "/PredictedRange",
+        (v_sq * 2.0 * tanTheta) / (g * (1.0 + tanTheta * tanTheta)));
 
     // Effective velocity available for ballistics
     double v_r = v_flywheel / Math.sqrt(1 + tanTheta * tanTheta);

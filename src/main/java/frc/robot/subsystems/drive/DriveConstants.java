@@ -19,6 +19,7 @@ import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.configs.TorqueCurrentConfigs;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
@@ -40,7 +41,6 @@ import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
-import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearAcceleration;
 import edu.wpi.first.units.measure.LinearVelocity;
@@ -90,7 +90,7 @@ public class DriveConstants {
   public static final AngularVelocity maxChassisAngularVelocity =
       RadiansPerSecond.of(maxChassisVelocity.in(MetersPerSecond) / driveBaseRadius.in(Meters));
   public static final AngularAcceleration maxChassisAngularAcceleration =
-      RadiansPerSecondPerSecond.of(4 * Math.PI);
+      RadiansPerSecondPerSecond.of(30);
 
   public static final PathConstraints pathFollowingConstraints =
       new PathConstraints(
@@ -161,22 +161,40 @@ public class DriveConstants {
   // The remote sensor feedback type to use for the steer motors;
   private static final SteerFeedbackType kSteerFeedbackType = SteerFeedbackType.FusedCANcoder;
 
-  // The stator current at which the wheels start to slip;
-  // This needs to be tuned to your individual robot
-  private static final Current kSlipCurrent = Amps.of(120.0);
+  // TorqueCurrent peak at which the wheels start to slip; used for slip detection in
+  // TorqueCurrentFOC control mode. This needs to be tuned to your individual robot.
+  static final int kSlipCurrent = 120;
 
-  // Initial configs for the drive and steer motors and the azimuth encoder; these cannot be null.
-  // Some configs will be overwritten; check the `with*InitialConfigs()` API documentation.
-  private static final TalonFXConfiguration driveInitialConfigs = new TalonFXConfiguration();
-  private static final TalonFXConfiguration steerInitialConfigs =
+  // Hardware stator current limit for drive motors
+  static final int kDriveStatorCurrentLimit = KrakenX60Constants.kDefaultStatorCurrentLimit;
+
+  // Stator current limit for azimuth (steer) motors; lower than drive to reduce brownout risk
+  // since steering requires minimal torque compared to driving.
+  static final int kSteerStatorCurrentLimit = 60;
+
+  private static final TalonFXConfiguration driveInitialConfigs =
+      new TalonFXConfiguration()
+          .withTorqueCurrent(
+              new TorqueCurrentConfigs()
+                  .withPeakForwardTorqueCurrent(kSlipCurrent)
+                  .withPeakReverseTorqueCurrent(-kSlipCurrent))
+          .withCurrentLimits(
+              new CurrentLimitsConfigs()
+                  .withStatorCurrentLimit(kDriveStatorCurrentLimit)
+                  .withStatorCurrentLimitEnable(true)
+                  .withSupplyCurrentLimit(KrakenX60Constants.kDefaultSupplyCurrentLimit)
+                  .withSupplyCurrentLimitEnable(true));
+
+  // Azimuth does not require much torque; keep stator limit low to reduce brownout risk
+  // since steering requires minimal torque compared to driving.
+  private static final TalonFXConfiguration turnInitialConfigs =
       new TalonFXConfiguration()
           .withCurrentLimits(
               new CurrentLimitsConfigs()
-                  // Swerve azimuth does not require much torque output, so we can set a relatively
-                  // low
-                  // stator current limit to help avoid brownouts without impacting performance.
-                  .withStatorCurrentLimit(Amps.of(60))
-                  .withStatorCurrentLimitEnable(true));
+                  .withStatorCurrentLimit(kSteerStatorCurrentLimit)
+                  .withStatorCurrentLimitEnable(true)
+                  .withSupplyCurrentLimit(KrakenX60Constants.kDefaultSupplyCurrentLimit)
+                  .withSupplyCurrentLimitEnable(true));
 
   private static final boolean kInvertLeftSide = false;
   private static final boolean kInvertRightSide = false;
@@ -204,13 +222,13 @@ public class DriveConstants {
               .withDriveMotorGains(driveGains)
               .withSteerMotorClosedLoopOutput(kSteerClosedLoopOutput)
               .withDriveMotorClosedLoopOutput(kDriveClosedLoopOutput)
-              .withSlipCurrent(kSlipCurrent)
+              .withSlipCurrent(Amps.of(kSlipCurrent))
               .withSpeedAt12Volts(drivetrainSpeedLimit)
               .withDriveMotorType(kDriveMotorType)
               .withSteerMotorType(kSteerMotorType)
               .withFeedbackSource(kSteerFeedbackType)
               .withDriveMotorInitialConfigs(driveInitialConfigs)
-              .withSteerMotorInitialConfigs(steerInitialConfigs)
+              .withSteerMotorInitialConfigs(turnInitialConfigs)
               .withSteerInertia(kSteerInertia)
               .withDriveInertia(kDriveInertia)
               .withSteerFrictionVoltage(kSteerFrictionVoltage)

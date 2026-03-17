@@ -149,6 +149,8 @@ public class Vision extends SubsystemBase {
     for (int cameraIndex = 0; cameraIndex < io.length; cameraIndex++) {
       // Update disconnected alert
       disconnectedAlerts[cameraIndex].set(!inputs[cameraIndex].connected);
+      Logger.recordOutput(
+          "Faults/Vision/Camera" + cameraIndex + "Disconnected", !inputs[cameraIndex].connected);
 
       // Initialize logging values
       tagPoses.clear();
@@ -176,8 +178,11 @@ public class Vision extends SubsystemBase {
         testResults.put(VisionTest.withinBoundaries, VisionTest.withinBoundaries.test(observation));
         testResults.put(VisionTest.distanceToTags, VisionTest.distanceToTags.test(observation));
 
-        Double totalScore =
-            testResults.values().stream().reduce(1.0, (subtotal, element) -> subtotal * element);
+        // Multiply all test scores - loop avoids stream overhead and boxing
+        double totalScore = 1.0;
+        for (Double score : testResults.values()) {
+          totalScore *= score;
+        }
 
         observations.add(new TestedObservation(observation, cameraIndex, testResults, totalScore));
 

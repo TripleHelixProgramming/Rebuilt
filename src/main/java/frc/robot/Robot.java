@@ -2,20 +2,23 @@ package frc.robot;
 
 import static frc.robot.subsystems.vision.VisionConstants.*;
 
+import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.wpilibj.Compressor;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.PneumaticsModuleType;
-import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
-import edu.wpi.first.wpilibj.smartdashboard.Field2d;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.simulation.BatterySim;
+import edu.wpi.first.wpilibj.simulation.REVPHSim;
+import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.button.CommandGenericHID;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.game.Field;
@@ -29,6 +32,8 @@ import frc.lib.ControllerSelector.ControllerType;
 import frc.lib.ControllerSelector.DriverConfig;
 import frc.lib.ControllerSelector.DriverController;
 import frc.lib.ControllerSelector.OperatorConfig;
+import frc.lib.LoggedCompressor;
+import frc.lib.LoggedPowerDistribution;
 import frc.lib.ZorroController.Axis;
 import frc.robot.Constants.DIOPorts;
 import frc.robot.auto.B_LeftTrenchAuto;
@@ -54,13 +59,19 @@ import frc.robot.subsystems.feeder.KickerIOSpark;
 import frc.robot.subsystems.feeder.SpindexerIO;
 import frc.robot.subsystems.feeder.SpindexerIOSimSpark;
 import frc.robot.subsystems.feeder.SpindexerIOSpark;
+import frc.robot.subsystems.hopper.Hopper;
+import frc.robot.subsystems.hopper.HopperIO;
+import frc.robot.subsystems.hopper.HopperIOReal;
+import frc.robot.subsystems.hopper.HopperIOSim;
 import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.intake.IntakeArmIO;
 import frc.robot.subsystems.intake.IntakeArmIOReal;
 import frc.robot.subsystems.intake.IntakeArmIOSim;
-import frc.robot.subsystems.intake.IntakeRollerIO;
-import frc.robot.subsystems.intake.IntakeRollerIOSimTalonFX;
-import frc.robot.subsystems.intake.IntakeRollerIOTalonFX;
+import frc.robot.subsystems.intake.IntakeConstants;
+import frc.robot.subsystems.intake.IntakeConstants.RollerConstants;
+import frc.robot.subsystems.intake.RollerIO;
+import frc.robot.subsystems.intake.RollerIOSimTalonFX;
+import frc.robot.subsystems.intake.RollerIOTalonFX;
 import frc.robot.subsystems.launcher.FlywheelIO;
 import frc.robot.subsystems.launcher.FlywheelIOSimTalonFX;
 import frc.robot.subsystems.launcher.FlywheelIOTalonFX;
@@ -97,9 +108,10 @@ public class Robot extends LoggedRobot {
       new AllianceSelector(DIOPorts.allianceColorSelector);
   public static final AutoSelector autoSelector =
       new AutoSelector(DIOPorts.autonomousModeSelector, allianceSelector::getAllianceColor);
-  public static final Field2d field = new Field2d();
+  public final LoggedPowerDistribution powerDistribution =
+      new LoggedPowerDistribution(1, ModuleType.kRev, "PDH");
 
-  public final PowerDistribution powerDistribution = new PowerDistribution(1, ModuleType.kRev);
+  private final java.util.Set<String> activeCommands = new java.util.LinkedHashSet<>();
 
   // Subsystems
   private Drive drive;
@@ -107,8 +119,14 @@ public class Robot extends LoggedRobot {
   private Launcher launcher;
   private Feeder feeder;
   private Intake intake;
-  // private Hopper hopper;
+  private Hopper hopper;
   private LEDController leds = LEDController.getInstance();
+  private LoggedCompressor compressor;
+  private PneumaticsSimulator pneumaticsSimulator;
+
+  // Battery simulation constants
+  private static final double ELECTRONICS_OVERHEAD_AMPS = 4.5; // RoboRIO + radio + PDH + misc
+  private final LinearFilter vBusFilter = LinearFilter.singlePoleIIR(0.04, Robot.defaultPeriodSecs);
 
   public Robot() {
     // Record metadata
@@ -159,14 +177,19 @@ public class Robot extends LoggedRobot {
                 new TurretIOSpark(),
                 new FlywheelIOTalonFX(),
                 new HoodIOSpark());
-        intake = new Intake(new IntakeRollerIOTalonFX(), new IntakeArmIOReal());
-        // hopper = new Hopper(new HopperIOReal());
+        hopper = new Hopper(new HopperIOReal());
+        intake =
+            new Intake(
+                new RollerIOTalonFX(RollerConstants.upperRollerConfig),
+                new RollerIOTalonFX(RollerConstants.lowerRollerConfig),
+                new IntakeArmIOReal());
         feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
-        SmartDashboard.putData(new Compressor(PneumaticsModuleType.REVPH));
+        compressor = new LoggedCompressor(PneumaticsModuleType.REVPH, "Compressor");
         break;
 
       case SIM: // Running a physics simulator
         // Log to NT
+        Logger.addDataReceiver(new WPILOGWriter("logs/"));
         Logger.addDataReceiver(new NT4Publisher());
 
         // Instantiate physics sim IO implementations
@@ -197,8 +220,15 @@ public class Robot extends LoggedRobot {
                 new FlywheelIOSimTalonFX(),
                 new HoodIOSimSpark());
         feeder = new Feeder(new SpindexerIOSimSpark(), new KickerIOSimSpark());
-        intake = new Intake(new IntakeRollerIOSimTalonFX(), new IntakeArmIOSim());
-        // hopper = new Hopper(new HopperIOSim());
+        hopper = new Hopper(new HopperIOSim());
+        var intakeArmIOSim = new IntakeArmIOSim();
+        intake =
+            new Intake(
+                new RollerIOSimTalonFX(RollerConstants.upperRollerConfig),
+                new RollerIOSimTalonFX(RollerConstants.lowerRollerConfig),
+                intakeArmIOSim);
+        pneumaticsSimulator =
+            new PneumaticsSimulator(intakeArmIOSim.intakeArmPneumatic, new REVPHSim(1));
         break;
 
       case REPLAY: // Replaying a log
@@ -232,8 +262,8 @@ public class Robot extends LoggedRobot {
                 new TurretIO() {},
                 new FlywheelIO() {},
                 new HoodIO() {});
-        intake = new Intake(new IntakeRollerIO() {}, new IntakeArmIO() {});
-        // hopper = new Hopper(new HopperIO() {});
+        hopper = new Hopper(new HopperIO() {});
+        intake = new Intake(new RollerIO() {}, new RollerIO() {}, new IntakeArmIO() {});
         feeder = new Feeder(new SpindexerIO() {}, new KickerIO() {});
         break;
     }
@@ -246,24 +276,36 @@ public class Robot extends LoggedRobot {
     // Start AdvantageKit logger
     Logger.start();
 
+    // Disable LiveWindow telemetry (subsystem motor sendables) — eliminates SmartDashboard overhead
+    edu.wpi.first.wpilibj.livewindow.LiveWindow.disableAllTelemetry();
+
+    // Wire the hopper/intake interlocks. Done here (after both subsystems exist) to avoid a
+    // circular dependency between the two subsystems.
+    intake.setDeployInterlock(
+        hopper::isDeployed,
+        () -> hopper.getDeployCommand().withTimeout(IntakeConstants.kInterlockSettleSeconds));
+    hopper.setRetractInterlock(
+        intake::isStowed,
+        () -> intake.getStopCommand().withTimeout(IntakeConstants.kInterlockSettleSeconds));
+
     configureControlPanelBindings();
     configureAutoOptions();
 
-    SmartDashboard.putData(
-        "Align Encoders",
-        new InstantCommand(() -> drive.zeroAbsoluteEncoders()).ignoringDisable(true));
-    SmartDashboard.putData(CommandScheduler.getInstance());
-    SmartDashboard.putData(drive);
-    SmartDashboard.putData(vision);
-    SmartDashboard.putData(launcher);
-    SmartDashboard.putData(feeder);
-    SmartDashboard.putData(intake);
-    SmartDashboard.putData("Field", field);
+    CommandScheduler.getInstance().onCommandInitialize(cmd -> activeCommands.add(cmd.getName()));
+    CommandScheduler.getInstance().onCommandFinish(cmd -> activeCommands.remove(cmd.getName()));
+    CommandScheduler.getInstance().onCommandInterrupt(cmd -> activeCommands.remove(cmd.getName()));
+
+    new Trigger(
+            NetworkTableInstance.getDefault()
+                    .getTable("Triggers")
+                    .getBooleanTopic("Align Encoders")
+                    .subscribe(false)
+                ::get)
+        .onTrue(new InstantCommand(drive::zeroAbsoluteEncoders).ignoringDisable(true));
     Field.plotRegions();
 
     feeder.setDefaultCommand(Commands.startEnd(feeder::stop, () -> {}, feeder).withName("Stop"));
     intake.setDefaultCommand(intake.getDefaultCommand());
-    // hopper.setDefaultCommand(hopper.getDefaultCommand());
     launcher.setDefaultCommand(
         launcher
             .initializeHoodCommand()
@@ -287,6 +329,14 @@ public class Robot extends LoggedRobot {
     CommandScheduler.getInstance().run();
     long t1 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
+    logCANBus("CAN2", Constants.CANBusPorts.CAN2.bus);
+    logCANBus("CANHD", Constants.CANBusPorts.CANHD.bus);
+    powerDistribution.log();
+    if (compressor != null) compressor.log();
+    logHIDs();
+    logScheduler();
+
+    Logger.recordOutput("USB/FreeSpaceMB", getUSBStorageFreeSpace() / 1024 / 1024);
     GameState.logValues();
     long t2 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
@@ -334,6 +384,7 @@ public class Robot extends LoggedRobot {
   /** This function is called once when autonomous mode is enabled. */
   @Override
   public void autonomousInit() {
+    hopper.getRetractCommand().schedule();
     drive.setDefaultCommand(Commands.runOnce(drive::stop, drive).withName("Stop"));
     autoSelector.scheduleAuto();
     leds.clear();
@@ -349,6 +400,7 @@ public class Robot extends LoggedRobot {
   /** This function is called once when teleop mode is enabled. */
   @Override
   public void teleopInit() {
+    if (!hopper.isDeployed() && !hopper.isStowed()) hopper.getRetractCommand().schedule();
     autoSelector.cancelAuto();
     ControllerSelector.getInstance().scan(true);
     leds.clear();
@@ -359,6 +411,9 @@ public class Robot extends LoggedRobot {
   public void teleopPeriodic() {
     leds.displayHubCountdown();
     leds.displayRobotState(() -> launcher.isOnTarget(), () -> feeder.isSpinning());
+    if (!DriverStation.isFMSAttached()) {
+      leds.displayCompressorState(compressor != null && compressor.isEnabled());
+    }
   }
 
   /** This function is called once when test mode is enabled. */
@@ -385,8 +440,19 @@ public class Robot extends LoggedRobot {
   /** This function is called periodically whilst in simulation. */
   @Override
   public void simulationPeriodic() {
-    leds.displayHubCountdown();
-    leds.displayRobotState(() -> launcher.isOnTarget(), () -> feeder.isSpinning());
+    // Update battery voltage based on total current draw this cycle
+    pneumaticsSimulator.update(Robot.defaultPeriodSecs);
+    RoboRioSim.setVInVoltage(
+        vBusFilter.calculate(
+            Math.max(
+                0.0,
+                BatterySim.calculateDefaultBatteryLoadedVoltage(
+                    drive.getSimCurrentDrawAmps(),
+                    launcher.getSimCurrentDrawAmps(),
+                    feeder.getSimCurrentDrawAmps(),
+                    intake.getSimCurrentDrawAmps(),
+                    pneumaticsSimulator.getCompressorCurrentAmps(),
+                    ELECTRONICS_OVERHEAD_AMPS))));
   }
 
   private void configureControlPanelBindings() {
@@ -399,7 +465,9 @@ public class Robot extends LoggedRobot {
             ControllerType.XBOX, this::bindXboxOperator, Constants.Mode.REAL, Constants.Mode.SIM),
         // XBOX is permitted as driver in REAL and SIM mode
         new DriverConfig(
-            ControllerType.XBOX, this::bindXboxDriver, Constants.Mode.REAL, Constants.Mode.SIM));
+            ControllerType.XBOX, this::bindXboxDriver, Constants.Mode.REAL, Constants.Mode.SIM),
+        // KEYBOARD is permitted as driver in SIM mode only
+        new DriverConfig(ControllerType.KEYBOARD, this::bindKeyboardDriver, Constants.Mode.SIM));
   }
 
   public DriverController bindZorroDriver(int port) {
@@ -448,8 +516,16 @@ public class Robot extends LoggedRobot {
                     drive)
                 .ignoringDisable(true));
 
-    // Switch to X pattern when button D is pressed
-    // zorroDriver.DIn().onTrue(Commands.runOnce(drive::stopWithX, drive));
+    // Toggle hopper: deploy if stowed, stow if deployed (retracting intake first if needed).
+    // runOnce has no subsystem requirements so it always executes; the scheduled command
+    // requires hopper and will interrupt whatever is currently running on that subsystem.
+    zorroDriver
+        .DIn()
+        .onTrue(
+            Commands.runOnce(
+                () ->
+                    (hopper.isDeployed() ? hopper.getRetractCommand() : hopper.getDeployCommand())
+                        .schedule()));
 
     // Desaturate turret and advance feeder
     zorroDriver.AIn().whileTrue(createDesaturateAndShootCommand(controller));
@@ -470,27 +546,6 @@ public class Robot extends LoggedRobot {
 
     // Intake
     zorroDriver.HIn().whileTrue(intake.getDeployCommand());
-    // zorroDriver.HIn().and(() -> hopper.isDeployed()).onTrue(intake.getDeployCommand());
-    // zorroDriver.HIn().negate().and(() -> hopper.isDeployed()).onTrue(intake.getDefaultCommand());
-
-    // Hopper
-    // zorroDriver
-    //     .FDown()
-    //     .onTrue(Commands.startEnd(hopper::deploy, () -> {}, hopper).withName("Deploy"));
-
-    // zorroDriver
-    //     .FUp()
-    //     .onTrue(
-    //         new ConditionalCommand(
-    //             // If intake is stowed, immediately retract hopper
-    //             hopper.getDefaultCommand(),
-    //             // If intake is deployed, retract it first before retracting hopper
-    //             Commands.parallel(
-    //                 intake.getDefaultCommand(),
-    //
-    // hopper.idle().withTimeout(Seconds.of(2)).andThen(hopper.getDefaultCommand())),
-    //             // Condition to check
-    //             () -> intake.isStowed()));
 
     return controller;
   }
@@ -604,7 +659,66 @@ public class Robot extends LoggedRobot {
     //     PathCommands.dockToTargetPoint(drive, new Translation2d(8.2296, 4.1148), Meters.of(2)));
 
     // Switch to X pattern when X button is pressed
-    xboxDriver.x().onTrue(Commands.runOnce(drive::stopWithX, drive));
+    // xboxDriver.x().onTrue(Commands.runOnce(drive::stopWithX, drive));
+
+    // Desaturate turret and advance feeder
+    xboxDriver.a().whileTrue(createDesaturateAndShootCommand(controller));
+
+    // Intake
+    xboxDriver.rightBumper().whileTrue(intake.getDeployCommand());
+
+    return controller;
+  }
+
+  public DriverController bindKeyboardDriver(int port) {
+    var keyboard = new CommandGenericHID(port);
+
+    // WPILib sim keyboard axis layout:
+    //   Axis 0: A (negative) / D (positive)        — strafe
+    //   Axis 1: W (negative) / S (positive)        — forward/back
+    //   Axis 2: Left arrow (decrease) / Right arrow (increase) — rotation
+    //           (configure in DS sim keyboard editor; see README for settings)
+    //   Button 1 (Z): reset heading
+    var controller =
+        new DriverController() {
+          public double getXTranslationInput() {
+            return -keyboard.getRawAxis(1);
+          }
+
+          public double getYTranslationInput() {
+            return -keyboard.getRawAxis(0);
+          }
+
+          public double getRotationInput() {
+            return -keyboard.getRawAxis(2);
+          }
+
+          public boolean getFieldRelativeInput() {
+            return true;
+          }
+        };
+
+    drive.setDefaultCommand(
+        DriveCommands.joystickDrive(
+            drive,
+            () -> controller.getXTranslationInput(),
+            () -> controller.getYTranslationInput(),
+            () -> controller.getRotationInput(),
+            () -> controller.getFieldRelativeInput(),
+            allianceSelector::fieldRotated));
+
+    // Reset heading to 0° when Z (button 1) is pressed
+    keyboard
+        .button(1)
+        .onTrue(
+            Commands.runOnce(
+                    () ->
+                        drive.resetHeading(
+                            allianceSelector.fieldRotated()
+                                ? Rotation2d.k180deg
+                                : Rotation2d.kZero),
+                    drive)
+                .ignoringDisable(true));
 
     return controller;
   }
@@ -659,6 +773,12 @@ public class Robot extends LoggedRobot {
     return allianceSelector.getAllianceColor();
   }
 
+  /** Returns the number of free bytes on the USB log drive at /U, or Long.MAX_VALUE in sim. */
+  public static long getUSBStorageFreeSpace() {
+    if (Constants.currentMode != Constants.Mode.REAL) return Long.MAX_VALUE;
+    return new java.io.File("/U").getFreeSpace();
+  }
+
   private Command createDesaturateAndShootCommand(DriverController driver) {
     return Commands.parallel(
         DriveCommands.joystickDrive(
@@ -679,5 +799,74 @@ public class Robot extends LoggedRobot {
         Commands.sequence(
             Commands.waitUntil(launcher::isTurretDesaturated),
             Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance")));
+  }
+
+  private static void logHIDs() {
+    for (int port = 0; port < DriverStation.kJoystickPorts; port++) {
+      if (!DriverStation.isJoystickConnected(port)) continue;
+      String prefix = "HID/Port" + port;
+      Logger.recordOutput(prefix + "/Name", DriverStation.getJoystickName(port));
+      int axisCount = DriverStation.getStickAxisCount(port);
+      double[] axes = new double[axisCount];
+      for (int i = 0; i < axisCount; i++) axes[i] = DriverStation.getStickAxis(port, i);
+      Logger.recordOutput(prefix + "/Axes", axes);
+      int buttonCount = DriverStation.getStickButtonCount(port);
+      boolean[] buttons = new boolean[buttonCount];
+      for (int i = 0; i < buttonCount; i++) buttons[i] = DriverStation.getStickButton(port, i + 1);
+      Logger.recordOutput(prefix + "/Buttons", buttons);
+      int povCount = DriverStation.getStickPOVCount(port);
+      long[] povs = new long[povCount];
+      for (int i = 0; i < povCount; i++) povs[i] = DriverStation.getStickPOV(port, i);
+      Logger.recordOutput(prefix + "/POVs", povs);
+    }
+  }
+
+  private void logScheduler() {
+    Logger.recordOutput("Commands/ActiveCommands", activeCommands.toArray(new String[0]));
+    logSubsystem("Drive", drive);
+    logSubsystem("Vision", vision);
+    logSubsystem("Launcher", launcher);
+    logSubsystem("Feeder", feeder);
+    logSubsystem("Hopper", hopper);
+    logSubsystem("Intake", intake);
+    logAlerts();
+  }
+
+  // Third-party library alerts (PathPlanner, Choreo, PhotonVision) still publish to SmartDashboard
+  // via their own Alert objects, so we read them back from NT.
+  private static void logAlerts() {
+    logAlertGroup("PathPlanner");
+    logAlertGroup("Choreo");
+    logAlertGroup("PhotonAlerts");
+  }
+
+  private static void logAlertGroup(String group) {
+    var table = NetworkTableInstance.getDefault().getTable("SmartDashboard").getSubTable(group);
+    Logger.recordOutput(
+        "Alerts/" + group + "/Errors", table.getEntry("errors").getStringArray(new String[0]));
+    Logger.recordOutput(
+        "Alerts/" + group + "/Warnings", table.getEntry("warnings").getStringArray(new String[0]));
+    Logger.recordOutput(
+        "Alerts/" + group + "/Infos", table.getEntry("infos").getStringArray(new String[0]));
+  }
+
+  private static void logCANBus(String name, com.ctre.phoenix6.CANBus bus) {
+    var status = bus.getStatus();
+    Logger.recordOutput("CANBus/" + name + "/Utilization", status.BusUtilization);
+    Logger.recordOutput("CANBus/" + name + "/BusOffCount", (long) status.BusOffCount);
+    Logger.recordOutput("CANBus/" + name + "/TxFullCount", (long) status.TxFullCount);
+    Logger.recordOutput("CANBus/" + name + "/REC", (long) status.REC);
+    Logger.recordOutput("CANBus/" + name + "/TEC", (long) status.TEC);
+  }
+
+  private static void logSubsystem(String name, SubsystemBase subsystem) {
+    Command current = subsystem.getCurrentCommand();
+    Command defaultCmd = subsystem.getDefaultCommand();
+    Logger.recordOutput("Subsystems/" + name + "/HasCommand", current != null);
+    Logger.recordOutput(
+        "Subsystems/" + name + "/Command", current != null ? current.getName() : "None");
+    Logger.recordOutput("Subsystems/" + name + "/HasDefault", defaultCmd != null);
+    Logger.recordOutput(
+        "Subsystems/" + name + "/Default", defaultCmd != null ? defaultCmd.getName() : "None");
   }
 }

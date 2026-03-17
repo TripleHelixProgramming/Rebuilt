@@ -10,6 +10,8 @@ package frc.robot.subsystems.vision;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.networktables.DoubleSubscriber;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -20,6 +22,8 @@ import org.photonvision.PhotonCamera;
 public class VisionIOPhotonVision implements VisionIO {
   protected final PhotonCamera camera;
   protected final Transform3d robotToCamera;
+
+  private final DoubleSubscriber fpsSubscriber;
 
   // Reusable collections to avoid allocations per loop
   private final Set<Short> tagIds = new HashSet<>();
@@ -34,17 +38,30 @@ public class VisionIOPhotonVision implements VisionIO {
   public VisionIOPhotonVision(String name, Transform3d robotToCamera) {
     camera = new PhotonCamera(name);
     this.robotToCamera = robotToCamera;
+    fpsSubscriber =
+        NetworkTableInstance.getDefault()
+            .getTable("photonvision")
+            .getSubTable(name)
+            .getDoubleTopic("fps")
+            .subscribe(0.0);
   }
 
   @Override
   public void updateInputs(VisionIOInputs inputs) {
     inputs.connected = camera.isConnected();
+    inputs.fps = fpsSubscriber.get();
+    // latencyMs and bestReprojError are NOT reset here — they retain their last valid value
+    // when no new results are available this cycle.
 
     // Clear reusable collections
     tagIds.clear();
     poseObservations.clear();
 
     for (var result : camera.getAllUnreadResults()) {
+      // Track diagnostics from the most recent result (loop overwrites with latest)
+      inputs.latencyMs =
+          (result.metadata.publishTimestampMicros - result.metadata.captureTimestampMicros)
+              / 1000.0;
       // Update latest target observation
       if (result.hasTargets()) {
         var bestTarget = result.getBestTarget();
@@ -79,6 +96,14 @@ public class VisionIOPhotonVision implements VisionIO {
         // Add tag IDs
         tagIds.addAll(multitagResult.fiducialIDsUsed);
 
+        // Guard: avoid division by zero if targets list is unexpectedly empty.
+        // In practice, multitagResult should only exist with 2+ targets, but we guard defensively.
+        int targetCount = result.targets.size();
+        double avgTagDistance = targetCount > 0 ? totalTagDistance / targetCount : 0.0;
+
+        // Track reprojection error from the most recent multitag result
+        inputs.bestReprojError = multitagResult.estimatedPose.bestReprojErr;
+
         // Add observation
         poseObservations.add(
             new PoseObservation(
@@ -86,17 +111,19 @@ public class VisionIOPhotonVision implements VisionIO {
                 robotPose, // 3D pose estimate
                 multitagResult.estimatedPose.ambiguity, // Ambiguity
                 multitagResult.fiducialIDsUsed.size(), // Tag count
-                totalTagDistance / result.targets.size(), // Average tag distance
+                avgTagDistance, // Average tag distance
                 PoseObservationType.PHOTONVISION)); // Observation type
 
       } else if (!result.targets.isEmpty()) { // Single tag result
         var target = result.targets.get(0);
 
         // Calculate robot pose
-        var tagPose = Vision.getAprilTagLayout().getTagPose(target.fiducialId);
-        if (tagPose.isPresent()) {
+        var tagPoseOpt = Vision.getAprilTagLayout().getTagPose(target.fiducialId);
+        if (tagPoseOpt.isPresent()) {
+          // Cache the Optional value to avoid multiple .get() calls and ensure consistency
+          Pose3d tagPose = tagPoseOpt.get();
           Transform3d fieldToTarget =
-              new Transform3d(tagPose.get().getTranslation(), tagPose.get().getRotation());
+              new Transform3d(tagPose.getTranslation(), tagPose.getRotation());
           Transform3d cameraToTarget = target.bestCameraToTarget;
           Transform3d fieldToCamera = fieldToTarget.plus(cameraToTarget.inverse());
           Transform3d fieldToRobot = fieldToCamera.plus(robotToCamera.inverse());

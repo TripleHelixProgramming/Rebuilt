@@ -10,7 +10,7 @@ public final class LEDConstants {
 
   // ==================== ANIMATION CONFIGURATION ====================
 
-  public static final int kLEDsPerBlock = 2;
+  public static final int kLEDsPerBlock = 1;
   public static final int kLEDsBetweenBlocks = 1;
 
   // ==================== POSE SEEK TOLERANCES ====================
