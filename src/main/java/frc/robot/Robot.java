@@ -437,9 +437,6 @@ public class Robot extends LoggedRobot {
                     intake.getSimCurrentDrawAmps(),
                     pneumaticsSimulator.getCompressorCurrentAmps(),
                     ELECTRONICS_OVERHEAD_AMPS))));
-
-    leds.displayHubCountdown();
-    leds.displayRobotState(() -> launcher.isOnTarget(), () -> feeder.isSpinning());
   }
 
   private void configureControlPanelBindings() {
