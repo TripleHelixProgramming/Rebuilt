@@ -15,7 +15,6 @@ import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.ConditionalCommand;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -517,12 +516,16 @@ public class Robot extends LoggedRobot {
                     drive)
                 .ignoringDisable(true));
 
-    // Toggle hopper: deploy if stowed, stow if deployed (retracting intake first if needed)
+    // Toggle hopper: deploy if stowed, stow if deployed (retracting intake first if needed).
+    // runOnce has no subsystem requirements so it always executes; the scheduled command
+    // requires hopper and will interrupt whatever is currently running on that subsystem.
     zorroDriver
         .DIn()
         .onTrue(
-            new ConditionalCommand(
-                hopper.getRetractCommand(), hopper.getDeployCommand(), hopper::isDeployed));
+            Commands.runOnce(
+                () ->
+                    (hopper.isDeployed() ? hopper.getRetractCommand() : hopper.getDeployCommand())
+                        .schedule()));
 
     // Desaturate turret and advance feeder
     zorroDriver.AIn().whileTrue(createDesaturateAndShootCommand(controller));
@@ -824,6 +827,7 @@ public class Robot extends LoggedRobot {
     logSubsystem("Vision", vision);
     logSubsystem("Launcher", launcher);
     logSubsystem("Feeder", feeder);
+    logSubsystem("Hopper", hopper);
     logSubsystem("Intake", intake);
     logAlerts();
   }
