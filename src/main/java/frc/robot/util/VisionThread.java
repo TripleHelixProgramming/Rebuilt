@@ -42,6 +42,9 @@ public class VisionThread {
       snapshot =
           new VisionIOInputsSnapshot(
               workingInputs.connected,
+              workingInputs.fps,
+              workingInputs.latencyMs,
+              workingInputs.bestReprojError,
               workingInputs.latestTargetObservation,
               workingInputs.poseObservations.clone(),
               workingInputs.tagIds.clone());
@@ -56,12 +59,18 @@ public class VisionThread {
   /** Immutable snapshot of VisionIOInputs for thread-safe reading. */
   public static class VisionIOInputsSnapshot {
     public final boolean connected;
+    public final double fps;
+    public final double latencyMs;
+    public final double bestReprojError;
     public final TargetObservation latestTargetObservation;
     public final PoseObservation[] poseObservations;
     public final int[] tagIds;
 
     public VisionIOInputsSnapshot() {
       this.connected = false;
+      this.fps = 0.0;
+      this.latencyMs = 0.0;
+      this.bestReprojError = 0.0;
       this.latestTargetObservation =
           new TargetObservation(
               edu.wpi.first.math.geometry.Rotation2d.kZero,
@@ -76,10 +85,16 @@ public class VisionThread {
 
     public VisionIOInputsSnapshot(
         boolean connected,
+        double fps,
+        double latencyMs,
+        double bestReprojError,
         TargetObservation latestTargetObservation,
         PoseObservation[] poseObservations,
         int[] tagIds) {
       this.connected = connected;
+      this.fps = fps;
+      this.latencyMs = latencyMs;
+      this.bestReprojError = bestReprojError;
       this.latestTargetObservation = latestTargetObservation;
       this.poseObservations = poseObservations;
       this.tagIds = tagIds;
@@ -88,6 +103,9 @@ public class VisionThread {
     /** Copies this snapshot's values into a VisionIOInputs object for AdvantageKit logging. */
     public void copyTo(VisionIOInputs inputs) {
       inputs.connected = connected;
+      inputs.fps = fps;
+      inputs.latencyMs = latencyMs;
+      inputs.bestReprojError = bestReprojError;
       inputs.latestTargetObservation = latestTargetObservation;
       inputs.poseObservations = poseObservations;
       inputs.tagIds = tagIds;
