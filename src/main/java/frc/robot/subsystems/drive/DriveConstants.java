@@ -90,7 +90,7 @@ public class DriveConstants {
   public static final AngularVelocity maxChassisAngularVelocity =
       RadiansPerSecond.of(maxChassisVelocity.in(MetersPerSecond) / driveBaseRadius.in(Meters));
   public static final AngularAcceleration maxChassisAngularAcceleration =
-      RadiansPerSecondPerSecond.of(4 * Math.PI);
+      RadiansPerSecondPerSecond.of(30);
 
   public static final PathConstraints pathFollowingConstraints =
       new PathConstraints(
