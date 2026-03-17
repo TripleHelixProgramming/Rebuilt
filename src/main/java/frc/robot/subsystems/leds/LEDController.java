@@ -87,7 +87,7 @@ public class LEDController extends SubsystemBase {
       // Need to move backward
       LEDSeries.POSE_X.applyPattern(LEDPattern.solid(Color.kGreen));
     }
-    
+
     // Heading feedback on rotation LEDs (angular error is frame-independent)
     var theta = MathUtil.inputModulus(delta.getRotation().getDegrees(), -180, 180);
      if (Math.abs(theta) < LEDConstants.kPoseSeekHeadingToleranceDegrees) {
@@ -184,21 +184,21 @@ public class LEDController extends SubsystemBase {
     Robot.autoSelector
         .get()
         .ifPresentOrElse(
-            autoOption -> LEDSeries.X_AXIS.applyPattern(autoSelectionPattern),
-            () -> LEDSeries.X_AXIS.applyPattern(solidYellowPattern.blink(Seconds.of(0.5))));
+            autoOption -> LEDSeries.AUTO_SELECTION.applyPattern(autoSelectionPattern),
+            () -> LEDSeries.AUTO_SELECTION.applyPattern(solidYellowPattern.blink(Seconds.of(0.5))));
 
     // Display yellow warning pixel if alliance disagreement
     DriverStation.getAlliance()
         .ifPresent(
             alliance -> {
               if (alliance != Robot.allianceSelector.getAllianceColor()) {
-                LEDSeries.X_AXIS_ALLIANCE_WARNING.applyPattern(LEDPattern.solid(Color.kYellow));
+                LEDSeries.WARNING_Y.applyPattern(LEDPattern.solid(Color.kYellow));
               }
             });
 
     // Display orange-red warning pixel if USB storage is low
     if (isUSBStorageLow()) {
-      LEDSeries.X_AXIS_WARNING.applyPattern(LEDPattern.solid(Color.kOrangeRed));
+      LEDSeries.WARNING_X.applyPattern(LEDPattern.solid(Color.kOrangeRed));
     }
   }
 
@@ -223,7 +223,7 @@ public class LEDController extends SubsystemBase {
    * @param isRunning true when the compressor is actively running
    */
   public void displayCompressorState(boolean isRunning) {
-    LEDSeries.X_AXIS_WARNING.applyPattern(isRunning ? solidGreenPattern : solidBlackPattern);
+    LEDSeries.WARNING_Y.applyPattern(isRunning ? solidGreenPattern : solidBlackPattern);
   }
 
   /**
