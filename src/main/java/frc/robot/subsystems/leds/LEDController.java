@@ -53,17 +53,14 @@ public class LEDController extends SubsystemBase {
   // ==================== CONTEXT-AWARE DISPLAYS ====================
 
   /**
-   * Displays pose-seek feedback on a horizontal LED strip. Shows how to move the robot to reach a
-   * target pose.
-   *
-   * <p>Layout: [Y_LEFT] [ROT_LEFT] [X_CENTER] [ROT_RIGHT] [Y_RIGHT]
-   *
-   * <p>Indices: [0-1] [2-3] [4-7] [8-9] [10-11]
+   * Displays pose-seek feedback across the pose-seek LED series. Shows how to move the robot to
+   * reach a target pose.
    *
    * <ul>
-   *   <li><b>Y (ends):</b> Green on side to move toward, red on opposite side. White if correct.
-   *   <li><b>Rotation (inner):</b> Cyan = rotate CW, Magenta = rotate CCW. White if correct.
-   *   <li><b>X (center):</b> Green = forward, Red = backward. White if correct.
+   *   <li><b>Y (POSE_Y):</b> Green on side to move toward, red on opposite side. White if correct.
+   *   <li><b>Rotation (POSE_ROTATION_X/Y):</b> Red = rotate CCW, Green = rotate CW. White if
+   *       correct.
+   *   <li><b>X (POSE_X):</b> Green = forward, Red = backward. White if correct.
    * </ul>
    *
    * @param currentPose the robot's current pose
@@ -78,46 +75,59 @@ public class LEDController extends SubsystemBase {
 
     // X feedback on center LEDs (robot-relative: positive = forward)
     var x = robotRelativeDelta.getMeasureX().in(Centimeters);
-    Color xColor =
-        Math.abs(x) < LEDConstants.kPoseSeekXToleranceCm
-            ? Color.kWhite
-            : x > 0 ? Color.kGreen : Color.kRed;
-    LEDSeries.POSE_X_CENTER.applyPattern(LEDPattern.solid(xColor));
+    if (Math.abs(x) < LEDConstants.kPoseSeekXToleranceCm) {
+      LEDSeries.POSE_X.applyPattern(solidWhitePattern);
+    } else if (x > 0) {
+      // Need to move forward
+      LEDSeries.POSE_X.applyPattern(solidGreenPattern);
+    } else {
+      // Need to move backward
+      LEDSeries.POSE_X.applyPattern(solidRedPattern);
+    }
 
     // Heading feedback on rotation LEDs (angular error is frame-independent)
     var theta = MathUtil.inputModulus(delta.getRotation().getDegrees(), -180, 180);
-    Color headingColor =
-        Math.abs(theta) < LEDConstants.kPoseSeekHeadingToleranceDegrees
-            ? Color.kWhite
-            : theta > 0 ? Color.kMagenta : Color.kCyan;
-    LEDSeries.POSE_ROTATION.applyPattern(LEDPattern.solid(headingColor));
+    if (Math.abs(theta) < LEDConstants.kPoseSeekHeadingToleranceDegrees) {
+      LEDSeries.POSE_ROTATION.applyPattern(solidWhitePattern);
+    } else if (theta > 0) {
+      // Need to rotate CCW
+      LEDSeries.POSE_ROTATION_X.applyPattern(solidGreenPattern);
+      LEDSeries.POSE_ROTATION_Y.applyPattern(solidRedPattern);
+    } else {
+      // Need to rotate CW
+      LEDSeries.POSE_ROTATION_X.applyPattern(solidRedPattern);
+      LEDSeries.POSE_ROTATION_Y.applyPattern(solidGreenPattern);
+    }
 
     // Y feedback on end LEDs (robot-relative: positive = move left)
     var y = robotRelativeDelta.getMeasureY().in(Centimeters);
     if (Math.abs(y) < LEDConstants.kPoseSeekYToleranceCm) {
-      LEDSeries.POSE_Y_LEFT.applyPattern(LEDPattern.solid(Color.kWhite));
-      LEDSeries.POSE_Y_RIGHT.applyPattern(LEDPattern.solid(Color.kWhite));
+      LEDSeries.POSE_Y.applyPattern(solidWhitePattern);
     } else if (y > 0) {
       // Need to move left
-      LEDSeries.POSE_Y_LEFT.applyPattern(LEDPattern.solid(Color.kGreen));
-      LEDSeries.POSE_Y_RIGHT.applyPattern(LEDPattern.solid(Color.kRed));
+      LEDSeries.POSE_Y.applyPattern(solidRedPattern);
     } else {
       // Need to move right
-      LEDSeries.POSE_Y_LEFT.applyPattern(LEDPattern.solid(Color.kRed));
-      LEDSeries.POSE_Y_RIGHT.applyPattern(LEDPattern.solid(Color.kGreen));
+      LEDSeries.POSE_Y.applyPattern(solidGreenPattern);
     }
   }
 
   // ==================== PRE-ALLOCATED PATTERNS ====================
 
-  /** Solid black pattern (LEDs off). */
+  /** LEDs off */
   public static final LEDPattern solidBlackPattern = LEDPattern.solid(Color.kBlack);
 
-  /** Solid yellow pattern. */
+  /** Solid color patterns */
   public static final LEDPattern solidYellowPattern = LEDPattern.solid(Color.kYellow);
 
-  /** Solid green pattern. */
+  public static final LEDPattern solidRedPattern = LEDPattern.solid(Color.kRed);
   public static final LEDPattern solidGreenPattern = LEDPattern.solid(Color.kGreen);
+  public static final LEDPattern solidWhitePattern = LEDPattern.solid(Color.kWhite);
+  public static final LEDPattern solidOrangeRedPattern = LEDPattern.solid(Color.kOrangeRed);
+
+  /** Blinking yellow pattern (0.5s period) for missing auto selection. */
+  public static final LEDPattern blinkingYellowPattern =
+      LEDPattern.solid(Color.kYellow).blink(Seconds.of(0.5));
 
   /** Bounce ripple pattern in yellow (spindexing, not on target). */
   public static final LEDPattern bounceRippleYellowPattern =
@@ -140,7 +150,7 @@ public class LEDController extends SubsystemBase {
 
   /**
    * Pattern displaying a progress bar for the current match phase. Shows remaining time as a
-   * filling bar in alliance color (red or blue depending on hub state). In the final 5 seconds,
+   * filling bar in alliance color (red or blue depending on hub state). In the final 10 seconds,
    * resets to full and counts down while flashing.
    */
   public static LEDPattern hubCountdownPattern =
@@ -149,7 +159,7 @@ public class LEDController extends SubsystemBase {
           () -> GameState.getCurrentPhase().remainingAt(GameState.getMatchTime()),
           // Total phase duration
           () -> GameState.getCurrentPhase().duration(),
-          // Urgency threshold (5 seconds)
+          // Urgency threshold (10 seconds)
           10.0,
           // Fill color
           () -> {
@@ -165,33 +175,33 @@ public class LEDController extends SubsystemBase {
 
   /**
    * Displays the current auto selection on the LEDs. Shows counting blocks in alliance color
-   * representing the auto option number. Blinks yellow if no auto is selected. Sets the last LED to
-   * yellow if there is a mismatch between the driver station alliance and the selected alliance
-   * color.
+   * representing the auto option number. Blinks yellow if no auto is selected. Sets
+   * WARNING_ALLIANCE to yellow if there is a mismatch between the driver station alliance and the
+   * selected alliance color.
    */
   public void displayAutoSelection() {
-    // In displayAutoSelection or somewhere you can test:
-    // LEDSeries.Y_AXIS.applyPattern(LEDPattern.solid(Color.kRed));
-    // LEDSeries.X_AXIS.applyPattern(LEDPattern.solid(Color.kBlue));
-
     Robot.autoSelector
         .get()
         .ifPresentOrElse(
-            autoOption -> LEDSeries.X_AXIS.applyPattern(autoSelectionPattern),
-            () -> LEDSeries.X_AXIS.applyPattern(solidYellowPattern.blink(Seconds.of(0.5))));
+            autoOption -> LEDSeries.AUTO_SELECTION.applyPattern(autoSelectionPattern),
+            () -> LEDSeries.AUTO_SELECTION.applyPattern(blinkingYellowPattern));
 
     // Display yellow warning pixel if alliance disagreement
     DriverStation.getAlliance()
         .ifPresent(
             alliance -> {
               if (alliance != Robot.allianceSelector.getAllianceColor()) {
-                LEDSeries.X_AXIS_ALLIANCE_WARNING.applyPattern(LEDPattern.solid(Color.kYellow));
+                LEDSeries.WARNING_ALLIANCE.applyPattern(solidYellowPattern);
+              } else {
+                LEDSeries.WARNING_ALLIANCE.applyPattern(solidBlackPattern);
               }
             });
 
     // Display orange-red warning pixel if USB storage is low
     if (isUSBStorageLow()) {
-      LEDSeries.X_AXIS_WARNING.applyPattern(LEDPattern.solid(Color.kOrangeRed));
+      LEDSeries.WARNING_STORAGE.applyPattern(solidOrangeRedPattern);
+    } else {
+      LEDSeries.WARNING_STORAGE.applyPattern(solidBlackPattern);
     }
   }
 
@@ -200,7 +210,7 @@ public class LEDController extends SubsystemBase {
    * alliance color based on hub state. When both hubs are active, shows our alliance color.
    *
    * <p>When FMS is connected, uses the full X-axis range (LEDs 12-35) to maximize visibility.
-   * Otherwise uses X_AXIS_BODY (LEDs 14-35), leaving X_AXIS_WARNING free for other indicators.
+   * Otherwise uses X_AXIS_BODY (LEDs 15-35), leaving WARNING_COMPRESSOR free for other indicators.
    */
   public void displayHubCountdown() {
     if (DriverStation.isFMSAttached()) {
@@ -211,12 +221,12 @@ public class LEDController extends SubsystemBase {
   }
 
   /**
-   * Displays compressor state on the X_AXIS_WARNING pixel. Green when running, off when not.
+   * Displays compressor state on WARNING_COMPRESSOR. Green when running, off when not.
    *
    * @param isRunning true when the compressor is actively running
    */
   public void displayCompressorState(boolean isRunning) {
-    LEDSeries.X_AXIS_WARNING.applyPattern(isRunning ? solidGreenPattern : solidBlackPattern);
+    LEDSeries.WARNING_COMPRESSOR.applyPattern(isRunning ? solidGreenPattern : solidBlackPattern);
   }
 
   /**

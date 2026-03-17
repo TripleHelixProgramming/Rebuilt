@@ -94,7 +94,8 @@ public class ControllerSelector {
     ZORRO("Zorro"),
     XBOX("XBOX"),
     RADIOMASTER("TX16S"),
-    PS4("P");
+    PS4("P"),
+    KEYBOARD("Keyboard");
 
     private final String deviceName;
 
