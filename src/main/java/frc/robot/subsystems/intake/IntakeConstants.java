@@ -12,6 +12,9 @@ import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.KrakenX60Constants;
 
 public class IntakeConstants {
+  /** Time (seconds) to wait after resolving an intake/hopper interlock before proceeding. */
+  public static final double kInterlockSettleSeconds = 1.0;
+
   public static class RollerConstants {
     public static final Distance rollerRadius = Inches.of(0.85);
 
