@@ -18,6 +18,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.button.CommandGenericHID;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.game.Field;
@@ -449,7 +450,9 @@ public class Robot extends LoggedRobot {
             ControllerType.XBOX, this::bindXboxOperator, Constants.Mode.REAL, Constants.Mode.SIM),
         // XBOX is permitted as driver in REAL and SIM mode
         new DriverConfig(
-            ControllerType.XBOX, this::bindXboxDriver, Constants.Mode.REAL, Constants.Mode.SIM));
+            ControllerType.XBOX, this::bindXboxDriver, Constants.Mode.REAL, Constants.Mode.SIM),
+        // KEYBOARD is permitted as driver in SIM mode only
+        new DriverConfig(ControllerType.KEYBOARD, this::bindKeyboardDriver, Constants.Mode.SIM));
   }
 
   public DriverController bindZorroDriver(int port) {
@@ -661,6 +664,58 @@ public class Robot extends LoggedRobot {
 
     // Intake
     xboxDriver.rightBumper().whileTrue(intake.getDeployCommand());
+
+    return controller;
+  }
+
+  public DriverController bindKeyboardDriver(int port) {
+    var keyboard = new CommandGenericHID(port);
+
+    // WPILib sim keyboard axis layout:
+    //   Axis 0: A (negative) / D (positive) — strafe
+    //   Axis 1: W (negative) / S (positive) — forward/back
+    //   Axis 2: Left arrow (negative) / Right arrow (positive) — rotation
+    //   Button 1 (Space): reset heading
+    var controller =
+        new DriverController() {
+          public double getXTranslationInput() {
+            return -keyboard.getRawAxis(1);
+          }
+
+          public double getYTranslationInput() {
+            return -keyboard.getRawAxis(0);
+          }
+
+          public double getRotationInput() {
+            return -keyboard.getRawAxis(2);
+          }
+
+          public boolean getFieldRelativeInput() {
+            return true;
+          }
+        };
+
+    drive.setDefaultCommand(
+        DriveCommands.joystickDrive(
+            drive,
+            () -> controller.getXTranslationInput(),
+            () -> controller.getYTranslationInput(),
+            () -> controller.getRotationInput(),
+            () -> controller.getFieldRelativeInput(),
+            allianceSelector::fieldRotated));
+
+    // Reset heading to 0° when Space (button 1) is pressed
+    keyboard
+        .button(1)
+        .onTrue(
+            Commands.runOnce(
+                    () ->
+                        drive.resetHeading(
+                            allianceSelector.fieldRotated()
+                                ? Rotation2d.k180deg
+                                : Rotation2d.kZero),
+                    drive)
+                .ignoringDisable(true));
 
     return controller;
   }
