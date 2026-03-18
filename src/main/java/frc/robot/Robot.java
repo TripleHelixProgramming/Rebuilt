@@ -181,7 +181,7 @@ public class Robot extends LoggedRobot {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
-                drive::getHeading,
+                drive::getRawGyroRotation,
                 new VisionIOPhotonVision(cameraFrontRightName, robotToFrontRightCamera),
                 new VisionIOPhotonVision(cameraFrontLeftName, robotToFrontLeftCamera),
                 new VisionIOPhotonVision(cameraBackRightName, robotToBackRightCamera),
@@ -219,7 +219,7 @@ public class Robot extends LoggedRobot {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
-                drive::getHeading,
+                drive::getRawGyroRotation,
                 new VisionIOPhotonVisionSim(
                     cameraFrontRightName, robotToFrontRightCamera, drive::getPose),
                 new VisionIOPhotonVisionSim(
@@ -266,7 +266,7 @@ public class Robot extends LoggedRobot {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
-                drive::getHeading,
+                drive::getRawGyroRotation,
                 new VisionIO() {},
                 new VisionIO() {},
                 new VisionIO() {},

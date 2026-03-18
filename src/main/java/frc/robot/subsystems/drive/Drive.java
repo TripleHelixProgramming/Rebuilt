@@ -392,6 +392,10 @@ public class Drive extends SubsystemBase {
     return rawGyroRotation.plus(headingOffset);
   }
 
+  public Rotation2d getRawGyroRotation() {
+    return rawGyroRotation;
+  }
+
   /** Resets the current teleoperation orientation. */
   public void resetHeading(Rotation2d heading) {
     this.headingOffset = heading.minus(rawGyroRotation);
