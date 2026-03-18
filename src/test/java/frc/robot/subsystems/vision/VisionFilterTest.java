@@ -6,13 +6,13 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
+import frc.robot.subsystems.vision.VisionFilter.FusedObservation;
 import frc.robot.subsystems.vision.VisionFilter.Test;
 import frc.robot.subsystems.vision.VisionFilter.TestContext;
 import frc.robot.subsystems.vision.VisionFilter.TestedObservation;
 import frc.robot.subsystems.vision.VisionIO.PoseObservation;
 import frc.robot.subsystems.vision.VisionIO.PoseObservationType;
 import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.EnumSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -767,86 +767,105 @@ class VisionFilterTest {
     }
   }
 
-  // ==================== Correlation Boost Tests ====================
+  // ==================== Fuse Correlated Observations Tests ====================
 
   @Nested
-  @DisplayName("applyCorrelationBoost")
-  class CorrelationBoostTests {
+  @DisplayName("fuseCorrelatedObservations")
+  class FuseCorrelatedObservationsTests {
 
     @org.junit.jupiter.api.Test
-    @DisplayName("Empty list does nothing")
+    @DisplayName("Empty list returns empty")
     void emptyList() {
       var observations = new ArrayList<TestedObservation>();
-      filter.applyCorrelationBoost(observations);
-      assertTrue(observations.isEmpty());
+      var result = filter.fuseCorrelatedObservations(observations);
+      assertTrue(result.isEmpty());
     }
 
     @org.junit.jupiter.api.Test
-    @DisplayName("Single observation not boosted")
-    void singleObservationNotBoosted() {
+    @DisplayName("Single observation returns single fused with cameraCount=1")
+    void singleObservation() {
       var observations = new ArrayList<TestedObservation>();
       observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
 
-      filter.applyCorrelationBoost(observations);
+      var result = filter.fuseCorrelatedObservations(observations);
 
-      assertEquals(0.5, observations.get(0).score(), 0.001);
+      assertEquals(1, result.size());
+      assertEquals(1, result.get(0).cameraCount());
+      assertEquals(0.5, result.get(0).score(), 0.001);
     }
 
     @org.junit.jupiter.api.Test
-    @DisplayName("Two agreeing cameras are boosted")
-    void twoAgreeingCamerasAreBoosted() {
+    @DisplayName("Two agreeing cameras fuse into one observation")
+    void twoAgreeingCamerasFuse() {
       var observations = new ArrayList<TestedObservation>();
       observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
-      observations.add(makeTestedObs(8.05, 4.05, 0.01, 1, 0.5));
+      observations.add(makeTestedObs(8.1, 4.1, 0.01, 1, 0.6));
 
-      filter.applyCorrelationBoost(observations);
+      var result = filter.fuseCorrelatedObservations(observations);
 
-      assertTrue(observations.get(0).score() > 0.5, "Camera 0 should be boosted");
-      assertTrue(observations.get(1).score() > 0.5, "Camera 1 should be boosted");
+      assertEquals(1, result.size(), "Two agreeing cameras should fuse into one");
+      assertEquals(2, result.get(0).cameraCount());
+      // Score should be boosted (max * boostFactor, capped at 1.0)
+      assertTrue(result.get(0).score() > 0.6, "Fused score should be boosted");
     }
 
     @org.junit.jupiter.api.Test
-    @DisplayName("Same camera multiple observations not boosted")
-    void sameCameraNotBoosted() {
+    @DisplayName("Fused pose is weighted average of inputs")
+    void fusedPoseIsWeightedAverage() {
+      var observations = new ArrayList<TestedObservation>();
+      // Camera 0: x=8.0, score=0.6 (within correlation threshold of ~0.15m)
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.6));
+      // Camera 1: x=8.1, score=0.4 (0.1m apart, within threshold)
+      observations.add(makeTestedObs(8.1, 4.0, 0.01, 1, 0.4));
+
+      var result = filter.fuseCorrelatedObservations(observations);
+
+      assertEquals(1, result.size(), "Should fuse into one observation");
+      // Weighted average: (8.0*0.6 + 8.1*0.4) / (0.6+0.4) = 8.04
+      assertEquals(8.04, result.get(0).pose().getX(), 0.01);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Same camera multiple observations not fused")
+    void sameCameraNotFused() {
       var observations = new ArrayList<TestedObservation>();
       observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
       observations.add(makeTestedObs(8.05, 4.05, 0.01, 0, 0.5)); // Same camera
 
-      filter.applyCorrelationBoost(observations);
+      var result = filter.fuseCorrelatedObservations(observations);
 
-      assertEquals(0.5, observations.get(0).score(), 0.001);
-      assertEquals(0.5, observations.get(1).score(), 0.001);
+      assertEquals(2, result.size(), "Same camera observations should not fuse");
+      assertEquals(1, result.get(0).cameraCount());
+      assertEquals(1, result.get(1).cameraCount());
     }
 
     @org.junit.jupiter.api.Test
-    @DisplayName("Cameras too far apart in time not boosted")
-    void tooFarInTimeNotBoosted() {
+    @DisplayName("Cameras too far apart in time not fused")
+    void tooFarInTimeNotFused() {
       var observations = new ArrayList<TestedObservation>();
       observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
-      observations.add(makeTestedObs(8.05, 4.05, 0.1, 1, 0.5)); // 100ms apart
+      observations.add(makeTestedObs(8.05, 4.05, 0.2, 1, 0.5)); // 200ms apart (> 150ms threshold)
 
-      filter.applyCorrelationBoost(observations);
+      var result = filter.fuseCorrelatedObservations(observations);
 
-      assertEquals(0.5, observations.get(0).score(), 0.001);
-      assertEquals(0.5, observations.get(1).score(), 0.001);
+      assertEquals(2, result.size(), "Observations too far apart in time should not fuse");
     }
 
     @org.junit.jupiter.api.Test
-    @DisplayName("Cameras too far apart in position not boosted")
-    void tooFarInPositionNotBoosted() {
+    @DisplayName("Cameras too far apart in position not fused")
+    void tooFarInPositionNotFused() {
       var observations = new ArrayList<TestedObservation>();
       observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
       observations.add(makeTestedObs(9.0, 5.0, 0.01, 1, 0.5)); // 1.4m apart
 
-      filter.applyCorrelationBoost(observations);
+      var result = filter.fuseCorrelatedObservations(observations);
 
-      assertEquals(0.5, observations.get(0).score(), 0.001);
-      assertEquals(0.5, observations.get(1).score(), 0.001);
+      assertEquals(2, result.size(), "Observations too far apart should not fuse");
     }
 
     @org.junit.jupiter.api.Test
-    @DisplayName("2v2 split: no majority, nobody boosted")
-    void twoVsTwoSplitNotBoosted() {
+    @DisplayName("2v2 split creates two fused observations")
+    void twoVsTwoSplitCreatesTwoClusters() {
       var observations = new ArrayList<TestedObservation>();
       // Cameras 0,1 agree on position A
       observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
@@ -855,20 +874,18 @@ class VisionFilterTest {
       observations.add(makeTestedObs(10.0, 6.0, 0.0, 2, 0.5));
       observations.add(makeTestedObs(10.05, 6.05, 0.01, 3, 0.5));
 
-      filter.applyCorrelationBoost(observations);
+      var result = filter.fuseCorrelatedObservations(observations);
 
-      for (int i = 0; i < 4; i++) {
-        assertEquals(
-            0.5,
-            observations.get(i).score(),
-            0.001,
-            "2v2 split: camera " + i + " should not be boosted");
+      assertEquals(2, result.size(), "2v2 split should create 2 fused observations");
+      // Both should have 2 cameras each
+      for (var fused : result) {
+        assertEquals(2, fused.cameraCount());
       }
     }
 
     @org.junit.jupiter.api.Test
-    @DisplayName("3v1: majority boosted, outlier not")
-    void threeVsOneBoostsThree() {
+    @DisplayName("3v1: three cameras fuse, outlier separate")
+    void threeVsOneFuses() {
       var observations = new ArrayList<TestedObservation>();
       // Cameras 0,1,2 agree
       observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
@@ -877,89 +894,94 @@ class VisionFilterTest {
       // Camera 3 disagrees
       observations.add(makeTestedObs(10.0, 6.0, 0.0, 3, 0.5));
 
-      filter.applyCorrelationBoost(observations);
+      var result = filter.fuseCorrelatedObservations(observations);
 
-      assertTrue(observations.get(0).score() > 0.5, "Camera 0 should be boosted");
-      assertTrue(observations.get(1).score() > 0.5, "Camera 1 should be boosted");
-      assertTrue(observations.get(2).score() > 0.5, "Camera 2 should be boosted");
-      assertEquals(0.5, observations.get(3).score(), 0.001, "Outlier should not be boosted");
+      assertEquals(2, result.size(), "Should have 2 fused observations");
+      // Find the fused one with 3 cameras and the single one
+      FusedObservation fusedCluster = null, singleObs = null;
+      for (var f : result) {
+        if (f.cameraCount() == 3) fusedCluster = f;
+        if (f.cameraCount() == 1) singleObs = f;
+      }
+      assertNotNull(fusedCluster, "Should have a 3-camera cluster");
+      assertNotNull(singleObs, "Should have a single camera observation");
+      assertTrue(
+          fusedCluster.score() > singleObs.score(), "Fused cluster should have higher score");
     }
 
     @org.junit.jupiter.api.Test
-    @DisplayName("4 cameras all agree: all boosted")
-    void fourAllAgree() {
+    @DisplayName("4 cameras all agree fuse into one")
+    void fourAllAgreeFuse() {
       var observations = new ArrayList<TestedObservation>();
       observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
       observations.add(makeTestedObs(8.05, 4.05, 0.01, 1, 0.5));
       observations.add(makeTestedObs(8.03, 4.03, 0.02, 2, 0.5));
       observations.add(makeTestedObs(8.07, 4.02, 0.03, 3, 0.5));
 
-      filter.applyCorrelationBoost(observations);
+      var result = filter.fuseCorrelatedObservations(observations);
 
-      for (int i = 0; i < 4; i++) {
-        assertTrue(
-            observations.get(i).score() > 0.5, "Camera " + i + " should be boosted when all agree");
-      }
+      assertEquals(1, result.size(), "4 agreeing cameras should fuse into one");
+      assertEquals(4, result.get(0).cameraCount());
     }
 
     @org.junit.jupiter.api.Test
-    @DisplayName("Boost caps at 1.0")
-    void boostCapsAtOne() {
+    @DisplayName("Fused score caps at 1.0")
+    void fusedScoreCapsAtOne() {
       var observations = new ArrayList<TestedObservation>();
       observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.9));
       observations.add(makeTestedObs(8.05, 4.05, 0.01, 1, 0.9));
 
-      filter.applyCorrelationBoost(observations);
+      var result = filter.fuseCorrelatedObservations(observations);
 
-      assertTrue(observations.get(0).score() <= 1.0, "Score should not exceed 1.0");
-      assertTrue(observations.get(1).score() <= 1.0, "Score should not exceed 1.0");
+      assertTrue(result.get(0).score() <= 1.0, "Score should not exceed 1.0");
     }
 
     @org.junit.jupiter.api.Test
-    @DisplayName("Edge of time window: exactly at threshold")
-    void edgeOfTimeWindow() {
+    @DisplayName("Edge of time window: exactly at threshold fuses")
+    void edgeOfTimeWindowFuses() {
       double threshold = VisionConstants.correlationTimeWindowSeconds;
       var observations = new ArrayList<TestedObservation>();
       observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
       observations.add(makeTestedObs(8.05, 4.05, threshold, 1, 0.5)); // Exactly at threshold
 
-      filter.applyCorrelationBoost(observations);
+      var result = filter.fuseCorrelatedObservations(observations);
 
       // At exactly threshold, should still be within window (<=)
-      assertTrue(observations.get(0).score() > 0.5, "At threshold should still boost");
+      assertEquals(1, result.size(), "At time threshold should still fuse");
+      assertEquals(2, result.get(0).cameraCount());
     }
 
     @org.junit.jupiter.api.Test
-    @DisplayName("Edge of position threshold: exactly at threshold")
-    void edgeOfPositionThreshold() {
+    @DisplayName("Edge of position threshold: exactly at threshold not fused")
+    void edgeOfPositionThresholdNotFused() {
       double threshold = VisionConstants.correlationPoseThresholdMeters;
       var observations = new ArrayList<TestedObservation>();
       observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
       // Exactly at threshold distance
       observations.add(makeTestedObs(8.0 + threshold, 4.0, 0.01, 1, 0.5));
 
-      filter.applyCorrelationBoost(observations);
+      var result = filter.fuseCorrelatedObservations(observations);
 
-      // At exactly threshold, should NOT be within (uses >)
-      assertEquals(0.5, observations.get(0).score(), 0.001, "At threshold should not boost");
+      // At exactly threshold, should NOT fuse (uses >)
+      assertEquals(2, result.size(), "At position threshold should not fuse");
     }
 
     @org.junit.jupiter.api.Test
-    @DisplayName("Just under position threshold: boosted")
-    void justUnderPositionThreshold() {
+    @DisplayName("Just under position threshold fuses")
+    void justUnderPositionThresholdFuses() {
       double threshold = VisionConstants.correlationPoseThresholdMeters;
       var observations = new ArrayList<TestedObservation>();
       observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
       observations.add(makeTestedObs(8.0 + threshold - 0.01, 4.0, 0.01, 1, 0.5));
 
-      filter.applyCorrelationBoost(observations);
+      var result = filter.fuseCorrelatedObservations(observations);
 
-      assertTrue(observations.get(0).score() > 0.5, "Just under threshold should boost");
+      assertEquals(1, result.size(), "Just under threshold should fuse");
     }
 
     @org.junit.jupiter.api.Test
-    @DisplayName("Transitive clustering: A-B and B-C agree, all boosted")
-    void transitiveClustering() {
+    @DisplayName("Transitive clustering: A-B and B-C agree, all fuse")
+    void transitiveClusteringFuses() {
       double dist = VisionConstants.correlationPoseThresholdMeters - 0.01;
       var observations = new ArrayList<TestedObservation>();
       // A at origin
@@ -969,34 +991,34 @@ class VisionFilterTest {
       // C close to B, but farther from A
       observations.add(makeTestedObs(8.0 + dist * 1.5, 4.0, 0.02, 2, 0.5));
 
-      filter.applyCorrelationBoost(observations);
+      var result = filter.fuseCorrelatedObservations(observations);
 
       // All should be in same cluster via transitivity
-      assertTrue(observations.get(0).score() > 0.5, "A should be boosted");
-      assertTrue(observations.get(1).score() > 0.5, "B should be boosted");
-      assertTrue(observations.get(2).score() > 0.5, "C should be boosted");
+      assertEquals(1, result.size(), "Transitive clustering should fuse all");
+      assertEquals(3, result.get(0).cameraCount());
     }
 
     @org.junit.jupiter.api.Test
-    @DisplayName("Exceeding MAX_OBSERVATIONS silently returns")
-    void exceedingMaxObservations() {
+    @DisplayName("Exceeding MAX_OBSERVATIONS returns unfused")
+    void exceedingMaxObservationsReturnsUnfused() {
       var observations = new ArrayList<TestedObservation>();
       for (int i = 0; i < 40; i++) { // More than MAX_OBSERVATIONS (32)
         observations.add(makeTestedObs(8.0, 4.0, 0.0, i % 4, 0.5));
       }
 
-      // Should not throw
-      assertDoesNotThrow(() -> filter.applyCorrelationBoost(observations));
+      var result = filter.fuseCorrelatedObservations(observations);
 
-      // Scores should be unchanged
-      for (var obs : observations) {
-        assertEquals(0.5, obs.score(), 0.001);
+      // Should return individual observations without fusion
+      assertEquals(40, result.size());
+      for (var fused : result) {
+        assertEquals(1, fused.cameraCount());
+        assertEquals(0.5, fused.score(), 0.001);
       }
     }
 
     @org.junit.jupiter.api.Test
-    @DisplayName("Multiple observations from same camera in cluster")
-    void multipleSameCameraInCluster() {
+    @DisplayName("Multiple observations from same camera in cluster still fuses")
+    void multipleSameCameraInClusterFuses() {
       var observations = new ArrayList<TestedObservation>();
       // Camera 0: two observations at same position
       observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
@@ -1004,31 +1026,26 @@ class VisionFilterTest {
       // Camera 1: one observation
       observations.add(makeTestedObs(8.02, 4.02, 0.02, 1, 0.5));
 
-      filter.applyCorrelationBoost(observations);
+      var result = filter.fuseCorrelatedObservations(observations);
 
-      // Only 2 distinct cameras, should boost (majority of 2 is 2)
-      assertTrue(observations.get(0).score() > 0.5);
-      assertTrue(observations.get(1).score() > 0.5);
-      assertTrue(observations.get(2).score() > 0.5);
+      // Should fuse since there are 2 distinct cameras
+      assertEquals(1, result.size());
+      assertEquals(2, result.get(0).cameraCount());
     }
 
     @org.junit.jupiter.api.Test
-    @DisplayName("Preserves observation data through boost")
-    void preservesObservationData() {
-      var obs = makeObservation(8.0, 4.0, 0.0);
+    @DisplayName("Fused timestamp is weighted average")
+    void fusedTimestampIsWeightedAverage() {
       var observations = new ArrayList<TestedObservation>();
-      var testResults = new EnumMap<Test, Double>(Test.class);
-      testResults.put(Test.withinBoundaries, 1.0);
+      // Camera 0: time=0.0, score=0.6
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.6));
+      // Camera 1: time=0.04, score=0.4
+      observations.add(makeTestedObs(8.05, 4.0, 0.04, 1, 0.4));
 
-      observations.add(new TestedObservation(obs, 0, testResults, 0.5));
-      observations.add(makeTestedObs(8.05, 4.05, 0.01, 1, 0.5));
+      var result = filter.fuseCorrelatedObservations(observations);
 
-      filter.applyCorrelationBoost(observations);
-
-      // Original observation should be preserved
-      assertSame(obs, observations.get(0).observation());
-      assertEquals(0, observations.get(0).cameraIndex());
-      assertSame(testResults, observations.get(0).testResults());
+      // Weighted average: (0.0*0.6 + 0.04*0.4) / (0.6+0.4) = 0.016
+      assertEquals(0.016, result.get(0).timestamp(), 0.001);
     }
   }
 
@@ -1233,21 +1250,19 @@ class VisionFilterTest {
     }
 
     @org.junit.jupiter.api.Test
-    @DisplayName("Correlation boost is idempotent")
-    void correlationBoostIdempotent() {
+    @DisplayName("Fusion is deterministic")
+    void fusionIsDeterministic() {
       var observations = new ArrayList<TestedObservation>();
       observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
       observations.add(makeTestedObs(8.05, 4.05, 0.01, 1, 0.5));
 
-      filter.applyCorrelationBoost(observations);
-      double score1 = observations.get(0).score();
+      var result1 = filter.fuseCorrelatedObservations(observations);
+      var result2 = filter.fuseCorrelatedObservations(observations);
 
-      filter.applyCorrelationBoost(observations);
-      double score2 = observations.get(0).score();
-
-      // Second application should boost again (not idempotent by design)
-      // This test documents the actual behavior
-      assertTrue(score2 >= score1, "Second boost should not decrease score");
+      // Same input should produce same output
+      assertEquals(result1.size(), result2.size());
+      assertEquals(result1.get(0).score(), result2.get(0).score(), 0.001);
+      assertEquals(result1.get(0).cameraCount(), result2.get(0).cameraCount());
     }
 
     @org.junit.jupiter.api.Test

@@ -47,7 +47,6 @@ public class VisionFilter {
   private final Set<Integer>[] clusters = new HashSet[MAX_OBSERVATIONS];
 
   private final Map<Integer, Set<Integer>> clusterMap = new HashMap<>();
-  private final Set<Integer> camerasInWindow = new HashSet<>();
   private final Set<Integer> camerasInCluster = new HashSet<>();
 
   {
@@ -65,6 +64,16 @@ public class VisionFilter {
       int cameraIndex,
       EnumMap<Test, Double> testResults,
       double score) {}
+
+  /**
+   * Fused observation from multiple cameras agreeing on a pose.
+   *
+   * @param pose The averaged 2D pose
+   * @param timestamp The averaged timestamp
+   * @param score The combined score (highest of contributing observations)
+   * @param cameraCount Number of cameras that contributed to this fused pose
+   */
+  public record FusedObservation(Pose2d pose, double timestamp, double score, int cameraCount) {}
 
   /** Mutable context object for vision tests, reused to avoid allocations. */
   public static class TestContext {
@@ -317,17 +326,35 @@ public class VisionFilter {
   }
 
   /**
-   * Applies cross-camera correlation boosting to observations.
+   * Fuses correlated observations from multiple cameras into single averaged poses.
    *
-   * <p>When multiple cameras report similar poses at similar times, boost their scores. Uses
-   * majority rule: only boost if >50% of cameras in the time window agree.
+   * <p>When multiple cameras report similar poses at similar times, they are fused into a single
+   * observation with an averaged position. This reduces jitter from multiple cameras providing
+   * slightly different poses that all get accepted. Uncorrelated observations are returned as-is.
    *
-   * @param observations List to modify in place with boosted scores
+   * @param observations List of tested observations to potentially fuse
+   * @return List of fused observations (may be smaller than input if observations were merged)
    */
-  public void applyCorrelationBoost(ArrayList<TestedObservation> observations) {
+  public ArrayList<FusedObservation> fuseCorrelatedObservations(
+      ArrayList<TestedObservation> observations) {
+    var result = new ArrayList<FusedObservation>();
     int n = observations.size();
-    if (n < 2 || n > MAX_OBSERVATIONS) {
-      return;
+
+    if (n == 0) {
+      return result;
+    }
+
+    if (n > MAX_OBSERVATIONS) {
+      // Too many observations, fall back to individual processing
+      for (var obs : observations) {
+        result.add(
+            new FusedObservation(
+                obs.observation().pose().toPose2d(),
+                obs.observation().timestamp(),
+                obs.score(),
+                1));
+      }
+      return result;
     }
 
     // Step 1: Build clusters of agreeing observations
@@ -339,7 +366,8 @@ public class VisionFilter {
       clusterMap.put(i, clusters[i]);
     }
 
-    // Step 2: Merge clusters when observations agree
+    // Step 2: Merge clusters when observations agree (same time window, similar pose, different
+    // cameras)
     for (int i = 0; i < n; i++) {
       var obsA = observations.get(i);
       double timeA = obsA.observation().timestamp();
@@ -369,39 +397,73 @@ public class VisionFilter {
       }
     }
 
-    // Step 3: Determine which observations to boost
+    // Step 3: Track which observations have been processed
+    var processed = new boolean[n];
+
+    // Step 4: Create fused observations for each cluster
     for (int i = 0; i < n; i++) {
-      var obsI = observations.get(i);
-      double timeI = obsI.observation().timestamp();
-      var clusterI = clusterMap.get(i);
+      if (processed[i]) continue;
 
-      // Find cameras in time window and cameras in our cluster
-      camerasInWindow.clear();
+      var cluster = clusterMap.get(i);
+
+      // Count unique cameras in this cluster
       camerasInCluster.clear();
-
-      for (int j = 0; j < n; j++) {
-        var obsJ = observations.get(j);
-        if (Math.abs(timeI - obsJ.observation().timestamp()) <= correlationTimeWindowSeconds) {
-          camerasInWindow.add(obsJ.cameraIndex());
-          if (clusterI.contains(j)) {
-            camerasInCluster.add(obsJ.cameraIndex());
-          }
-        }
+      for (int idx : cluster) {
+        camerasInCluster.add(observations.get(idx).cameraIndex());
       }
+      int cameraCount = camerasInCluster.size();
 
-      int totalCameras = camerasInWindow.size();
-      int agreeingCameras = camerasInCluster.size();
+      if (cameraCount >= 2) {
+        // Multiple cameras agree - compute weighted average pose
+        Translation2d sumTranslation = Translation2d.kZero;
+        double sumSin = 0, sumCos = 0, sumTime = 0;
+        double sumWeight = 0;
+        double maxScore = 0;
 
-      // Boost if majority of cameras agree (and at least 2 cameras)
-      if (agreeingCameras > totalCameras / 2.0 && agreeingCameras >= 2) {
-        var orig = observations.get(i);
-        double boosted = Math.min(1.0, orig.score() * correlationBoostFactor);
-        observations.set(
-            i,
-            new TestedObservation(
-                orig.observation(), orig.cameraIndex(), orig.testResults(), boosted));
+        for (int idx : cluster) {
+          var obs = observations.get(idx);
+          double weight = obs.score();
+          var pose = obs.observation().pose().toPose2d();
+
+          sumTranslation = sumTranslation.plus(pose.getTranslation().times(weight));
+          // Circular mean for angles (no WPILib equivalent for weighted circular mean)
+          sumSin += Math.sin(pose.getRotation().getRadians()) * weight;
+          sumCos += Math.cos(pose.getRotation().getRadians()) * weight;
+          sumTime += obs.observation().timestamp() * weight;
+          sumWeight += weight;
+          maxScore = Math.max(maxScore, obs.score());
+
+          processed[idx] = true;
+        }
+
+        // Compute averages
+        Translation2d avgTranslation = sumTranslation.div(sumWeight);
+        double avgYaw = Math.atan2(sumSin / sumWeight, sumCos / sumWeight);
+        double avgTime = sumTime / sumWeight;
+
+        // Boost score for correlated observations
+        double fusedScore = Math.min(1.0, maxScore * correlationBoostFactor);
+
+        result.add(
+            new FusedObservation(
+                new Pose2d(avgTranslation, new Rotation2d(avgYaw)),
+                avgTime,
+                fusedScore,
+                cameraCount));
+      } else {
+        // Single camera observation - return as-is
+        var obs = observations.get(i);
+        result.add(
+            new FusedObservation(
+                obs.observation().pose().toPose2d(),
+                obs.observation().timestamp(),
+                obs.score(),
+                1));
+        processed[i] = true;
       }
     }
+
+    return result;
   }
 
   /** Normalized sigmoid function. Output is between 0 and 1. */

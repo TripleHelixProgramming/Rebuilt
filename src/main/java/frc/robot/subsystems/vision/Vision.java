@@ -23,6 +23,7 @@ import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
+import frc.robot.subsystems.vision.VisionFilter.FusedObservation;
 import frc.robot.subsystems.vision.VisionFilter.Test;
 import frc.robot.subsystems.vision.VisionFilter.TestedObservation;
 import frc.robot.util.VisionThread;
@@ -47,8 +48,9 @@ public class Vision extends SubsystemBase {
   private ArrayList<Pose3d> allRobotPosesAccepted = new ArrayList<Pose3d>();
   private ArrayList<Pose3d> allRobotPosesRejected = new ArrayList<Pose3d>();
 
-  // List to store acceptable observations
-  private ArrayList<TestedObservation> observations = new ArrayList<TestedObservation>();
+  // Buffer to accumulate observations across loops for batched processing
+  // Cleared after processing every processingIntervalLoops
+  private ArrayList<TestedObservation> observationBuffer = new ArrayList<TestedObservation>();
 
   // Initialize logging values
   private ArrayList<Pose3d> tagPoses = new ArrayList<Pose3d>();
@@ -145,9 +147,6 @@ public class Vision extends SubsystemBase {
     allRobotPosesAccepted.clear();
     allRobotPosesRejected.clear();
 
-    // List to store acceptable observations
-    observations.clear();
-
     // Loop over cameras
     for (int cameraIndex = 0; cameraIndex < io.length; cameraIndex++) {
       // Update disconnected alert
@@ -181,7 +180,7 @@ public class Vision extends SubsystemBase {
                 gyroYawSupplier.get(),
                 enabledTests);
 
-        observations.add(tested);
+        observationBuffer.add(tested);
 
         // Add pose to log
         robotPoses.add(observation.pose());
@@ -220,34 +219,40 @@ public class Vision extends SubsystemBase {
 
     long t3 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
-    // Apply cross-camera correlation boost before filtering
-    // Observations corroborated by a majority of cameras get boosted scores
-    visionFilter.applyCorrelationBoost(observations);
+    // Process observations in batches every processingIntervalLoops
+    // This allows cameras to accumulate observations before fusion decides what agrees
+    if (loopCounter % processingIntervalLoops == 0) {
+      // Remove unacceptable observations before fusion
+      observationBuffer.removeIf(o -> o.score() < minScore);
 
-    // Remove unacceptable observations
-    observations.removeIf(o -> o.score() < minScore);
+      // Fuse correlated observations from multiple cameras into averaged poses
+      // This reduces jitter from multiple cameras reporting slightly different poses
+      ArrayList<FusedObservation> fusedObservations =
+          visionFilter.fuseCorrelatedObservations(observationBuffer);
 
-    // Sort the list of acceptable observations by timestamp
-    observations.sort(
-        (lhs, rhs) ->
-            (int) Math.signum(lhs.observation().timestamp() - rhs.observation().timestamp()));
+      // Sort fused observations by timestamp
+      fusedObservations.sort((lhs, rhs) -> (int) Math.signum(lhs.timestamp() - rhs.timestamp()));
 
-    for (var o : observations) {
-      // Calculate standard deviations
-      double linearStdDev = linearStdDevBaseline / o.score();
-      double angularStdDev = angularStdDevBaseline / o.score();
+      for (var fused : fusedObservations) {
+        // Calculate standard deviations
+        // Single-camera observations get much higher stddev (less trust) to reduce jitter
+        // Multi-camera fused observations get lower stddev (more trust)
+        double cameraCountFactor = (fused.cameraCount() == 1) ? singleCameraStdDevMultiplier : 1.0;
+        double linearStdDev = linearStdDevBaseline * cameraCountFactor / fused.score();
+        double angularStdDev = angularStdDevBaseline * cameraCountFactor / fused.score();
 
-      // Send acceptable vision observations to the pose estimator with their stddevs
-      consumer.accept(
-          o.observation().pose().toPose2d(),
-          o.observation().timestamp(),
-          VecBuilder.fill(linearStdDev, linearStdDev, angularStdDev));
+        // Send fused vision observation to the pose estimator
+        consumer.accept(
+            fused.pose(),
+            fused.timestamp(),
+            VecBuilder.fill(linearStdDev, linearStdDev, angularStdDev));
 
-      // Update per-camera tracking for velocity consistency check
-      lastAcceptedPose[o.cameraIndex()] = o.observation().pose().toPose2d();
-      lastAcceptedTimestamp[o.cameraIndex()] = o.observation().timestamp();
+        Logger.recordOutput("Vision/Summary/ObservationScore", fused.score());
+        Logger.recordOutput("Vision/Summary/FusedCameraCount", fused.cameraCount());
+      }
 
-      Logger.recordOutput("Vision/Summary/ObservationScore", o.score());
+      // Clear buffer after processing
+      observationBuffer.clear();
     }
     long t4 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 

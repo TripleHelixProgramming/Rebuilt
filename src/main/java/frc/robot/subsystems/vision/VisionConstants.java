@@ -113,8 +113,9 @@ public class VisionConstants {
   // Cross-camera correlation thresholds
   // When multiple cameras report similar poses at similar times, we boost confidence.
   // This helps validate observations and reject outliers from miscalibrated cameras.
-  public static double correlationTimeWindowSeconds =
-      0.050; // 50ms - cameras may not fire simultaneously
+  // Set to 150ms to allow cameras that don't fire simultaneously to still be fused.
+  // Analysis showed cameras often fire 80-150ms apart, so 50ms was too narrow.
+  public static double correlationTimeWindowSeconds = 0.150;
   public static Distance correlationPoseThreshold =
       Meters.of(0.15); // How close poses must be to "agree"
   public static final double correlationPoseThresholdMeters = correlationPoseThreshold.in(Meters);
@@ -124,6 +125,12 @@ public class VisionConstants {
   // Standard deviation baselines
   public static double linearStdDevBaseline = 0.02; // Meters
   public static double angularStdDevBaseline = 0.06; // Radians
+
+  // Single-camera observations get this multiplier on stddev to reduce their influence.
+  // This reduces jitter from multiple single-camera observations reporting slightly
+  // different poses. Multi-camera fused observations (which agree) get no penalty.
+  // A value of 3.0 means single-camera observations have 3x less influence than fused.
+  public static double singleCameraStdDevMultiplier = 3.0;
 
   public static double maxStdDev = 1.0; // Meters
 
@@ -143,6 +150,11 @@ public class VisionConstants {
   public static boolean kLogRejectedPoses = true;
 
   // Logging frequency (1 = every cycle, 2 = every other cycle, etc.)
-  // Higher values reduce CPU load but lose data granularity for replay
+  // Higher values reduce CPU load but loses data granularity for replay
   public static int kLoggingDivisor = 1;
+
+  // Vision processing interval (1 = every loop, 5 = every 5th loop = 10Hz at 50Hz robot loop)
+  // Higher values batch more observations together for fusion, reducing jitter but adding latency.
+  // At 5 loops (100ms batches), cameras have time to all report before fusion decides what agrees.
+  public static int processingIntervalLoops = 5;
 }
