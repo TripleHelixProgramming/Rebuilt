@@ -268,7 +268,7 @@ public class VisionFilter {
           Test.heightError,
           Test.withinBoundaries,
           Test.distanceToTags,
-          Test.velocityConsistency,
+          // Test.velocityConsistency,
           Test.yawConsistency);
 
   /**
