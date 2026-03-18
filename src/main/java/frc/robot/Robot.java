@@ -2,6 +2,7 @@ package frc.robot;
 
 import static frc.robot.subsystems.vision.VisionConstants.*;
 
+import com.ctre.phoenix6.SignalLogger;
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -150,8 +151,10 @@ public class Robot extends LoggedRobot {
     // Set up data receivers & replay source
     switch (Constants.currentMode) {
       case REAL: // Running on a real robot
-        // Log to the CANivore session subdirectory on the USB stick so that all
-        // four log types (wpilog, revlog, hoot x2) end up in the same folder.
+        // Set the Phoenix signal logger path explicitly so hoot files land in /U/logs/
+        // (SignalLogger creates a timestamped session subdir there at startup).
+        SignalLogger.setPath("/U/logs/");
+        // Write the AKit log into that same session subdir so all log types are together.
         Logger.addDataReceiver(new WPILOGWriter(findSessionDir()));
         Logger.addDataReceiver(new NT4Publisher());
 
@@ -852,9 +855,9 @@ public class Robot extends LoggedRobot {
   }
 
   /**
-   * Returns the path of the most recently modified subdirectory in /U/logs/, which is expected to
-   * be the CANivore session directory created a few seconds before robot code starts. Falls back to
-   * /U/logs/ if no subdirectory exists.
+   * Returns the path of the most recently modified subdirectory in /U/logs/, which is the
+   * timestamped session directory created by SignalLogger ~5 seconds after roboRIO startup —
+   * before robot code finishes initializing. Falls back to /U/logs/ if no subdirectory exists.
    */
   private static String findSessionDir() {
     java.io.File logsRoot = new java.io.File("/U/logs/");
