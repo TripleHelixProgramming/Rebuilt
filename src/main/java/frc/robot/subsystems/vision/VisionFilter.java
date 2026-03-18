@@ -9,8 +9,10 @@ package frc.robot.subsystems.vision;
 
 import static frc.robot.subsystems.vision.VisionConstants.*;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rectangle2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import frc.robot.subsystems.vision.VisionIO.PoseObservation;
 import java.util.ArrayList;
@@ -70,6 +72,7 @@ public class VisionFilter {
     private int cameraIndex;
     private Pose2d lastAcceptedPose;
     private double lastAcceptedTimestamp;
+    private Rotation2d gyroYaw;
 
     public TestContext observation(PoseObservation observation) {
       this.observation = observation;
@@ -91,6 +94,11 @@ public class VisionFilter {
       return this;
     }
 
+    public TestContext gyroYaw(Rotation2d gyroYaw) {
+      this.gyroYaw = gyroYaw;
+      return this;
+    }
+
     public PoseObservation observation() {
       return observation;
     }
@@ -105,6 +113,10 @@ public class VisionFilter {
 
     public double lastAcceptedTimestamp() {
       return lastAcceptedTimestamp;
+    }
+
+    public Rotation2d gyroYaw() {
+      return gyroYaw;
     }
   }
 
@@ -185,9 +197,9 @@ public class VisionFilter {
      *
      * <p>When no history is available (first observation from this camera, or the last accepted
      * observation is older than velocityCheckTimeoutSeconds), the test returns
-     * velocityUncertainScore instead of 1.0. This prevents a bad first-in-a-while pose from
-     * sailing through with a perfect velocity score — it must earn acceptance from the other
-     * tests. The correlation boost still allows startup convergence when multiple cameras agree.
+     * velocityUncertainScore instead of 1.0. This prevents a bad first-in-a-while pose from sailing
+     * through with a perfect velocity score — it must earn acceptance from the other tests. The
+     * correlation boost still allows startup convergence when multiple cameras agree.
      */
     velocityConsistency(0.9) {
       @Override
@@ -209,6 +221,27 @@ public class VisionFilter {
         double impliedVelocity = distance / dt;
 
         return 1.0 - normalizedSigmoid(impliedVelocity, maxReasonableVelocityMps, 2.0);
+      }
+    },
+
+    /**
+     * Checks whether the vision pose yaw matches the gyro yaw.
+     *
+     * <p>Ambiguous PnP solutions almost always have incorrect yaw because the ambiguity comes from
+     * the tag appearing similar from different viewing angles, which inherently involves rotation.
+     * The gyro provides reliable yaw tracking independent of vision, making this an effective check
+     * for rejecting bad PnP solutions.
+     */
+    yawConsistency(1.0) {
+      @Override
+      public double test(TestContext ctx) {
+        if (ctx.gyroYaw() == null) return 1.0; // No gyro data, skip check
+
+        double visionYaw = ctx.observation().pose().toPose2d().getRotation().getRadians();
+        double gyroYaw = ctx.gyroYaw().getRadians();
+        double yawError = Math.abs(MathUtil.angleModulus(visionYaw - gyroYaw));
+
+        return 1.0 - normalizedSigmoid(yawError, yawToleranceRadians, 4.0);
       }
     };
 
@@ -235,7 +268,8 @@ public class VisionFilter {
           Test.heightError,
           Test.withinBoundaries,
           Test.distanceToTags,
-          Test.velocityConsistency);
+          Test.velocityConsistency,
+          Test.yawConsistency);
 
   /**
    * Scores an observation by running all enabled tests.
@@ -244,6 +278,7 @@ public class VisionFilter {
    * @param cameraIndex Which camera produced this observation
    * @param lastAcceptedPose Last accepted pose from this camera (null if none)
    * @param lastAcceptedTimestamp Timestamp of last accepted pose
+   * @param gyroYaw Current gyro yaw for yaw consistency check (null to skip check)
    * @param enabledTests Which tests to run
    * @return TestedObservation with scores
    */
@@ -252,13 +287,15 @@ public class VisionFilter {
       int cameraIndex,
       Pose2d lastAcceptedPose,
       double lastAcceptedTimestamp,
+      Rotation2d gyroYaw,
       EnumSet<Test> enabledTests) {
 
     testContext
         .observation(observation)
         .cameraIndex(cameraIndex)
         .lastAcceptedPose(lastAcceptedPose)
-        .lastAcceptedTimestamp(lastAcceptedTimestamp);
+        .lastAcceptedTimestamp(lastAcceptedTimestamp)
+        .gyroYaw(gyroYaw);
 
     var testResults = new EnumMap<Test, Double>(Test.class);
     for (var test : enabledTests) {

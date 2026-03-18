@@ -74,14 +74,19 @@ class VisionFilterTest {
 
   /** Scores an observation with default tests enabled. */
   private TestedObservation score(PoseObservation obs) {
-    return filter.scoreObservation(obs, 0, null, 0.0, VisionFilter.DEFAULT_ENABLED_TESTS);
+    return filter.scoreObservation(obs, 0, null, 0.0, null, VisionFilter.DEFAULT_ENABLED_TESTS);
   }
 
   /** Scores with velocity tracking from a previous pose. */
   private TestedObservation scoreWithHistory(
       PoseObservation obs, Pose2d lastPose, double lastTimestamp) {
     return filter.scoreObservation(
-        obs, 0, lastPose, lastTimestamp, VisionFilter.DEFAULT_ENABLED_TESTS);
+        obs, 0, lastPose, lastTimestamp, null, VisionFilter.DEFAULT_ENABLED_TESTS);
+  }
+
+  /** Scores with a specific gyro yaw for yaw consistency testing. */
+  private TestedObservation scoreWithGyroYaw(PoseObservation obs, Rotation2d gyroYaw) {
+    return filter.scoreObservation(obs, 0, null, 0.0, gyroYaw, VisionFilter.DEFAULT_ENABLED_TESTS);
   }
 
   // ==================== Individual Test Tests ====================
@@ -495,6 +500,136 @@ class VisionFilterTest {
     }
   }
 
+  @Nested
+  @DisplayName("Test.yawConsistency")
+  class YawConsistencyTests {
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("No gyro data returns 1.0 (skip check)")
+    void noGyroData() {
+      var ctx =
+          new TestContext()
+              .observation(makeObservation(8, 4, 0, 0, 0, Math.toRadians(45), 0.0, 1, 0.01, 3.0))
+              .gyroYaw(null);
+      double result = Test.yawConsistency.test(ctx);
+      assertEquals(1.0, result, 0.001, "No gyro should return 1.0 (skip check)");
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Matching yaw scores higher than small error")
+    void matchingYawScoresHigher() {
+      double yaw = Math.toRadians(45);
+      var matchingCtx =
+          new TestContext()
+              .observation(makeObservation(8, 4, 0, 0, 0, yaw, 0.0, 1, 0.01, 3.0))
+              .gyroYaw(new Rotation2d(yaw));
+      var smallErrorCtx =
+          new TestContext()
+              .observation(makeObservation(8, 4, 0, 0, 0, yaw, 0.0, 1, 0.01, 3.0))
+              .gyroYaw(new Rotation2d(yaw + Math.toRadians(5)));
+
+      double matchingResult = Test.yawConsistency.test(matchingCtx);
+      double smallErrorResult = Test.yawConsistency.test(smallErrorCtx);
+
+      assertTrue(
+          matchingResult > smallErrorResult,
+          "Matching yaw should score higher: " + matchingResult + " vs " + smallErrorResult);
+      assertTrue(matchingResult > 0.5, "Matching yaw should score > 0.5, got " + matchingResult);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Small yaw error scores higher than large error")
+    void smallYawErrorScoresHigher() {
+      var smallErrorCtx =
+          new TestContext()
+              .observation(makeObservation(8, 4, 0, 0, 0, Math.toRadians(45), 0.0, 1, 0.01, 3.0))
+              .gyroYaw(new Rotation2d(Math.toRadians(50))); // 5 degree error
+      var largeErrorCtx =
+          new TestContext()
+              .observation(makeObservation(8, 4, 0, 0, 0, Math.toRadians(45), 0.0, 1, 0.01, 3.0))
+              .gyroYaw(new Rotation2d(Math.toRadians(75))); // 30 degree error
+
+      double smallResult = Test.yawConsistency.test(smallErrorCtx);
+      double largeResult = Test.yawConsistency.test(largeErrorCtx);
+
+      assertTrue(
+          smallResult > largeResult,
+          "Small error should score higher: " + smallResult + " vs " + largeResult);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Large yaw error scores poorly")
+    void largeYawError() {
+      var ctx =
+          new TestContext()
+              .observation(makeObservation(8, 4, 0, 0, 0, Math.toRadians(45), 0.0, 1, 0.01, 3.0))
+              .gyroYaw(new Rotation2d(Math.toRadians(90))); // 45 degree error
+      double result = Test.yawConsistency.test(ctx);
+      assertTrue(result < 0.2, "45 degree error should score < 0.2, got " + result);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("180 degree error (flipped) scores near zero")
+    void flippedYaw() {
+      var ctx =
+          new TestContext()
+              .observation(makeObservation(8, 4, 0, 0, 0, Math.toRadians(0), 0.0, 1, 0.01, 3.0))
+              .gyroYaw(new Rotation2d(Math.toRadians(180)));
+      double result = Test.yawConsistency.test(ctx);
+      assertTrue(result < 0.1, "180 degree error should score < 0.1, got " + result);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Handles angle wrapping correctly")
+    void angleWrapping() {
+      // Vision at -170 degrees, gyro at 170 degrees = 20 degree difference (not 340)
+      var wrappedCtx =
+          new TestContext()
+              .observation(makeObservation(8, 4, 0, 0, 0, Math.toRadians(-170), 0.0, 1, 0.01, 3.0))
+              .gyroYaw(new Rotation2d(Math.toRadians(170)));
+      // Compare against a clearly large error
+      var largeErrorCtx =
+          new TestContext()
+              .observation(makeObservation(8, 4, 0, 0, 0, Math.toRadians(0), 0.0, 1, 0.01, 3.0))
+              .gyroYaw(new Rotation2d(Math.toRadians(90))); // 90 degree error
+
+      double wrappedResult = Test.yawConsistency.test(wrappedCtx);
+      double largeErrorResult = Test.yawConsistency.test(largeErrorCtx);
+
+      assertTrue(
+          wrappedResult > largeErrorResult,
+          "20 degree wrapped error should score higher than 90 degree: "
+              + wrappedResult
+              + " vs "
+              + largeErrorResult);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Rejects ambiguous PnP solution with wrong yaw")
+    void rejectsAmbiguousPnP() {
+      // Simulate a bad PnP solution that has ~45 degree yaw error
+      // Test via scoreWithGyroYaw - score will be affected by velocityUncertainScore
+      // but the yaw error should still pull the total score down significantly
+      var badObs = makeObservation(8, 4, 0, 0, 0, Math.toRadians(126), 0.0, 1, 0.01, 3.0);
+      var goodObs = makeObservation(8, 4, 0, 0, 0, Math.toRadians(171), 0.0, 1, 0.01, 3.0);
+
+      var testedBad = scoreWithGyroYaw(badObs, new Rotation2d(Math.toRadians(171)));
+      var testedGood = scoreWithGyroYaw(goodObs, new Rotation2d(Math.toRadians(171)));
+
+      // Bad PnP with 45 degree yaw error should score significantly lower than good one
+      assertTrue(
+          testedGood.score() > testedBad.score(),
+          "Good pose should score higher than bad PnP: "
+              + testedGood.score()
+              + " vs "
+              + testedBad.score());
+      // The bad pose should score below minScore threshold
+      assertTrue(
+          testedBad.score() < VisionConstants.minScore,
+          "Bad PnP with 45 degree yaw error should score below minScore, got " + testedBad.score());
+    }
+  }
+
   // ==================== ScoreObservation Tests ====================
 
   @Nested
@@ -568,7 +703,8 @@ class VisionFilterTest {
     @DisplayName("Preserves observation and camera index")
     void preservesObservationAndCameraIndex() {
       var obs = makeObservation(8.0, 4.0, 0.0);
-      var tested = filter.scoreObservation(obs, 3, null, 0.0, VisionFilter.DEFAULT_ENABLED_TESTS);
+      var tested =
+          filter.scoreObservation(obs, 3, null, 0.0, null, VisionFilter.DEFAULT_ENABLED_TESTS);
 
       assertSame(obs, tested.observation());
       assertEquals(3, tested.cameraIndex());
@@ -599,13 +735,13 @@ class VisionFilterTest {
 
       // With boundary check - should be 0
       var enabledAll = VisionFilter.DEFAULT_ENABLED_TESTS;
-      var testedAll = filter.scoreObservation(obs, 0, null, 0.0, enabledAll);
+      var testedAll = filter.scoreObservation(obs, 0, null, 0.0, null, enabledAll);
       assertEquals(0.0, testedAll.score(), 0.001);
 
       // Without boundary check - should be non-zero
       var enabledNoBoundary = EnumSet.copyOf(VisionFilter.DEFAULT_ENABLED_TESTS);
       enabledNoBoundary.remove(Test.withinBoundaries);
-      var testedNoBoundary = filter.scoreObservation(obs, 0, null, 0.0, enabledNoBoundary);
+      var testedNoBoundary = filter.scoreObservation(obs, 0, null, 0.0, null, enabledNoBoundary);
       assertTrue(testedNoBoundary.score() > 0, "Without boundary check should score > 0");
     }
 
@@ -1118,7 +1254,8 @@ class VisionFilterTest {
     @DisplayName("All default tests are applied")
     void allDefaultTestsApplied() {
       var obs = makeObservation(8.0, 4.0, 0.0);
-      var tested = filter.scoreObservation(obs, 0, null, 0.0, VisionFilter.DEFAULT_ENABLED_TESTS);
+      var tested =
+          filter.scoreObservation(obs, 0, null, 0.0, null, VisionFilter.DEFAULT_ENABLED_TESTS);
 
       for (var test : VisionFilter.DEFAULT_ENABLED_TESTS) {
         assertTrue(
@@ -1131,7 +1268,7 @@ class VisionFilterTest {
     @DisplayName("Empty test set produces NaN (edge case)")
     void emptyTestSetEdgeCase() {
       var obs = makeObservation(8.0, 4.0, 0.0);
-      var tested = filter.scoreObservation(obs, 0, null, 0.0, EnumSet.noneOf(Test.class));
+      var tested = filter.scoreObservation(obs, 0, null, 0.0, null, EnumSet.noneOf(Test.class));
 
       // With no tests, geometric mean is undefined (0^0 or similar)
       // Document actual behavior

@@ -30,10 +30,12 @@ import frc.robot.util.VisionThread.VisionInputs;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.function.Supplier;
 import org.littletonrobotics.junction.Logger;
 
 public class Vision extends SubsystemBase {
   private final VisionConsumer consumer;
+  private final Supplier<Rotation2d> gyroYawSupplier;
   private final VisionIO[] io;
   private final VisionInputs[] visionInputs;
   private final VisionIOInputsAutoLogged[] inputs;
@@ -74,8 +76,9 @@ public class Vision extends SubsystemBase {
   // Vision tests to apply (remove from set to disable specific tests)
   public static final EnumSet<Test> enabledTests = VisionFilter.DEFAULT_ENABLED_TESTS;
 
-  public Vision(VisionConsumer consumer, VisionIO... io) {
+  public Vision(VisionConsumer consumer, Supplier<Rotation2d> gyroYawSupplier, VisionIO... io) {
     this.consumer = consumer;
+    this.gyroYawSupplier = gyroYawSupplier;
     this.io = io;
 
     // Initialize per-camera velocity tracking arrays
@@ -175,6 +178,7 @@ public class Vision extends SubsystemBase {
                 cameraIndex,
                 lastAcceptedPose[cameraIndex],
                 lastAcceptedTimestamp[cameraIndex],
+                gyroYawSupplier.get(),
                 enabledTests);
 
         observations.add(tested);

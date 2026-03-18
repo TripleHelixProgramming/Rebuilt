@@ -181,6 +181,7 @@ public class Robot extends LoggedRobot {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
+                drive::getHeading,
                 new VisionIOPhotonVision(cameraFrontRightName, robotToFrontRightCamera),
                 new VisionIOPhotonVision(cameraFrontLeftName, robotToFrontLeftCamera),
                 new VisionIOPhotonVision(cameraBackRightName, robotToBackRightCamera),
@@ -218,6 +219,7 @@ public class Robot extends LoggedRobot {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
+                drive::getHeading,
                 new VisionIOPhotonVisionSim(
                     cameraFrontRightName, robotToFrontRightCamera, drive::getPose),
                 new VisionIOPhotonVisionSim(
@@ -264,6 +266,7 @@ public class Robot extends LoggedRobot {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
+                drive::getHeading,
                 new VisionIO() {},
                 new VisionIO() {},
                 new VisionIO() {},
@@ -453,6 +456,9 @@ public class Robot extends LoggedRobot {
   /** This function is called periodically whilst in simulation. */
   @Override
   public void simulationPeriodic() {
+    // Skip battery simulation during replay (pneumaticsSimulator is only initialized in SIM mode)
+    if (pneumaticsSimulator == null) return;
+
     // Update battery voltage based on total current draw this cycle
     pneumaticsSimulator.update(Robot.defaultPeriodSecs);
     RoboRioSim.setVInVoltage(
