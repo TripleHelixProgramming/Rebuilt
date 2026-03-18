@@ -410,7 +410,7 @@ class VisionFilterTest {
   class VelocityConsistencyTests {
 
     @org.junit.jupiter.api.Test
-    @DisplayName("No previous pose returns 1.0")
+    @DisplayName("No previous pose returns uncertain score")
     void noPreviousPose() {
       var ctx =
           new TestContext()
@@ -418,7 +418,11 @@ class VisionFilterTest {
               .lastAcceptedPose(null)
               .lastAcceptedTimestamp(0.0);
       double result = Test.velocityConsistency.test(ctx);
-      assertEquals(1.0, result, 0.001);
+      assertEquals(
+          VisionConstants.velocityUncertainScore,
+          result,
+          0.001,
+          "No history should return uncertain score, not a perfect pass");
     }
 
     @org.junit.jupiter.api.Test
@@ -461,7 +465,7 @@ class VisionFilterTest {
     }
 
     @org.junit.jupiter.api.Test
-    @DisplayName("Long timeout returns 1.0 (stale data)")
+    @DisplayName("Long timeout returns uncertain score (stale data)")
     void longTimeout() {
       var lastPose = new Pose2d(8.0, 4.0, new Rotation2d());
       var ctx =
@@ -470,7 +474,11 @@ class VisionFilterTest {
               .lastAcceptedPose(lastPose)
               .lastAcceptedTimestamp(0.0);
       double result = Test.velocityConsistency.test(ctx);
-      assertEquals(1.0, result, 0.001, "Stale timestamp should return 1.0");
+      assertEquals(
+          VisionConstants.velocityUncertainScore,
+          result,
+          0.001,
+          "Stale timestamp should return uncertain score, not a perfect pass");
     }
 
     @org.junit.jupiter.api.Test
@@ -1039,13 +1047,15 @@ class VisionFilterTest {
       var obs = makeObservation(8, 4, 0, 0, 0, 0, 0.0, 3, 0.01, 2.0);
       var tested = score(obs);
 
-      // Due to sigmoid gradients, even "perfect" observations don't score 1.0
-      // But they should score well above the threshold
+      // Even "perfect" observations don't score 1.0 due to sigmoid gradients and the
+      // velocityUncertainScore penalty (score() passes null history). But they should
+      // still score well above minScore — a good observation needs to be accepted even
+      // when it's the first one from a camera.
       assertTrue(
-          tested.score() > VisionConstants.minScore * 2,
-          "Perfect observation should score well above minScore, got " + tested.score());
+          tested.score() > VisionConstants.minScore,
+          "Perfect observation should score above minScore, got " + tested.score());
       assertTrue(
-          tested.score() > 0.4, "Perfect observation should score > 0.4, got " + tested.score());
+          tested.score() > 0.6, "Perfect observation should score > 0.6, got " + tested.score());
     }
 
     @org.junit.jupiter.api.Test

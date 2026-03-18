@@ -179,14 +179,26 @@ public class VisionFilter {
       }
     },
 
+    /**
+     * Checks whether the implied velocity between this observation and the last accepted
+     * observation from the same camera is physically reasonable.
+     *
+     * <p>When no history is available (first observation from this camera, or the last accepted
+     * observation is older than velocityCheckTimeoutSeconds), the test returns
+     * velocityUncertainScore instead of 1.0. This prevents a bad first-in-a-while pose from
+     * sailing through with a perfect velocity score — it must earn acceptance from the other
+     * tests. The correlation boost still allows startup convergence when multiple cameras agree.
+     */
     velocityConsistency(0.9) {
       @Override
       public double test(TestContext ctx) {
-        if (ctx.lastAcceptedPose() == null) return 1.0;
+        // No history from this camera — express uncertainty, not confidence
+        if (ctx.lastAcceptedPose() == null) return velocityUncertainScore;
 
         double dt = ctx.observation().timestamp() - ctx.lastAcceptedTimestamp();
-        if (dt <= 0.001) return 1.0;
-        if (dt > velocityCheckTimeoutSeconds) return 1.0;
+        if (dt <= 0.001) return 1.0; // Near-simultaneous, skip check
+        // Stale history — treat the same as no history
+        if (dt > velocityCheckTimeoutSeconds) return velocityUncertainScore;
 
         double distance =
             ctx.observation()

@@ -92,6 +92,17 @@ public class VisionConstants {
   public static final double maxReasonableVelocityMps =
       DriveConstants.drivetrainSpeedLimit.in(MetersPerSecond) * 1.5; // Allow some margin
 
+  // Score returned by velocityConsistency when it can't verify the observation
+  // (no history from this camera, or last observation is older than velocityCheckTimeoutSeconds).
+  // Previously this was 1.0 (perfect pass), which let bad first-in-a-while poses through
+  // unchallenged. Setting this below 1.0 expresses uncertainty: "I can't confirm this pose
+  // is consistent, so it needs stronger evidence from other tests to be accepted."
+  // At 0.7, a typical bad pose (~0.61 base) drops to ~0.58 and gets rejected at minScore=0.6.
+  // A typical good single-tag observation (~0.75 base) drops to ~0.71, still well above 0.6.
+  // At startup (robot placed on field), all cameras get this penalty, but the cross-camera
+  // correlation boost (1.3x) compensates — agreeing cameras still converge the pose quickly.
+  public static double velocityUncertainScore = 0.7;
+
   // Cross-camera correlation thresholds
   // When multiple cameras report similar poses at similar times, we boost confidence.
   // This helps validate observations and reject outliers from miscalibrated cameras.
@@ -108,7 +119,15 @@ public class VisionConstants {
   public static double angularStdDevBaseline = 0.06; // Radians
 
   public static double maxStdDev = 1.0; // Meters
-  public static double minScore = linearStdDevBaseline / maxStdDev;
+
+  // Minimum score for a vision observation to be accepted into the pose estimator.
+  // Observations below this threshold are rejected outright.
+  // Previously derived as linearStdDevBaseline / maxStdDev = 0.02, which accepted nearly
+  // everything. Log analysis showed that bad poses (wrong PnP solution, ~6m off) scored
+  // 0.58-0.61 after the velocityUncertainScore penalty, while good single-tag observations
+  // scored 0.65+. Setting minScore to 0.6 rejects the penalized bad poses while preserving
+  // 97%+ of legitimate observations. Multi-tag observations (0.9+) are unaffected.
+  public static double minScore = 0.6;
 
   // Feature flags
   public static boolean kLogIndividualCameraPoses = false;
