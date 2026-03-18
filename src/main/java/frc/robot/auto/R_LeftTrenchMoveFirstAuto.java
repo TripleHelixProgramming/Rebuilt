@@ -51,15 +51,12 @@ public class R_LeftTrenchMoveFirstAuto extends AutoMode {
         .done()
         .onTrue(
             Commands.sequence(
-                Commands.runOnce(drive::stop, drive),
+                stopDrive(),
                 shakeAndFeed(5.0),
                 Commands.parallel(
                     redLeftTransitionToNZ.cmd(), intake.getDeployCommand().withTimeout(5.0))));
 
-    redLeftTransitionToNZ
-        .done()
-        .onTrue(
-            Commands.sequence(Commands.runOnce(drive::stop, drive), shakeAndFeed(5.0)));
+    redLeftTransitionToNZ.done().onTrue(Commands.sequence(stopDrive(), shakeAndFeed(5.0)));
 
     return routine;
   }

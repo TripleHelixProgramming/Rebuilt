@@ -51,15 +51,12 @@ public class R_RightTrenchMoveFirstAuto extends AutoMode {
         .done()
         .onTrue(
             Commands.sequence(
-                Commands.runOnce(drive::stop, drive),
+                stopDrive(),
                 shakeAndFeed(5.0),
                 Commands.parallel(
                     redRightTransitionToNZ.cmd(), intake.getDeployCommand().withTimeout(5.0))));
 
-    redRightTransitionToNZ
-        .done()
-        .onTrue(
-            Commands.sequence(Commands.runOnce(drive::stop, drive), shakeAndFeed(5.0)));
+    redRightTransitionToNZ.done().onTrue(Commands.sequence(stopDrive(), shakeAndFeed(5.0)));
 
     return routine;
   }

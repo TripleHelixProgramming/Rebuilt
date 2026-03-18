@@ -55,17 +55,14 @@ public class R_LeftTrenchAuto extends AutoMode {
         .done()
         .onTrue(
             Commands.sequence(
-                Commands.runOnce(drive::stop, drive),
+                stopDrive(),
                 shakeAndFeed(5.0),
                 Commands.parallel(
                     redLeftTransitionToNZ.cmd(),
                     Commands.sequence(
                         Commands.waitSeconds(1.0), intake.getDeployCommand().withTimeout(4.0)))));
 
-    redLeftTransitionToNZ
-        .done()
-        .onTrue(
-            Commands.sequence(Commands.runOnce(drive::stop, drive), shakeAndFeed(5.0)));
+    redLeftTransitionToNZ.done().onTrue(Commands.sequence(stopDrive(), shakeAndFeed(5.0)));
 
     return routine;
   }

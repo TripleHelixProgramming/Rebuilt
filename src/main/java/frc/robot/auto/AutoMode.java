@@ -7,6 +7,7 @@ import choreo.trajectory.SwerveSample;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import frc.robot.commands.DriveCommands;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.feeder.Feeder;
 import frc.robot.subsystems.intake.Intake;
@@ -48,6 +49,10 @@ public abstract class AutoMode {
   public SwerveSample[] getLoggableTrajectory() {
     SwerveSample[] trajArray = new SwerveSample[0];
     return getInitialTrajectory().getRawTrajectory().samples().toArray(trajArray);
+  }
+
+  protected Command stopDrive() {
+    return DriveCommands.getStopCommand(drive);
   }
 
   protected Command shakeAndFeed(double timeoutSeconds) {

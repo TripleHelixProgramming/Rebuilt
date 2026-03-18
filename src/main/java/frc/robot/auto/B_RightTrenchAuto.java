@@ -55,15 +55,12 @@ public class B_RightTrenchAuto extends AutoMode {
         .done()
         .onTrue(
             Commands.sequence(
-                Commands.runOnce(drive::stop, drive),
+                stopDrive(),
                 shakeAndFeed(5.0),
                 Commands.parallel(
                     blueRightTransitionToNZ.cmd(), intake.getDeployCommand().withTimeout(5.0))));
 
-    blueRightTransitionToNZ
-        .done()
-        .onTrue(
-            Commands.sequence(Commands.runOnce(drive::stop, drive), shakeAndFeed(5.0)));
+    blueRightTransitionToNZ.done().onTrue(Commands.sequence(stopDrive(), shakeAndFeed(5.0)));
 
     return routine;
   }
