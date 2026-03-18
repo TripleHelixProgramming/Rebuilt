@@ -93,8 +93,7 @@ public class AutoSelector implements Supplier<Optional<AutoOption>> {
             lastLoggedTrajectoryOption = ao;
             ao.getInitialTrajectory()
                 .ifPresent(
-                    traj ->
-                        Logger.recordOutput("AutoSelector/AutonomousInitialTrajectory", traj));
+                    traj -> Logger.recordOutput("AutoSelector/AutonomousInitialTrajectory", traj));
           }
           ao.getInitialPose()
               .ifPresent(
