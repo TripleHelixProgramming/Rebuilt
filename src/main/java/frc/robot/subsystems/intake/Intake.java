@@ -163,9 +163,10 @@ public class Intake extends SubsystemBase {
 
   public Command getShakeIntakeCommand() {
     return Commands.sequence(
-        this.idle().withTimeout(1.0),
-        Commands.runOnce(this::retractArm, this),
-        this.idle().withTimeout(1.0),
-        Commands.runOnce(this::deployArm, this));
+            this.idle().withTimeout(1.0),
+            Commands.runOnce(this::retractArm, this),
+            this.idle().withTimeout(1.0),
+            Commands.runOnce(this::deployArm, this))
+        .repeatedly();
   }
 }

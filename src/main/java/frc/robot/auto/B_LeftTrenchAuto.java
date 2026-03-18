@@ -67,7 +67,10 @@ public class B_LeftTrenchAuto extends AutoMode {
         .onTrue(
             Commands.sequence(
                 Commands.runOnce(drive::stop, drive),
-                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
+                Commands.parallel(
+                        Commands.startEnd(feeder::spinForward, () -> {}, feeder),
+                        intake.getShakeIntakeCommand())
+                    .withTimeout(5.0),
                 Commands.runOnce(feeder::stop, feeder),
                 Commands.parallel(
                     blueLeftTransitionToNZ.cmd(), intake.getDeployCommand().withTimeout(5.0))));
@@ -77,7 +80,10 @@ public class B_LeftTrenchAuto extends AutoMode {
         .onTrue(
             Commands.sequence(
                 Commands.runOnce(drive::stop, drive),
-                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
+                Commands.parallel(
+                        Commands.startEnd(feeder::spinForward, () -> {}, feeder),
+                        intake.getShakeIntakeCommand())
+                    .withTimeout(5.0),
                 Commands.runOnce(feeder::stop, feeder)));
 
     return routine;
