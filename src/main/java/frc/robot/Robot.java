@@ -150,8 +150,9 @@ public class Robot extends LoggedRobot {
     // Set up data receivers & replay source
     switch (Constants.currentMode) {
       case REAL: // Running on a real robot
-        // Log to a USB stick ("/U/logs")
-        Logger.addDataReceiver(new WPILOGWriter());
+        // Log to the CANivore session subdirectory on the USB stick so that all
+        // four log types (wpilog, revlog, hoot x2) end up in the same folder.
+        Logger.addDataReceiver(new WPILOGWriter(findSessionDir()));
         Logger.addDataReceiver(new NT4Publisher());
 
         // Instantiate hardware IO implementations
@@ -848,6 +849,21 @@ public class Robot extends LoggedRobot {
         "Alerts/" + group + "/Warnings", table.getEntry("warnings").getStringArray(new String[0]));
     Logger.recordOutput(
         "Alerts/" + group + "/Infos", table.getEntry("infos").getStringArray(new String[0]));
+  }
+
+  /**
+   * Returns the path of the most recently modified subdirectory in /U/logs/, which is expected to
+   * be the CANivore session directory created a few seconds before robot code starts. Falls back to
+   * /U/logs/ if no subdirectory exists.
+   */
+  private static String findSessionDir() {
+    java.io.File logsRoot = new java.io.File("/U/logs/");
+    java.io.File[] subdirs = logsRoot.listFiles(java.io.File::isDirectory);
+    if (subdirs == null || subdirs.length == 0) return "/U/logs/";
+    java.util.Arrays.sort(
+        subdirs,
+        java.util.Comparator.comparingLong(java.io.File::lastModified).reversed());
+    return subdirs[0].getAbsolutePath() + "/";
   }
 
   private static void logCANBus(String name, com.ctre.phoenix6.CANBus bus) {
