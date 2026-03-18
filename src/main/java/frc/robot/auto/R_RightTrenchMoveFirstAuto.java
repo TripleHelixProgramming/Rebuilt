@@ -9,30 +9,20 @@ import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.launcher.Launcher;
 
 public class R_RightTrenchMoveFirstAuto extends AutoMode {
-  Drive drive;
-  // Hopper hopper;
-  Feeder feeder;
-  Intake intake;
-  Launcher launcher;
+  private final AutoRoutine routine;
+  private final AutoTrajectory redRightNeutralZone;
+  private final AutoTrajectory redRightTransitionToNZ;
 
   public R_RightTrenchMoveFirstAuto(
       Drive drivetrain,
       Feeder feederSubsystem,
       Intake intakeSubsystem,
       Launcher launcherSubsystem) {
-    super(drivetrain);
-    drive = drivetrain;
-    feeder = feederSubsystem;
-    intake = intakeSubsystem;
-    launcher = launcherSubsystem;
+    super(drivetrain, feederSubsystem, intakeSubsystem);
+    routine = getAutoFactory().newRoutine("R_RightTrenchMoveFirstAuto");
+    redRightNeutralZone = routine.trajectory("RedRightNinetyNeutralZone");
+    redRightTransitionToNZ = routine.trajectory("RedRightTransitionToNZ");
   }
-
-  // Define routine
-  AutoRoutine routine = super.getAutoFactory().newRoutine("R_RightTrenchMoveFirstAuto");
-
-  // Load trajectories
-  AutoTrajectory redRightNeutralZone = routine.trajectory("RedRightNinetyNeutralZone");
-  AutoTrajectory redRightTransitionToNZ = routine.trajectory("RedRightTransitionToNZ");
 
   @Override
   public String getName() {
@@ -62,24 +52,14 @@ public class R_RightTrenchMoveFirstAuto extends AutoMode {
         .onTrue(
             Commands.sequence(
                 Commands.runOnce(drive::stop, drive),
-                Commands.parallel(
-                        Commands.startEnd(feeder::spinForward, () -> {}, feeder),
-                        intake.getShakeIntakeCommand())
-                    .withTimeout(5.0),
-                Commands.runOnce(feeder::stop, feeder),
+                shakeAndFeed(5.0),
                 Commands.parallel(
                     redRightTransitionToNZ.cmd(), intake.getDeployCommand().withTimeout(5.0))));
 
     redRightTransitionToNZ
         .done()
         .onTrue(
-            Commands.sequence(
-                Commands.runOnce(drive::stop, drive),
-                Commands.parallel(
-                        Commands.startEnd(feeder::spinForward, () -> {}, feeder),
-                        intake.getShakeIntakeCommand())
-                    .withTimeout(5.0),
-                Commands.runOnce(feeder::stop, feeder)));
+            Commands.sequence(Commands.runOnce(drive::stop, drive), shakeAndFeed(5.0)));
 
     return routine;
   }

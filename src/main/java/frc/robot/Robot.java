@@ -736,11 +736,11 @@ public class Robot extends LoggedRobot {
     // Feeder
     xboxOperator
         .a()
-        .whileTrue(Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance"));
+        .whileTrue(feeder.getSpinForwardCommand());
 
     xboxOperator
         .x()
-        .whileTrue(Commands.startEnd(feeder::reverse, () -> {}, feeder).withName("Reverse"));
+        .whileTrue(feeder.getReverseCommand());
 
     // Desaturate turret and advance feeder
     xboxOperator.rightBumper().whileTrue(createDesaturateAndShootCommand(driver));
@@ -798,7 +798,7 @@ public class Robot extends LoggedRobot {
             .withName("Desaturate turret"),
         Commands.sequence(
             Commands.waitUntil(launcher::isTurretDesaturated),
-            Commands.startEnd(feeder::spinForward, () -> {}, feeder).withName("Advance")));
+            feeder.getSpinForwardCommand()));
   }
 
   private static void logHIDs() {

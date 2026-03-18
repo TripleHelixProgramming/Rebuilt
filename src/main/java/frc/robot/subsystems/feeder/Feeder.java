@@ -5,6 +5,8 @@ import static edu.wpi.first.units.Units.Volts;
 
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import org.littletonrobotics.junction.Logger;
@@ -73,6 +75,14 @@ public class Feeder extends SubsystemBase {
   public void spinForward() {
     spindexerIO.setVelocity(MetersPerSecond.of(3.0));
     kickerIO.setVelocity(MetersPerSecond.of(6.0));
+  }
+
+  public Command getSpinForwardCommand() {
+    return Commands.startEnd(this::spinForward, this::stop, this).withName("Spin Forward");
+  }
+
+  public Command getReverseCommand() {
+    return Commands.startEnd(this::reverse, this::stop, this).withName("Reverse");
   }
 
   public void reverse() {

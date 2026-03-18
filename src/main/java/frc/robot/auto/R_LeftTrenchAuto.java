@@ -10,32 +10,22 @@ import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.launcher.Launcher;
 
 public class R_LeftTrenchAuto extends AutoMode {
-  Drive drive;
-  // Hopper hopper;
-  Feeder feeder;
-  Intake intake;
-  Launcher launcher;
+  private final Launcher launcher;
+  private final AutoRoutine routine;
+  private final AutoTrajectory redLeftNeutralZone;
+  private final AutoTrajectory redLeftTransitionToNZ;
 
   public R_LeftTrenchAuto(
       Drive drivetrain,
-      // Hopper hopperSubsystem,
       Feeder feederSubsystem,
       Intake intakeSubsystem,
       Launcher launcherSubsystem) {
-    super(drivetrain);
-    drive = drivetrain;
-    // hopper = hopperSubsystem;
-    feeder = feederSubsystem;
-    intake = intakeSubsystem;
+    super(drivetrain, feederSubsystem, intakeSubsystem);
     launcher = launcherSubsystem;
+    routine = getAutoFactory().newRoutine("R_LeftTrenchAuto");
+    redLeftNeutralZone = routine.trajectory("RedLeftNeutralZone");
+    redLeftTransitionToNZ = routine.trajectory("RedLeftTransitionToNZ");
   }
-
-  // Define routine
-  AutoRoutine routine = super.getAutoFactory().newRoutine("R_LeftTrenchAuto");
-
-  // Load trajectories
-  AutoTrajectory redLeftNeutralZone = routine.trajectory("RedLeftNeutralZone");
-  AutoTrajectory redLeftTransitionToNZ = routine.trajectory("RedLeftTransitionToNZ");
 
   @Override
   public String getName() {
@@ -57,8 +47,7 @@ public class R_LeftTrenchAuto extends AutoMode {
                 redLeftNeutralZone.resetOdometry(),
                 DriveCommands.getChassisAimingCommand(drive, launcher::getTurretDesaturationDelta)
                     .withTimeout(1.5),
-                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(3.0),
-                Commands.runOnce(feeder::stop, feeder),
+                feeder.getSpinForwardCommand().withTimeout(3.0),
                 Commands.parallel(
                     redLeftNeutralZone.cmd(), intake.getDeployCommand().withTimeout(10.0))));
 
@@ -67,11 +56,7 @@ public class R_LeftTrenchAuto extends AutoMode {
         .onTrue(
             Commands.sequence(
                 Commands.runOnce(drive::stop, drive),
-                Commands.parallel(
-                        Commands.startEnd(feeder::spinForward, () -> {}, feeder),
-                        intake.getShakeIntakeCommand())
-                    .withTimeout(5.0),
-                Commands.runOnce(feeder::stop, feeder),
+                shakeAndFeed(5.0),
                 Commands.parallel(
                     redLeftTransitionToNZ.cmd(),
                     Commands.sequence(
@@ -80,13 +65,7 @@ public class R_LeftTrenchAuto extends AutoMode {
     redLeftTransitionToNZ
         .done()
         .onTrue(
-            Commands.sequence(
-                Commands.runOnce(drive::stop),
-                Commands.parallel(
-                        Commands.startEnd(feeder::spinForward, () -> {}, feeder),
-                        intake.getShakeIntakeCommand())
-                    .withTimeout(5.0),
-                Commands.runOnce(feeder::stop, feeder)));
+            Commands.sequence(Commands.runOnce(drive::stop, drive), shakeAndFeed(5.0)));
 
     return routine;
   }
