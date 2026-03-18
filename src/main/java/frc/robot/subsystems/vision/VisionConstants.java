@@ -76,6 +76,13 @@ public class VisionConstants {
   public static Angle pitchTolerance = Degrees.of(5);
   public static final double pitchToleranceRadians = pitchTolerance.in(Radians);
 
+  // Yaw consistency threshold - how much vision yaw can differ from gyro yaw
+  // This catches ambiguous PnP solutions which almost always have incorrect yaw.
+  // Set to 10 degrees to allow for minor calibration differences while rejecting
+  // bad PnP solutions that typically have 30-90+ degree yaw errors.
+  public static Angle yawTolerance = Degrees.of(10);
+  public static final double yawToleranceRadians = yawTolerance.in(Radians);
+
   // Cached values for arena boundary calculations
   public static final double minRobotWidthHalfMeters = minRobotWidth.div(2.0).in(Meters);
   public static final double fieldXLenMeters = frc.game.Field.field_x_len.in(Meters);
@@ -101,7 +108,7 @@ public class VisionConstants {
   // A typical good single-tag observation (~0.75 base) drops to ~0.71, still well above 0.6.
   // At startup (robot placed on field), all cameras get this penalty, but the cross-camera
   // correlation boost (1.3x) compensates — agreeing cameras still converge the pose quickly.
-  public static double velocityUncertainScore = 0.7;
+  public static double velocityUncertainScore = 0.6;
 
   // Cross-camera correlation thresholds
   // When multiple cameras report similar poses at similar times, we boost confidence.
@@ -112,7 +119,7 @@ public class VisionConstants {
       Meters.of(0.15); // How close poses must be to "agree"
   public static final double correlationPoseThresholdMeters = correlationPoseThreshold.in(Meters);
   public static double correlationBoostFactor =
-      1.3; // Score multiplier when corroborated by majority
+      1.4; // Score multiplier when corroborated by majority
 
   // Standard deviation baselines
   public static double linearStdDevBaseline = 0.02; // Meters
@@ -127,7 +134,7 @@ public class VisionConstants {
   // 0.58-0.61 after the velocityUncertainScore penalty, while good single-tag observations
   // scored 0.65+. Setting minScore to 0.6 rejects the penalized bad poses while preserving
   // 97%+ of legitimate observations. Multi-tag observations (0.9+) are unaffected.
-  public static double minScore = 0.6;
+  public static double minScore = 0.65;
 
   // Feature flags
   public static boolean kLogIndividualCameraPoses = false;
@@ -137,5 +144,5 @@ public class VisionConstants {
 
   // Logging frequency (1 = every cycle, 2 = every other cycle, etc.)
   // Higher values reduce CPU load but lose data granularity for replay
-  public static int kLoggingDivisor = 2;
+  public static int kLoggingDivisor = 1;
 }
