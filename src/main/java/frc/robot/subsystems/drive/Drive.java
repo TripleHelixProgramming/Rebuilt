@@ -224,25 +224,13 @@ public class Drive extends SubsystemBase {
 
     // Profiling output
     if (Constants.PROFILING_ENABLED) {
-      long totalMs = (t6 - startNanos) / 1_000_000;
-      if (totalMs > 5) {
-        System.out.println(
-            "[Drive] lock="
-                + (t1 - startNanos) / 1_000_000
-                + "ms gyroUpdate="
-                + (t2 - t1) / 1_000_000
-                + "ms gyroLog="
-                + (t3 - t2) / 1_000_000
-                + "ms modules="
-                + (t4 - t3) / 1_000_000
-                + "ms disabled="
-                + (t5 - t4) / 1_000_000
-                + "ms odometry="
-                + (t6 - t5) / 1_000_000
-                + "ms total="
-                + totalMs
-                + "ms");
-      }
+      Logger.recordOutput("Profiling/Drive/LockMs", (t1 - startNanos) / 1_000_000);
+      Logger.recordOutput("Profiling/Drive/GyroUpdateMs", (t2 - t1) / 1_000_000);
+      Logger.recordOutput("Profiling/Drive/GyroLogMs", (t3 - t2) / 1_000_000);
+      Logger.recordOutput("Profiling/Drive/ModulesMs", (t4 - t3) / 1_000_000);
+      Logger.recordOutput("Profiling/Drive/DisabledMs", (t5 - t4) / 1_000_000);
+      Logger.recordOutput("Profiling/Drive/OdometryMs", (t6 - t5) / 1_000_000);
+      Logger.recordOutput("Profiling/Drive/TotalMs", (t6 - startNanos) / 1_000_000);
     }
   }
 

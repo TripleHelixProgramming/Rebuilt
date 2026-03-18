@@ -264,23 +264,12 @@ public class Vision extends SubsystemBase {
 
     // Profiling output
     if (Constants.PROFILING_ENABLED) {
-      long totalMs = (t5 - visionStart) / 1_000_000;
-      if (totalMs > 5) {
-        System.out.println(
-            "[Vision] snapshot="
-                + (t1 - visionStart) / 1_000_000
-                + "ms processInputs="
-                + (t2 - t1) / 1_000_000
-                + "ms cameraLoop="
-                + (t3 - t2) / 1_000_000
-                + "ms consumer="
-                + (t4 - t3) / 1_000_000
-                + "ms summaryLog="
-                + (t5 - t4) / 1_000_000
-                + "ms total="
-                + totalMs
-                + "ms");
-      }
+      Logger.recordOutput("Profiling/Vision/SnapshotMs", (t1 - visionStart) / 1_000_000);
+      Logger.recordOutput("Profiling/Vision/ProcessInputsMs", (t2 - t1) / 1_000_000);
+      Logger.recordOutput("Profiling/Vision/CameraLoopMs", (t3 - t2) / 1_000_000);
+      Logger.recordOutput("Profiling/Vision/ConsumerMs", (t4 - t3) / 1_000_000);
+      Logger.recordOutput("Profiling/Vision/SummaryLogMs", (t5 - t4) / 1_000_000);
+      Logger.recordOutput("Profiling/Vision/TotalMs", (t5 - visionStart) / 1_000_000);
     }
   }
 

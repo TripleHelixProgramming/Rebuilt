@@ -80,19 +80,10 @@ public class Module {
 
     // Profiling output
     if (Constants.PROFILING_ENABLED) {
-      long totalMs = (t3 - t0) / 1_000_000;
-      if (totalMs > 2) {
-        System.out.println(
-            "[Module"
-                + index
-                + "] updateInputs="
-                + (t1 - t0) / 1_000_000
-                + "ms log="
-                + (t2 - t1) / 1_000_000
-                + "ms rest="
-                + (t3 - t2) / 1_000_000
-                + "ms");
-      }
+      Logger.recordOutput("Profiling/Module" + index + "/UpdateInputsMs", (t1 - t0) / 1_000_000);
+      Logger.recordOutput("Profiling/Module" + index + "/LogMs", (t2 - t1) / 1_000_000);
+      Logger.recordOutput("Profiling/Module" + index + "/RestMs", (t3 - t2) / 1_000_000);
+      Logger.recordOutput("Profiling/Module" + index + "/TotalMs", (t3 - t0) / 1_000_000);
     }
   }
 

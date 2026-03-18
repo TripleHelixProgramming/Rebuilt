@@ -47,21 +47,11 @@ public class Feeder extends SubsystemBase {
 
     // Profiling output
     if (Constants.PROFILING_ENABLED) {
-      long totalMs = (t4 - t0) / 1_000_000;
-      if (totalMs > 2) {
-        System.out.println(
-            "[Feeder] spindexer="
-                + (t1 - t0) / 1_000_000
-                + "ms kicker="
-                + (t2 - t1) / 1_000_000
-                + "ms spindexerLog="
-                + (t3 - t2) / 1_000_000
-                + "ms kickerLog="
-                + (t4 - t3) / 1_000_000
-                + "ms total="
-                + totalMs
-                + "ms");
-      }
+      Logger.recordOutput("Profiling/Feeder/SpindexerMs", (t1 - t0) / 1_000_000);
+      Logger.recordOutput("Profiling/Feeder/KickerMs", (t2 - t1) / 1_000_000);
+      Logger.recordOutput("Profiling/Feeder/SpindexerLogMs", (t3 - t2) / 1_000_000);
+      Logger.recordOutput("Profiling/Feeder/KickerLogMs", (t4 - t3) / 1_000_000);
+      Logger.recordOutput("Profiling/Feeder/TotalMs", (t4 - t0) / 1_000_000);
     }
   }
 

@@ -146,21 +146,11 @@ public class Launcher extends SubsystemBase {
 
     // Profiling output
     if (Constants.PROFILING_ENABLED) {
-      long totalMs = (t4 - t0) / 1_000_000;
-      if (totalMs > 3) {
-        System.out.println(
-            "[Launcher] update="
-                + (t1 - t0) / 1_000_000
-                + "ms log="
-                + (t2 - t1) / 1_000_000
-                + "ms aimLog="
-                + (t3 - t2) / 1_000_000
-                + "ms ballistics="
-                + (t4 - t3) / 1_000_000
-                + "ms total="
-                + totalMs
-                + "ms");
-      }
+      Logger.recordOutput("Profiling/Launcher/UpdateMs", (t1 - t0) / 1_000_000);
+      Logger.recordOutput("Profiling/Launcher/LogMs", (t2 - t1) / 1_000_000);
+      Logger.recordOutput("Profiling/Launcher/AimLogMs", (t3 - t2) / 1_000_000);
+      Logger.recordOutput("Profiling/Launcher/BallisticsMs", (t4 - t3) / 1_000_000);
+      Logger.recordOutput("Profiling/Launcher/TotalMs", (t4 - t0) / 1_000_000);
     }
   }
 
@@ -269,23 +259,12 @@ public class Launcher extends SubsystemBase {
 
     // Profiling output for aim()
     if (Constants.PROFILING_ENABLED) {
-      long totalUs = (t5 - aimStart) / 1_000;
-      if (totalUs > 500) {
-        System.out.println(
-            "[Launcher.aim] v0nom="
-                + (t1 - aimStart) / 1_000
-                + "us baseSpeeds="
-                + (t2 - t1) / 1_000
-                + "us v0replan="
-                + (t3 - t2) / 1_000
-                + "us setPos="
-                + (t4 - t3) / 1_000
-                + "us rest="
-                + (t5 - t4) / 1_000
-                + "us total="
-                + totalUs
-                + "us");
-      }
+      Logger.recordOutput("Profiling/Launcher/Aim/V0NomUs", (t1 - aimStart) / 1_000);
+      Logger.recordOutput("Profiling/Launcher/Aim/BaseSpeedsUs", (t2 - t1) / 1_000);
+      Logger.recordOutput("Profiling/Launcher/Aim/V0ReplanUs", (t3 - t2) / 1_000);
+      Logger.recordOutput("Profiling/Launcher/Aim/SetPosUs", (t4 - t3) / 1_000);
+      Logger.recordOutput("Profiling/Launcher/Aim/RestUs", (t5 - t4) / 1_000);
+      Logger.recordOutput("Profiling/Launcher/Aim/TotalUs", (t5 - aimStart) / 1_000);
     }
   }
 

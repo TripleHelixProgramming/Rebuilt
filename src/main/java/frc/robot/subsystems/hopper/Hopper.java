@@ -32,17 +32,9 @@ public class Hopper extends SubsystemBase {
 
     // Profiling output
     if (Constants.PROFILING_ENABLED) {
-      long totalMs = (t2 - t0) / 1_000_000;
-      if (totalMs > 2) {
-        System.out.println(
-            "[Hopper] update="
-                + (t1 - t0) / 1_000_000
-                + "ms log="
-                + (t2 - t1) / 1_000_000
-                + "ms total="
-                + totalMs
-                + "ms");
-      }
+      Logger.recordOutput("Profiling/Hopper/UpdateMs", (t1 - t0) / 1_000_000);
+      Logger.recordOutput("Profiling/Hopper/LogMs", (t2 - t1) / 1_000_000);
+      Logger.recordOutput("Profiling/Hopper/TotalMs", (t2 - t0) / 1_000_000);
     }
   }
 
