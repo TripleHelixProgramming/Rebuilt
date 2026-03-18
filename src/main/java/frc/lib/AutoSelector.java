@@ -22,6 +22,8 @@ public class AutoSelector implements Supplier<Optional<AutoOption>> {
   private List<AutoOption> autoOptions = new ArrayList<>();
   private EventLoop eventLoop = new EventLoop();
   private BooleanEvent autoSelectionChanged;
+  private Pose2d lastLoggedInitialPose = null;
+  private AutoOption lastLoggedTrajectoryOption = null;
 
   /**
    * Constructs an autonomous selector switch
@@ -87,15 +89,28 @@ public class AutoSelector implements Supplier<Optional<AutoOption>> {
     currentAutoOption.ifPresentOrElse(
         ao -> {
           Logger.recordOutput("AutoSelector/SelectedAutoMode", ao.getName());
-          ao.getInitialTrajectory()
-              .ifPresent(
-                  traj -> Logger.recordOutput("AutoSelector/AutonomousInitialTrajectory", traj));
+          if (ao != lastLoggedTrajectoryOption) {
+            lastLoggedTrajectoryOption = ao;
+            ao.getInitialTrajectory()
+                .ifPresent(
+                    traj -> Logger.recordOutput("AutoSelector/AutonomousInitialTrajectory", traj));
+          }
           ao.getInitialPose()
-              .ifPresent(pose -> Logger.recordOutput("AutoSelector/AutonomousInitialPose", pose));
+              .ifPresent(
+                  pose -> {
+                    if (!pose.equals(lastLoggedInitialPose)) {
+                      lastLoggedInitialPose = pose;
+                      Logger.recordOutput("AutoSelector/AutonomousInitialPose", pose);
+                    }
+                  });
         },
         () -> {
           Logger.recordOutput("AutoSelector/SelectedAutoMode", "No auto mode assigned");
-          Logger.recordOutput("AutoSelector/AutonomousInitialPose", Pose2d.kZero);
+          lastLoggedTrajectoryOption = null;
+          if (!Pose2d.kZero.equals(lastLoggedInitialPose)) {
+            lastLoggedInitialPose = Pose2d.kZero;
+            Logger.recordOutput("AutoSelector/AutonomousInitialPose", Pose2d.kZero);
+          }
         });
   }
 
