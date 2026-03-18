@@ -29,16 +29,16 @@ public class Feeder extends SubsystemBase {
 
   @Override
   public void periodic() {
-    long t0 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t0 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
     spindexerIO.updateInputs(spindexerInputs);
-    long t1 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t1 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
     kickerIO.updateInputs(kickerInputs);
-    long t2 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t2 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     Logger.processInputs("Spindexer", spindexerInputs);
-    long t3 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t3 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
     Logger.processInputs("Kicker", kickerInputs);
-    long t4 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t4 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     spindexerDisconnectedAlert.set(!spindexerInputs.connected);
     kickerDisconnectedAlert.set(!kickerInputs.connected);
@@ -46,7 +46,7 @@ public class Feeder extends SubsystemBase {
     Logger.recordOutput("Faults/Feeder/KickerDisconnected", !kickerInputs.connected);
 
     // Profiling output
-    if (Constants.PROFILING_ENABLED) {
+    if (Constants.FeatureFlags.PROFILING_ENABLED) {
       long totalMs = (t4 - t0) / 1_000_000;
       if (totalMs > 2) {
         System.out.println(

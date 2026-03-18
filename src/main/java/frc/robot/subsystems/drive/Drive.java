@@ -47,6 +47,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants;
+import frc.robot.Constants.FeatureFlags;
 import frc.robot.Constants.Mode;
 import frc.robot.util.LocalADStarAK;
 import java.util.concurrent.locks.Lock;
@@ -155,18 +156,18 @@ public class Drive extends SubsystemBase {
 
   @Override
   public void periodic() {
-    long startNanos = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long startNanos = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     odometryLock.lock(); // Prevents odometry updates while reading data
-    long t1 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t1 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
     gyroIO.updateInputs(gyroInputs);
-    long t2 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t2 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
     Logger.processInputs("Drive/Gyro", gyroInputs);
-    long t3 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t3 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
     for (var module : modules) {
       module.periodic();
     }
-    long t4 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t4 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
     odometryLock.unlock();
 
     // Stop moving when disabled
@@ -181,7 +182,7 @@ public class Drive extends SubsystemBase {
       Logger.recordOutput("SwerveStates/Setpoints", emptyModuleStates);
       Logger.recordOutput("SwerveStates/SetpointsOptimized", emptyModuleStates);
     }
-    long t5 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t5 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Update odometry
     double[] sampleTimestamps =
@@ -215,7 +216,7 @@ public class Drive extends SubsystemBase {
 
       chassisSpeeds = kinematics.toChassisSpeeds(getModuleStates());
     }
-    long t6 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t6 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Update gyro alert
     boolean gyroDisconnected = !gyroInputs.connected && Constants.currentMode != Mode.SIM;
@@ -223,7 +224,7 @@ public class Drive extends SubsystemBase {
     Logger.recordOutput("Faults/Drive/GyroDisconnected", gyroDisconnected);
 
     // Profiling output
-    if (Constants.PROFILING_ENABLED) {
+    if (FeatureFlags.PROFILING_ENABLED) {
       long totalMs = (t6 - startNanos) / 1_000_000;
       if (totalMs > 5) {
         System.out.println(

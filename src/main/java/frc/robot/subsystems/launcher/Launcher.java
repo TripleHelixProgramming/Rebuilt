@@ -93,17 +93,17 @@ public class Launcher extends SubsystemBase {
 
   @Override
   public void periodic() {
-    long t0 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t0 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     turretIO.updateInputs(turretInputs);
     flywheelIO.updateInputs(flywheelInputs);
     hoodIO.updateInputs(hoodInputs);
-    long t1 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t1 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     Logger.processInputs("Turret", turretInputs);
     Logger.processInputs("Flywheel", flywheelInputs);
     Logger.processInputs("Hood", hoodInputs);
-    long t2 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t2 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     turretDisconnectedAlert.set(!turretInputs.motorControllerConnected);
     flywheelDisconnectedAlert.set(!flywheelInputs.connected);
@@ -118,7 +118,7 @@ public class Launcher extends SubsystemBase {
       logCachedAimData();
       hasCachedAimData = false;
     }
-    long t3 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t3 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Update and plot ball trajectories
     if (logFuelTrajectories) {
@@ -142,10 +142,10 @@ public class Launcher extends SubsystemBase {
         ballisticLogTimer = 0.0;
       }
     }
-    long t4 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t4 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Profiling output
-    if (Constants.PROFILING_ENABLED) {
+    if (Constants.FeatureFlags.PROFILING_ENABLED) {
       long totalMs = (t4 - t0) / 1_000_000;
       if (totalMs > 3) {
         System.out.println(
@@ -176,7 +176,7 @@ public class Launcher extends SubsystemBase {
   }
 
   public void aim(Translation3d target) {
-    long aimStart = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long aimStart = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Get vector from static target to turret
     turretBasePose = new Pose3d(chassisPoseSupplier.get()).plus(chassisToTurretBase);
@@ -191,7 +191,7 @@ public class Launcher extends SubsystemBase {
     var v0_nominal = getV0Nominal(vectorTurretBaseToTarget, dynamicImpactAngle, nominalKey);
     var flywheelSetpoint = MetersPerSecond.of(flywheelSetpointfromBallistics(v0_nominal.getNorm()));
     flywheelIO.setVelocity(flywheelSetpoint);
-    long t1 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t1 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Get translation velocities (m/s) of the turret caused by motion of the chassis
     var robotRelative = chassisSpeedsSupplier.get();
@@ -199,7 +199,7 @@ public class Launcher extends SubsystemBase {
         ChassisSpeeds.fromRobotRelativeSpeeds(
             robotRelative, turretBasePose.toPose2d().getRotation());
     var v_base = getTurretBaseSpeeds(turretBasePose.toPose2d().getRotation(), fieldRelative);
-    long t2 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t2 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Get actual initial shot speed
     double initialSpeedMetersPerSec =
@@ -207,7 +207,7 @@ public class Launcher extends SubsystemBase {
 
     // Replan shot using actual initial shot speed speed
     var v0_total = getV0Replanned(vectorTurretBaseToTarget, initialSpeedMetersPerSec, replannedKey);
-    long t3 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t3 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Point turret to align velocity vectors
     var v0_flywheel = v0_total.minus(v_base);
@@ -229,7 +229,7 @@ public class Launcher extends SubsystemBase {
         RadiansPerSecond.of(robotRelative.omegaRadiansPerSecond).unaryMinus().times(2.0));
     hoodSetpoint = new Rotation2d(v0_horizontal, v0_flywheel.getZ()).minus(ballToHoodOffset);
     hoodIO.setPosition(hoodSetpoint, RadiansPerSecond.of(0));
-    long t4 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t4 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Get actual hood & turret position
     Rotation2d hoodPosition = hoodInputs.position.plus(ballToHoodOffset);
@@ -252,7 +252,7 @@ public class Launcher extends SubsystemBase {
     cachedActualD = vectorTurretBaseToTarget;
     cachedActualV = v0_actual;
     hasCachedAimData = true;
-    long t5 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t5 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Spawn simulated fuel
     fuelSpawnTimer += Robot.defaultPeriodSecs;
@@ -268,7 +268,7 @@ public class Launcher extends SubsystemBase {
     }
 
     // Profiling output for aim()
-    if (Constants.PROFILING_ENABLED) {
+    if (Constants.FeatureFlags.PROFILING_ENABLED) {
       long totalUs = (t5 - aimStart) / 1_000;
       if (totalUs > 500) {
         System.out.println(
