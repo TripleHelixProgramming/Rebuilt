@@ -151,11 +151,12 @@ public class Robot extends LoggedRobot {
     // Set up data receivers & replay source
     switch (Constants.currentMode) {
       case REAL: // Running on a real robot
-        // Set the Phoenix signal logger path explicitly so hoot files land in /U/logs/
-        // (SignalLogger creates a timestamped session subdir there at startup).
-        SignalLogger.setPath("/U/logs/");
-        // Write the AKit log into that same session subdir so all log types are together.
-        Logger.addDataReceiver(new WPILOGWriter(findSessionDir()));
+        // Create a session directory before constructing any CTRE devices so that both
+        // the Phoenix signal logger and the WPILib data log write to the same folder.
+        // SignalLogger will create a nested timestamp subdir inside it for hoot files.
+        String sessionDir = createSessionDir();
+        SignalLogger.setPath(sessionDir);
+        Logger.addDataReceiver(new WPILOGWriter(sessionDir));
         Logger.addDataReceiver(new NT4Publisher());
 
         // Instantiate hardware IO implementations
@@ -855,18 +856,17 @@ public class Robot extends LoggedRobot {
   }
 
   /**
-   * Returns the path of the most recently modified subdirectory in /U/logs/, which is the
-   * timestamped session directory created by SignalLogger ~5 seconds after roboRIO startup —
-   * before robot code finishes initializing. Falls back to /U/logs/ if no subdirectory exists.
+   * Creates and returns a timestamped session directory under /U/logs/. Must be called before any
+   * CTRE devices are constructed so that SignalLogger.setPath() takes effect before auto-logging
+   * begins.
    */
-  private static String findSessionDir() {
-    java.io.File logsRoot = new java.io.File("/U/logs/");
-    java.io.File[] subdirs = logsRoot.listFiles(java.io.File::isDirectory);
-    if (subdirs == null || subdirs.length == 0) return "/U/logs/";
-    java.util.Arrays.sort(
-        subdirs,
-        java.util.Comparator.comparingLong(java.io.File::lastModified).reversed());
-    return subdirs[0].getAbsolutePath() + "/";
+  private static String createSessionDir() {
+    String dir =
+        "/U/logs/"
+            + new java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new java.util.Date())
+            + "/";
+    new java.io.File(dir).mkdirs();
+    return dir;
   }
 
   private static void logCANBus(String name, com.ctre.phoenix6.CANBus bus) {
