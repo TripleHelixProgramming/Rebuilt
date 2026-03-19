@@ -15,12 +15,11 @@ import java.util.regex.Pattern;
 import org.littletonrobotics.junction.Logger;
 
 /**
- * Monitors RoboRIO kernel logs for unexpected events (USB disconnects, ESD events, hardware
- * errors) and publishes them to NetworkTables via AdvantageKit Logger.
+ * Monitors RoboRIO kernel logs for unexpected events (USB disconnects, ESD events, hardware errors)
+ * and publishes them to NetworkTables via AdvantageKit Logger.
  *
- * <p>Uses a long-running dmesg process in follow mode with a blocking reader thread for
- * efficiency. This is a singleton that runs as a daemon thread for the lifetime of the robot
- * program.
+ * <p>Uses a long-running dmesg process in follow mode with a blocking reader thread for efficiency.
+ * This is a singleton that runs as a daemon thread for the lifetime of the robot program.
  */
 public class KernelLogMonitor {
   private static final int MAX_QUEUE_SIZE = 5000;

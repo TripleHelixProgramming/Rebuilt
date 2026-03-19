@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import frc.robot.util.KernelLogMonitor.EventPattern;
 import frc.robot.util.KernelLogMonitor.KernelEvent;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -301,7 +300,8 @@ class KernelLogMonitorTest {
     @BeforeEach
     void setUp() throws Exception {
       incrementCounterMethod =
-          KernelLogMonitor.class.getDeclaredMethod("incrementCounterForPattern", EventPattern.class);
+          KernelLogMonitor.class.getDeclaredMethod(
+              "incrementCounterForPattern", EventPattern.class);
       incrementCounterMethod.setAccessible(true);
     }
 
