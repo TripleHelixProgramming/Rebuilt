@@ -105,6 +105,20 @@ import org.littletonrobotics.junction.wpilog.WPILOGWriter;
  * project.
  */
 public class Robot extends LoggedRobot {
+  // SESSION_DIR and SignalLogger.setPath() must be initialized before any CTRE device is
+  // constructed. A static initializer guarantees this runs before the constructor or any
+  // instance field initializer that could trigger CANHD class loading.
+  private static final String SESSION_DIR;
+
+  static {
+    if (Constants.currentMode == Constants.Mode.REAL) {
+      SESSION_DIR = createSessionDir();
+      SignalLogger.setPath(SESSION_DIR);
+    } else {
+      SESSION_DIR = null;
+    }
+  }
+
   public static final AllianceSelector allianceSelector =
       new AllianceSelector(DIOPorts.allianceColorSelector);
   public static final AutoSelector autoSelector =
@@ -151,12 +165,9 @@ public class Robot extends LoggedRobot {
     // Set up data receivers & replay source
     switch (Constants.currentMode) {
       case REAL: // Running on a real robot
-        // Create a session directory before constructing any CTRE devices so that both
-        // the Phoenix signal logger and the WPILib data log write to the same folder.
-        // SignalLogger will create a nested timestamp subdir inside it for hoot files.
-        String sessionDir = createSessionDir();
-        SignalLogger.setPath(sessionDir);
-        Logger.addDataReceiver(new WPILOGWriter(sessionDir));
+        // SESSION_DIR and SignalLogger.setPath() were already set in the static initializer.
+        // SignalLogger will create a nested timestamp subdir inside SESSION_DIR for hoot files.
+        Logger.addDataReceiver(new WPILOGWriter(SESSION_DIR));
         Logger.addDataReceiver(new NT4Publisher());
 
         // Instantiate hardware IO implementations
