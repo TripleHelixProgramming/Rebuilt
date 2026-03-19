@@ -2,6 +2,7 @@ package frc.robot;
 
 import static frc.robot.subsystems.vision.VisionConstants.*;
 
+import com.ctre.phoenix6.SignalLogger;
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -104,6 +105,20 @@ import org.littletonrobotics.junction.wpilog.WPILOGWriter;
  * project.
  */
 public class Robot extends LoggedRobot {
+  // SESSION_DIR and SignalLogger.setPath() must be initialized before any CTRE device is
+  // constructed. A static initializer guarantees this runs before the constructor or any
+  // instance field initializer that could trigger CANHD class loading.
+  private static final String SESSION_DIR;
+
+  static {
+    if (Constants.currentMode == Constants.Mode.REAL) {
+      SESSION_DIR = createSessionDir();
+      SignalLogger.setPath(SESSION_DIR);
+    } else {
+      SESSION_DIR = null;
+    }
+  }
+
   public static final AllianceSelector allianceSelector =
       new AllianceSelector(DIOPorts.allianceColorSelector);
   public static final AutoSelector autoSelector =
@@ -150,8 +165,9 @@ public class Robot extends LoggedRobot {
     // Set up data receivers & replay source
     switch (Constants.currentMode) {
       case REAL: // Running on a real robot
-        // Log to a USB stick ("/U/logs")
-        Logger.addDataReceiver(new WPILOGWriter());
+        // SESSION_DIR and SignalLogger.setPath() were already set in the static initializer.
+        // SignalLogger will create a nested timestamp subdir inside SESSION_DIR for hoot files.
+        Logger.addDataReceiver(new WPILOGWriter(SESSION_DIR));
         Logger.addDataReceiver(new NT4Publisher());
 
         // Instantiate hardware IO implementations
@@ -848,6 +864,33 @@ public class Robot extends LoggedRobot {
         "Alerts/" + group + "/Warnings", table.getEntry("warnings").getStringArray(new String[0]));
     Logger.recordOutput(
         "Alerts/" + group + "/Infos", table.getEntry("infos").getStringArray(new String[0]));
+  }
+
+  /**
+   * Creates and returns a timestamped session directory under /U/logs/. Must be called before any
+   * CTRE devices are constructed so that SignalLogger.setPath() takes effect before auto-logging
+   * begins.
+   */
+  private static String createSessionDir() {
+    java.io.File logsDir = new java.io.File("/U/logs");
+    long maxCount = 0;
+    java.io.File[] entries = logsDir.listFiles();
+    if (entries != null) {
+      for (java.io.File entry : entries) {
+        String name = entry.getName();
+        if (name.startsWith("session_")) {
+          try {
+            long n = Long.parseLong(name.substring("session_".length()));
+            if (n > maxCount) maxCount = n;
+          } catch (NumberFormatException e) {
+            // not a session dir, skip
+          }
+        }
+      }
+    }
+    String dir = "/U/logs/session_" + (maxCount + 1) + "/";
+    new java.io.File(dir).mkdirs();
+    return dir;
   }
 
   private static void logCANBus(String name, com.ctre.phoenix6.CANBus bus) {
