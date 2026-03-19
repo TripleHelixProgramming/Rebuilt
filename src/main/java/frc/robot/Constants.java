@@ -28,9 +28,6 @@ public final class Constants {
   public static final Mode simMode = Mode.SIM;
   public static final Mode currentMode = RobotBase.isReal() ? Mode.REAL : simMode;
 
-  /** Enable to print loop timing when total exceeds 20ms. */
-  public static final boolean PROFILING_ENABLED = false;
-
   public static enum Mode {
     /** Running on a real robot. */
     REAL,
@@ -40,6 +37,14 @@ public final class Constants {
 
     /** Replaying from a log file. */
     REPLAY
+  }
+
+  public static final class FeatureFlags {
+    /** Enable to print loop timing when total exceeds 20ms. */
+    public static final boolean PROFILING_ENABLED = false;
+
+    /** Set to false to disable the hopper subsystem entirely. */
+    public static final boolean kHopperEnabled = true;
   }
 
   public final class RobotConstants {
