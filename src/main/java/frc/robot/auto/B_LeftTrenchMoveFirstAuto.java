@@ -9,30 +9,20 @@ import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.launcher.Launcher;
 
 public class B_LeftTrenchMoveFirstAuto extends AutoMode {
-  Drive drive;
-  // Hopper hopper;
-  Feeder feeder;
-  Intake intake;
-  Launcher launcher;
+  private final AutoRoutine routine;
+  private final AutoTrajectory blueLeftNeutralZone;
+  private final AutoTrajectory blueLeftTransitionToNZ;
 
   public B_LeftTrenchMoveFirstAuto(
       Drive drivetrain,
       Feeder feederSubsystem,
       Intake intakeSubsystem,
       Launcher launcherSubsystem) {
-    super(drivetrain);
-    drive = drivetrain;
-    feeder = feederSubsystem;
-    intake = intakeSubsystem;
-    launcher = launcherSubsystem;
+    super(drivetrain, feederSubsystem, intakeSubsystem);
+    routine = getAutoFactory().newRoutine("B_LeftTrenchMoveFirstAuto");
+    blueLeftNeutralZone = routine.trajectory("BlueLeftNinetyNeutralZone");
+    blueLeftTransitionToNZ = routine.trajectory("BlueLeftTransitionToNZ");
   }
-
-  // Define routine
-  AutoRoutine routine = super.getAutoFactory().newRoutine("B_LeftTrenchMoveFirstAuto");
-
-  // Load trajectories
-  AutoTrajectory blueLeftNeutralZone = routine.trajectory("BlueLeftNeutralZone");
-  AutoTrajectory blueLeftTransitionToNZ = routine.trajectory("BlueLeftTransitionToNZ");
 
   @Override
   public String getName() {
@@ -53,25 +43,20 @@ public class B_LeftTrenchMoveFirstAuto extends AutoMode {
             Commands.sequence(
                 blueLeftNeutralZone.resetOdometry(),
                 Commands.parallel(
-                    blueLeftNeutralZone.cmd(), intake.getDeployCommand().withTimeout(10.0))));
+                    blueLeftNeutralZone.cmd(),
+                    Commands.sequence(
+                        Commands.waitSeconds(0.8), intake.getDeployCommand().withTimeout(9.2)))));
 
     blueLeftNeutralZone
         .done()
         .onTrue(
             Commands.sequence(
-                Commands.runOnce(drive::stop, drive),
-                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
-                Commands.runOnce(feeder::stop, feeder),
+                stopDrive(),
+                shakeAndFeed(5.0),
                 Commands.parallel(
                     blueLeftTransitionToNZ.cmd(), intake.getDeployCommand().withTimeout(5.0))));
 
-    blueLeftTransitionToNZ
-        .done()
-        .onTrue(
-            Commands.sequence(
-                Commands.runOnce(drive::stop, drive),
-                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
-                Commands.runOnce(feeder::stop, feeder)));
+    blueLeftTransitionToNZ.done().onTrue(Commands.sequence(stopDrive(), shakeAndFeed(5.0)));
 
     return routine;
   }

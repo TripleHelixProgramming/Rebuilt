@@ -96,9 +96,9 @@ public class Drive extends SubsystemBase {
   private ChassisSpeeds chassisSpeeds;
 
   // PID controllers for following Choreo trajectories
-  private final PIDController xController = new PIDController(5.0, 0.0, 0.0);
-  private final PIDController yController = new PIDController(5.0, 0.0, 0.0);
-  private final PIDController headingController = new PIDController(7.5, 0.0, 0.0);
+  private final PIDController xController = new PIDController(8.01, 0.0, 0.0);
+  private final PIDController yController = new PIDController(8.01, 0.0, 0.0);
+  private final PIDController headingController = new PIDController(8.01, 0.0, 0.0);
 
   public Drive(
       GyroIO gyroIO,

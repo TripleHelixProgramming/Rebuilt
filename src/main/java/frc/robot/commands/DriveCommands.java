@@ -65,6 +65,10 @@ public class DriveCommands {
         .getTranslation();
   }
 
+  public static Command getStopCommand(Drive drive) {
+    return Commands.runOnce(drive::stop, drive).withName("Stop Drive");
+  }
+
   public static final Command getChassisAimingCommand(
       Drive drive, DoubleSupplier desaturationSupplier) {
     return DriveCommands.joystickDrive(

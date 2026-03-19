@@ -10,32 +10,22 @@ import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.launcher.Launcher;
 
 public class B_LeftTrenchAuto extends AutoMode {
-  Drive drive;
-  // Hopper hopper;
-  Feeder feeder;
-  Intake intake;
-  Launcher launcher;
+  private final Launcher launcher;
+  private final AutoRoutine routine;
+  private final AutoTrajectory blueLeftNeutralZone;
+  private final AutoTrajectory blueLeftTransitionToNZ;
 
   public B_LeftTrenchAuto(
       Drive drivetrain,
-      // Hopper hopperSubsystem,
       Feeder feederSubsystem,
       Intake intakeSubsystem,
       Launcher launcherSubsystem) {
-    super(drivetrain);
-    drive = drivetrain;
-    // hopper = hopperSubsystem;
-    feeder = feederSubsystem;
-    intake = intakeSubsystem;
+    super(drivetrain, feederSubsystem, intakeSubsystem);
     launcher = launcherSubsystem;
+    routine = getAutoFactory().newRoutine("B_LeftTrenchAuto");
+    blueLeftNeutralZone = routine.trajectory("BlueLeftNeutralZone");
+    blueLeftTransitionToNZ = routine.trajectory("BlueLeftTransitionToNZ");
   }
-
-  // Define routine
-  AutoRoutine routine = super.getAutoFactory().newRoutine("B_LeftTrenchAuto");
-
-  // Load trajectories
-  AutoTrajectory blueLeftNeutralZone = routine.trajectory("BlueLeftNeutralZone");
-  AutoTrajectory blueLeftTransitionToNZ = routine.trajectory("BlueLeftTransitionToNZ");
 
   @Override
   public String getName() {
@@ -57,8 +47,7 @@ public class B_LeftTrenchAuto extends AutoMode {
                 blueLeftNeutralZone.resetOdometry(),
                 DriveCommands.getChassisAimingCommand(drive, launcher::getTurretDesaturationDelta)
                     .withTimeout(1.5),
-                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(3.0),
-                Commands.runOnce(feeder::stop, feeder),
+                feeder.getSpinForwardCommand().withTimeout(3.0),
                 Commands.parallel(
                     blueLeftNeutralZone.cmd(), intake.getDeployCommand().withTimeout(10.0))));
 
@@ -66,19 +55,12 @@ public class B_LeftTrenchAuto extends AutoMode {
         .done()
         .onTrue(
             Commands.sequence(
-                Commands.runOnce(drive::stop, drive),
-                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
-                Commands.runOnce(feeder::stop, feeder),
+                stopDrive(),
+                shakeAndFeed(5.0),
                 Commands.parallel(
                     blueLeftTransitionToNZ.cmd(), intake.getDeployCommand().withTimeout(5.0))));
 
-    blueLeftTransitionToNZ
-        .done()
-        .onTrue(
-            Commands.sequence(
-                Commands.runOnce(drive::stop, drive),
-                Commands.startEnd(feeder::spinForward, () -> {}, feeder).withTimeout(5.0),
-                Commands.runOnce(feeder::stop, feeder)));
+    blueLeftTransitionToNZ.done().onTrue(Commands.sequence(stopDrive(), shakeAndFeed(5.0)));
 
     return routine;
   }

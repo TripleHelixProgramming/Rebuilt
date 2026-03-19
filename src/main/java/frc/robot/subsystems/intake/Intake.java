@@ -84,7 +84,11 @@ public class Intake extends SubsystemBase {
     intakeArmIO.deploy();
   }
 
-  public boolean isDeployed() {
+  public void retractArm() {
+    intakeArmIO.retract();
+  }
+
+  public Boolean isDeployed() {
     return intakeArmInputs.isDeployed == DoubleSolenoid.Value.kForward;
   }
 
@@ -155,5 +159,14 @@ public class Intake extends SubsystemBase {
       return Commands.none();
     }
     return Commands.either(Commands.none(), hopperDeployCommand.get(), hopperIsDeployed);
+  }
+
+  public Command getShakeIntakeCommand() {
+    return Commands.sequence(
+            this.idle().withTimeout(1.0),
+            Commands.runOnce(this::retractArm, this),
+            this.idle().withTimeout(1.0),
+            Commands.runOnce(this::deployArm, this))
+        .repeatedly();
   }
 }
