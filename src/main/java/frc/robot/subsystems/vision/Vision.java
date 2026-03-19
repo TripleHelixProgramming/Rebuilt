@@ -15,9 +15,7 @@ import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
-import edu.wpi.first.math.geometry.Rectangle2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.Alert;
@@ -25,29 +23,20 @@ import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
-import frc.robot.subsystems.vision.VisionIO.PoseObservation;
+import frc.robot.subsystems.vision.VisionFilter.FusedObservation;
+import frc.robot.subsystems.vision.VisionFilter.Test;
+import frc.robot.subsystems.vision.VisionFilter.TestedObservation;
 import frc.robot.util.VisionThread;
 import frc.robot.util.VisionThread.VisionInputs;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.function.Supplier;
 import org.littletonrobotics.junction.Logger;
 
 public class Vision extends SubsystemBase {
-  // Cached arena boundary for withinBoundaries test (avoids allocations per observation)
-  private static final Rectangle2d arenaRectangle;
-
-  static {
-    double halfWidth = minRobotWidthHalfMeters;
-    Translation2d cornerA = new Translation2d(halfWidth, halfWidth);
-    Translation2d cornerB =
-        new Translation2d(fieldXLenMeters - halfWidth, fieldYLenMeters - halfWidth);
-    arenaRectangle = new Rectangle2d(cornerA, cornerB);
-  }
-
   private final VisionConsumer consumer;
-  private final Supplier<Pose2d> chassisPoseSupplier;
+  private final Supplier<Rotation2d> gyroYawSupplier;
   private final VisionIO[] io;
   private final VisionInputs[] visionInputs;
   private final VisionIOInputsAutoLogged[] inputs;
@@ -59,8 +48,9 @@ public class Vision extends SubsystemBase {
   private ArrayList<Pose3d> allRobotPosesAccepted = new ArrayList<Pose3d>();
   private ArrayList<Pose3d> allRobotPosesRejected = new ArrayList<Pose3d>();
 
-  // List to store acceptable observations
-  private ArrayList<TestedObservation> observations = new ArrayList<TestedObservation>();
+  // Buffer to accumulate observations across loops for batched processing
+  // Cleared after processing every processingIntervalLoops
+  private ArrayList<TestedObservation> observationBuffer = new ArrayList<TestedObservation>();
 
   // Initialize logging values
   private ArrayList<Pose3d> tagPoses = new ArrayList<Pose3d>();
@@ -68,8 +58,8 @@ public class Vision extends SubsystemBase {
   private ArrayList<Pose3d> robotPosesAccepted = new ArrayList<Pose3d>();
   private ArrayList<Pose3d> robotPosesRejected = new ArrayList<Pose3d>();
 
-  // Initialize scoring results
-  private EnumMap<VisionTest, Double> testResults = new EnumMap<>(VisionTest.class);
+  // Vision filter for scoring observations
+  private final VisionFilter visionFilter = new VisionFilter();
 
   LinearFilter[] cameraPassRate = {
     LinearFilter.movingAverage(20),
@@ -78,13 +68,24 @@ public class Vision extends SubsystemBase {
     LinearFilter.movingAverage(20)
   };
 
+  // Per-camera tracking for velocity consistency check
+  private final Pose2d[] lastAcceptedPose;
+  private final double[] lastAcceptedTimestamp;
+
   // Cycle counter for throttled logging
   private int loopCounter = 0;
 
-  public Vision(VisionConsumer consumer, Supplier<Pose2d> chassisPoseSupplier, VisionIO... io) {
+  // Vision tests to apply (remove from set to disable specific tests)
+  public static final EnumSet<Test> enabledTests = VisionFilter.DEFAULT_ENABLED_TESTS;
+
+  public Vision(VisionConsumer consumer, Supplier<Rotation2d> gyroYawSupplier, VisionIO... io) {
     this.consumer = consumer;
-    this.chassisPoseSupplier = chassisPoseSupplier;
+    this.gyroYawSupplier = gyroYawSupplier;
     this.io = io;
+
+    // Initialize per-camera velocity tracking arrays
+    this.lastAcceptedPose = new Pose2d[io.length];
+    this.lastAcceptedTimestamp = new double[io.length];
 
     // Register each VisionIO with VisionThread for background polling
     this.visionInputs = new VisionInputs[io.length];
@@ -113,7 +114,11 @@ public class Vision extends SubsystemBase {
    * @param cameraIndex The index of the camera to use.
    */
   public Rotation2d getTargetX(int cameraIndex) {
-    return inputs[cameraIndex].latestTargetObservation.yaw();
+    /* TODO: don't use latestTargetObservation: it's just the most recent observation,
+     *   not necessarily a good one, possibly even the default EMPTY_TARGET.
+     */
+    throw new RuntimeException("Don't call me until I'm fixed");
+    // return inputs[cameraIndex].latestTargetObservation.yaw();
   }
 
   @Override
@@ -142,9 +147,6 @@ public class Vision extends SubsystemBase {
     allRobotPosesAccepted.clear();
     allRobotPosesRejected.clear();
 
-    // List to store acceptable observations
-    observations.clear();
-
     // Loop over cameras
     for (int cameraIndex = 0; cameraIndex < io.length; cameraIndex++) {
       // Update disconnected alert
@@ -168,33 +170,27 @@ public class Vision extends SubsystemBase {
 
       // Loop over pose observations
       for (var observation : inputs[cameraIndex].poseObservations) {
-        testResults.clear();
+        // Score the observation using VisionFilter
+        TestedObservation tested =
+            visionFilter.scoreObservation(
+                observation,
+                cameraIndex,
+                lastAcceptedPose[cameraIndex],
+                lastAcceptedTimestamp[cameraIndex],
+                gyroYawSupplier.get(),
+                enabledTests);
 
-        testResults.put(VisionTest.moreThanZeroTags, VisionTest.moreThanZeroTags.test(observation));
-        testResults.put(VisionTest.unambiguous, VisionTest.unambiguous.test(observation));
-        testResults.put(VisionTest.pitchError, VisionTest.pitchError.test(observation));
-        testResults.put(VisionTest.rollError, VisionTest.rollError.test(observation));
-        testResults.put(VisionTest.heightError, VisionTest.heightError.test(observation));
-        testResults.put(VisionTest.withinBoundaries, VisionTest.withinBoundaries.test(observation));
-        testResults.put(VisionTest.distanceToTags, VisionTest.distanceToTags.test(observation));
-
-        // Multiply all test scores - loop avoids stream overhead and boxing
-        double totalScore = 1.0;
-        for (Double score : testResults.values()) {
-          totalScore *= score;
-        }
-
-        observations.add(new TestedObservation(observation, cameraIndex, testResults, totalScore));
+        observationBuffer.add(tested);
 
         // Add pose to log
         robotPoses.add(observation.pose());
-        if (totalScore > minScore) {
+        if (tested.score() > minScore) {
           robotPosesAccepted.add(observation.pose());
         } else {
           robotPosesRejected.add(observation.pose());
         }
 
-        cameraPassRate[cameraIndex].calculate(totalScore);
+        cameraPassRate[cameraIndex].calculate(tested.score());
       }
 
       // Log camera datadata
@@ -223,25 +219,40 @@ public class Vision extends SubsystemBase {
 
     long t3 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
-    // Remove unacceptable observations
-    observations.removeIf(o -> o.score < minScore);
+    // Process observations in batches every processingIntervalLoops
+    // This allows cameras to accumulate observations before fusion decides what agrees
+    if (loopCounter % processingIntervalLoops == 0) {
+      // Remove unacceptable observations before fusion
+      observationBuffer.removeIf(o -> o.score() < minScore);
 
-    // Sort the list of acceptable observations by timestamp
-    observations.sort(
-        (lhs, rhs) -> (int) Math.signum(lhs.observation.timestamp() - rhs.observation.timestamp()));
+      // Fuse correlated observations from multiple cameras into averaged poses
+      // This reduces jitter from multiple cameras reporting slightly different poses
+      ArrayList<FusedObservation> fusedObservations =
+          visionFilter.fuseCorrelatedObservations(observationBuffer);
 
-    for (var o : observations) {
-      // Calculate standard deviations
-      double linearStdDev = linearStdDevBaseline / o.score;
-      double angularStdDev = angularStdDevBaseline / o.score;
+      // Sort fused observations by timestamp
+      fusedObservations.sort((lhs, rhs) -> (int) Math.signum(lhs.timestamp() - rhs.timestamp()));
 
-      // Send acceptable vision observations to the pose estimator with their stddevs
-      consumer.accept(
-          o.observation.pose().toPose2d(),
-          o.observation.timestamp(),
-          VecBuilder.fill(linearStdDev, linearStdDev, angularStdDev));
+      for (var fused : fusedObservations) {
+        // Calculate standard deviations
+        // Single-camera observations get much higher stddev (less trust) to reduce jitter
+        // Multi-camera fused observations get lower stddev (more trust)
+        double cameraCountFactor = (fused.cameraCount() == 1) ? singleCameraStdDevMultiplier : 1.0;
+        double linearStdDev = linearStdDevBaseline * cameraCountFactor / fused.score();
+        double angularStdDev = angularStdDevBaseline * cameraCountFactor / fused.score();
 
-      Logger.recordOutput("Vision/Summary/ObservationScore", o.score);
+        // Send fused vision observation to the pose estimator
+        consumer.accept(
+            fused.pose(),
+            fused.timestamp(),
+            VecBuilder.fill(linearStdDev, linearStdDev, angularStdDev));
+
+        Logger.recordOutput("Vision/Summary/ObservationScore", fused.score());
+        Logger.recordOutput("Vision/Summary/FusedCameraCount", fused.cameraCount());
+      }
+
+      // Clear buffer after processing
+      observationBuffer.clear();
     }
     long t4 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
@@ -292,13 +303,6 @@ public class Vision extends SubsystemBase {
         Matrix<N3, N1> visionMeasurementStdDevs);
   }
 
-  // Associate observations with their camera
-  public static record TestedObservation(
-      PoseObservation observation,
-      int cameraIndex,
-      EnumMap<VisionTest, Double> testResults,
-      double score) {}
-
   // Caching for AprilTag layout (volatile for thread-safe lazy initialization)
   private static volatile AprilTagFieldLayout cachedLayout = null;
 
@@ -319,130 +323,5 @@ public class Vision extends SubsystemBase {
       }
     }
     return cachedLayout;
-  }
-
-  public enum VisionTest {
-    unambiguous {
-      /**
-       * Penalizes ambiguous observations of a single tag, where ambiguity is defined as the ratio
-       * of best:alternate pose reprojection errors. This is between 0 and 1 (0 being no ambiguity,
-       * and 1 meaning both have the same reprojection error). Numbers above 0.2 are likely to be
-       * ambiguous.
-       *
-       * @param observation The pose observation to check
-       * @return Score between 0 and 1
-       */
-      @Override
-      public double test(PoseObservation observation) {
-        if (observation.tagCount() == 1) {
-          return 1.0 - normalizedSigmoid(observation.ambiguity(), ambiguityTolerance, 4.0);
-        } else {
-          return 1.0;
-        }
-      }
-    },
-    pitchError {
-      /**
-       * We assume that the robot is constrained to an orientation that is flat on the field.
-       * Penalizes poses with significantly nonzero pitch.
-       *
-       * @param observation The pose observation to check
-       * @return Score between 0 and 1
-       */
-      @Override
-      public double test(PoseObservation observation) {
-        return 1.0
-            - normalizedSigmoid(
-                Math.abs(observation.pose().getRotation().getY()), pitchToleranceRadians, 1.0);
-      }
-    },
-    rollError {
-      /**
-       * We assume that the robot is constrained to an orientation that is flat on the field.
-       * Penalizes poses with significantly nonzero roll.
-       *
-       * @param observation The pose observation to check
-       * @return Score between 0 and 1
-       */
-      @Override
-      public double test(PoseObservation observation) {
-        return 1.0
-            - normalizedSigmoid(
-                Math.abs(observation.pose().getRotation().getX()), rollToleranceRadians, 1.0);
-      }
-    },
-    heightError {
-      /**
-       * We assume that the robot is constrained to an orientation that is flat on the field.
-       * Penalizes poses with significantly nonzero elevation.
-       *
-       * @param observation The pose observation to check
-       * @return Score between 0 and 1
-       */
-      @Override
-      public double test(PoseObservation observation) {
-        return 1.0
-            - normalizedSigmoid(Math.abs(observation.pose().getZ()), elevationToleranceMeters, 1.0);
-      }
-    },
-    withinBoundaries {
-      /**
-       * Penalizes poses that, when projected to the floor, lie outside of the field boundaries
-       *
-       * @param observation The pose observation to check
-       * @return Score between 0 and 1
-       */
-      @Override
-      public double test(PoseObservation observation) {
-        boolean pass = arenaRectangle.contains(observation.pose().toPose2d().getTranslation());
-        return (pass ? 1.0 : 0.0);
-      }
-    },
-    moreThanZeroTags {
-      /**
-       * Penalizes observations that see zero tags
-       *
-       * @param observation The pose observation to check
-       * @return Score between 0 and 1
-       */
-      @Override
-      public double test(PoseObservation observation) {
-        return Math.min(observation.tagCount(), 1.0);
-      }
-    },
-    distanceToTags {
-      /**
-       * Rewards observations that see tags closer to the robot
-       *
-       * @param observation The pose observation to check
-       * @return Score between 0 and 1
-       */
-      @Override
-      public double test(PoseObservation observation) {
-        return 1.0
-            - normalizedSigmoid(observation.averageTagDistance(), tagDistanceToleranceMeters, 1.0);
-      }
-    };
-
-    public abstract double test(PoseObservation observation);
-  }
-
-  /**
-   * Calculates a normalized sigmoid function with a tunable midpoint and steepness. The output is
-   * always between 0 and 1.
-   *
-   * @param x The input value.
-   * @param midpoint The x-value where the output should be 0.5.
-   * @param steepness The factor controlling the curve's steepness. Higher values result in a
-   *     steeper curve, lower values result in a more gradual curve. Must be greater than 0.
-   * @return The sigmoid output for the given input, between 0 and 1.
-   */
-  public static double normalizedSigmoid(double x, double midpoint, double steepness) {
-    if (steepness <= 0) {
-      throw new IllegalArgumentException("Steepness must be a positive value.");
-    }
-
-    double exponent = -steepness * (x - midpoint);
-    return 1.0 / (1.0 + Math.exp(exponent));
   }
 }

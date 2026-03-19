@@ -166,27 +166,29 @@ if (denominator <= 0) {
 // Guard: denominator <= 0 means target is unreachable with this impact angle (would require
 // negative velocity or infinite speed). Using < 1e-6 threshold also catches near-zero values
 // that would cause numerical instability in sqrt(g / denominator).
-if (denominator < 1e-6) {
+// Use !(x >= threshold) instead of (x < threshold) to catch NaN
+if (!(denominator >= 1e-6)) {
     Logger.recordOutput("Launcher/" + key + "/Reachable", false);
     // log(d, v0, key);
     return v0nominalLast;
 }
 ```
 
-**Change:** Threshold changed from `<= 0` to `< 1e-6` and explanatory comment added above the guard.
+**Change:** Threshold changed from `<= 0` to `>= 1e-6` (inverted with `!`) and explanatory comment added above the guard. The inverted syntax `!(x >= threshold)` catches both values below the threshold AND NaN values (since NaN comparisons always return false).
 
 ### Launcher.java - v_0r Guard (NEW)
 
 **After the denominator check:**
 ```java
 double v_0r = dr * Math.sqrt(g / denominator);
-if (v_0r < 1e-6) {
+// Use !(x >= threshold) instead of (x < threshold) to catch NaN
+if (!(v_0r >= 1e-6)) {
     Logger.recordOutput("Launcher/" + key + "/Reachable", false);
     return v0nominalLast;
 }
 ```
 
-**Impact:** Prevents division by near-zero v_0r in subsequent calculation.
+**Impact:** Prevents division by near-zero v_0r in subsequent calculation. Also catches NaN propagation.
 
 ### Launcher.java - Discriminant (REFINED)
 
@@ -205,7 +207,8 @@ if (discriminant < 0) {
 // Guard: discriminant < 0 means target is beyond maximum range for current flywheel speed.
 // Using < 1e-6 threshold adds safety margin against sqrt of tiny negative values from
 // floating-point errors at the edge of reachable range.
-if (discriminant < 1e-6) {
+// Use !(x >= threshold) instead of (x < threshold) to catch NaN
+if (!(discriminant >= 1e-6)) {
     // Unreachable target at this speed
     Logger.recordOutput("Launcher/" + key + "/Reachable", false);
     // log(d, v0, key);
@@ -213,7 +216,7 @@ if (discriminant < 1e-6) {
 }
 ```
 
-**Change:** Threshold changed from `< 0` to `< 1e-6` and explanatory comment added above the guard.
+**Change:** Threshold changed from `< 0` to `>= 1e-6` (inverted with `!`) and explanatory comment added above the guard. The inverted syntax catches NaN values as well.
 
 ---
 

@@ -38,7 +38,7 @@ Series can span multiple physical portions. By implementing WPILib's `LEDReader`
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                        LEDSeries                            │
-│  - Enum of logical series (Y_AXIS, X_AXIS, ALL, etc.)       │
+│  - Enum of logical series (Y_AXIS, X_AXIS_FULL, ALL, etc.)  │
 │  - Implements LEDReader + LEDWriter for unified buffer      │
 │  - applyPattern() applies any LEDPattern                    │
 └─────────────────────────────────────────────────────────────┘
@@ -58,7 +58,7 @@ The robot currently has one LED strip:
 
 | Strip | PWM Port | LED Count |
 |-------|----------|-----------|
-| MAIN  | 0        | 24        |
+| MAIN  | 0        | 36        |
 
 ### Series Configuration
 
@@ -66,27 +66,33 @@ The strip is divided into two primary segments by robot axis:
 
 | Series | LEDs | Description |
 |--------|------|-------------|
-| `ALL` | 0-23 | All LEDs as one series |
-| `Y_AXIS` | 0-11 | Along robot Y axis (pose-seek, hub countdown) |
-| `X_AXIS` | 12-23 | Along robot X axis (auto selection, robot state) |
+| `ALL` | 0-35 | All LEDs as one series |
+| `Y_AXIS` | 0-11 | Along robot Y axis (pose-seek feedback, robot state) |
+| `X_AXIS_FULL` | 12-35 | Full X-axis range (hub countdown when FMS attached) |
+| `X_AXIS_BODY` | 15-35 | Main X-axis display area (hub countdown when FMS not attached) |
+| `AUTO_SELECTION` | 24-35 | Auto selection counting blocks |
 
-#### Pose-Seek Segments (within Y_AXIS)
+#### Warning Indicators
 
-The Y_AXIS segment is further divided for pose-seek feedback:
-
-```
-[Y_LEFT] [ROT_LEFT] [X_CENTER] [ROT_RIGHT] [Y_RIGHT]
-[0-1]    [2-3]      [4-7]      [8-9]       [10-11]
-```
+Reserved LEDs for status warnings:
 
 | Series | LEDs | Description |
 |--------|------|-------------|
-| `POSE_Y_LEFT` | 0-1 | Left side Y translation feedback |
-| `POSE_ROTATION_LEFT` | 2-3 | Left rotation feedback |
-| `POSE_X_CENTER` | 4-7 | X translation feedback (center) |
-| `POSE_ROTATION_RIGHT` | 8-9 | Right rotation feedback |
-| `POSE_Y_RIGHT` | 10-11 | Right side Y translation feedback |
-| `POSE_ROTATION` | 2-3, 8-9 | Combined rotation (both sides) |
+| `WARNING_STORAGE` | 0-1 | USB storage low warning (orange-red when <2GB free) |
+| `WARNING_COMPRESSOR` | 12-13 | Compressor state (green when running) |
+| `WARNING_ALLIANCE` | 22-23 | Alliance mismatch warning (yellow when DS/selected disagree) |
+
+#### Pose-Seek Segments (within Y_AXIS)
+
+The Y_AXIS segment includes pose-seek feedback for manual alignment:
+
+| Series | LEDs | Description |
+|--------|------|-------------|
+| `POSE_Y` | 3-6 | Y translation feedback |
+| `POSE_ROTATION_Y` | 8-11 | Rotation feedback (Y axis side) |
+| `POSE_ROTATION_X` | 12-15 | Rotation feedback (X axis side) |
+| `POSE_X` | 17-20 | X translation feedback |
+| `POSE_ROTATION` | 8-11, 12-15 | Combined rotation (composite series) |
 
 ## Display Functions
 
@@ -99,28 +105,27 @@ Displays the currently selected autonomous routine during disabled mode.
 - Shows counting blocks in alliance color (red or blue)
 - Number of blocks corresponds to the auto option number (1, 2, 3, etc.)
 - Blinks yellow if no auto is selected
-- Sets the last LED to yellow if there's a mismatch between driver station alliance and selected alliance
+- Shows yellow warning on `WARNING_ALLIANCE` if there's a mismatch between driver station alliance and selected alliance
+- Shows orange-red warning on `WARNING_STORAGE` if USB storage is below 2GB free
 
-**Used on:** `X_AXIS` (LEDs 12-23)
+**Used on:** `AUTO_SELECTION` (LEDs 24-35)
 
 ### displayPoseSeek(currentPose, targetPose)
 
-Provides visual feedback for manually aligning the robot to a target pose. Useful during disabled mode to help drivers position the robot for autonomous.
-
-**Layout:** `[Y_LEFT][ROT_LEFT][X_CENTER][ROT_RIGHT][Y_RIGHT]`
+Provides visual feedback for manually aligning the robot to a target pose. Useful during disabled mode to help drivers position the robot for autonomous. Coordinates are transformed to robot-relative.
 
 | Segment | Meaning |
 |---------|---------|
-| **X (center)** | Green = drive forward, Red = drive backward, White = correct |
-| **Rotation (inner)** | Magenta = rotate CCW, Cyan = rotate CW, White = correct |
-| **Y (ends)** | Green on side to move toward, Red on opposite side, White = correct |
+| **X (POSE_X)** | Green = drive forward, Red = drive backward, White = correct |
+| **Rotation (POSE_ROTATION_X/Y)** | Green on one side, Red on other side depending on rotation direction; White = correct |
+| **Y (POSE_Y)** | Red = move left needed, Green = move right needed, White = correct |
 
 Tolerances are defined in `LEDConstants`:
 - X: 5 cm
 - Y: 6 cm
 - Heading: 3°
 
-**Used on:** `Y_AXIS` segments (LEDs 0-11)
+**Used on:** `POSE_X`, `POSE_Y`, `POSE_ROTATION_X`, `POSE_ROTATION_Y` segments
 
 ### displayRobotState(isOnTarget, isSpindexing)
 
@@ -133,16 +138,27 @@ Shows launcher and spindexer state during teleop and autonomous.
 | On target, spindexer inactive | Green | Solid |
 | On target, spindexer active | Green | Bounce ripple |
 
-**Used on:** `X_AXIS` (LEDs 12-23)
+**Used on:** `Y_AXIS` (LEDs 0-11)
 
 ### displayHubCountdown()
 
-Shows remaining time in the current match phase as a progress bar.
+Shows remaining time in the current match phase as an "urgent countdown" progress bar.
 
 - Bar fills in alliance color (red or blue based on hub state)
 - Empties as time runs out
+- In the final 10 seconds, resets to full and counts down while flashing (4Hz)
+- When FMS is attached, uses full X-axis range for maximum visibility
 
-**Used on:** `Y_AXIS` (LEDs 0-11)
+**Used on:** `X_AXIS_FULL` (LEDs 12-35) when FMS attached, `X_AXIS_BODY` (LEDs 15-35) otherwise
+
+### displayCompressorState(isRunning)
+
+Shows compressor state on the warning indicator.
+
+- Green when compressor is actively running
+- Off (black) when compressor is idle
+
+**Used on:** `WARNING_COMPRESSOR` (LEDs 12-13)
 
 ### clear() / clear(series, ...)
 
@@ -171,16 +187,20 @@ The `LEDController` provides pre-built display methods:
 LEDController leds = LEDController.getInstance();
 
 // Display auto selection (counting blocks in alliance color)
+// Also shows warning indicators for alliance mismatch and low USB storage
 leds.displayAutoSelection();
 
 // Display pose-seek feedback
 leds.displayPoseSeek(drive.getPose(), targetPose);
 
-// Display robot state
+// Display robot state (on Y_AXIS)
 leds.displayRobotState(() -> launcher.isOnTarget(), () -> feeder.isSpinning());
 
-// Display hub countdown (progress bar)
+// Display hub countdown (urgent countdown bar on X_AXIS)
 leds.displayHubCountdown();
+
+// Display compressor state
+leds.displayCompressorState(compressor.isEnabled());
 
 // Clear all LEDs
 leds.clear();
@@ -194,7 +214,7 @@ In `LEDStrip.java`, define each physical LED strip:
 
 ```java
 public enum LEDStrip {
-  MAIN(0, 24);      // PWM port 0, 24 LEDs
+  MAIN(0, 36);      // PWM port 0, 36 LEDs
   // FRONT(8, 60),  // Uncomment to add more strips
   // BACK(7, 30);
   ...
@@ -208,15 +228,26 @@ In `LEDSeries.java`, the `P` class defines portions - the single source of truth
 ```java
 private static final class P {
   // (strip, startIndex, endIndex, reversed)
-  static final Portion ALL = new Portion(LEDStrip.MAIN, 0, 23, false);
+  static final Portion ALL = new Portion(LEDStrip.MAIN, 0, 35, false);
+
+  // Primary segments
   static final Portion Y_AXIS = new Portion(LEDStrip.MAIN, 0, 11, false);
-  static final Portion X_AXIS = new Portion(LEDStrip.MAIN, 12, 23, false);
+  static final Portion X_AXIS_FULL = new Portion(LEDStrip.MAIN, 12, 35, false);
+  static final Portion X_AXIS_BODY = new Portion(LEDStrip.MAIN, 15, 35, false);
+
+  // Warning indicators
+  static final Portion WARNING_STORAGE = new Portion(LEDStrip.MAIN, 0, 1, false);
+  static final Portion WARNING_COMPRESSOR = new Portion(LEDStrip.MAIN, 12, 13, false);
+  static final Portion WARNING_ALLIANCE = new Portion(LEDStrip.MAIN, 22, 23, false);
+
+  // Auto selection
+  static final Portion AUTO_SELECTION = new Portion(LEDStrip.MAIN, 24, 35, false);
+
   // Pose-seek portions
-  static final Portion POSE_Y_LEFT = new Portion(LEDStrip.MAIN, 0, 1, false);
-  static final Portion POSE_ROT_LEFT = new Portion(LEDStrip.MAIN, 2, 3, false);
-  static final Portion POSE_X_CENTER = new Portion(LEDStrip.MAIN, 4, 7, false);
-  static final Portion POSE_ROT_RIGHT = new Portion(LEDStrip.MAIN, 8, 9, false);
-  static final Portion POSE_Y_RIGHT = new Portion(LEDStrip.MAIN, 10, 11, false);
+  static final Portion POSE_Y = new Portion(LEDStrip.MAIN, 3, 6, false);
+  static final Portion POSE_ROTATION_Y = new Portion(LEDStrip.MAIN, 8, 11, false);
+  static final Portion POSE_ROTATION_X = new Portion(LEDStrip.MAIN, 12, 15, false);
+  static final Portion POSE_X = new Portion(LEDStrip.MAIN, 17, 20, false);
 }
 ```
 
@@ -230,9 +261,14 @@ Series reference portions from `P`:
 public enum LEDSeries implements LEDReader, LEDWriter {
   ALL(P.ALL),
   Y_AXIS(P.Y_AXIS),
-  X_AXIS(P.X_AXIS),
-  POSE_Y_LEFT(P.POSE_Y_LEFT),
-  POSE_ROTATION(P.POSE_ROT_LEFT, P.POSE_ROT_RIGHT),  // Composite series
+  X_AXIS_FULL(P.X_AXIS_FULL),
+  X_AXIS_BODY(P.X_AXIS_BODY),
+  WARNING_ALLIANCE(P.WARNING_ALLIANCE),
+  WARNING_STORAGE(P.WARNING_STORAGE),
+  WARNING_COMPRESSOR(P.WARNING_COMPRESSOR),
+  AUTO_SELECTION(P.AUTO_SELECTION),
+  POSE_Y(P.POSE_Y),
+  POSE_ROTATION(P.POSE_ROTATION_X, P.POSE_ROTATION_Y),  // Composite series
   ...
 }
 ```
@@ -291,6 +327,22 @@ public static LEDPattern progressBar(
 }
 ```
 
+### Urgent Countdown Pattern
+
+The `urgentCountdown` pattern is designed for match timers with an "urgent" final phase:
+
+```java
+public static LEDPattern urgentCountdown(
+    Supplier<Double> remainingSecondsSupplier,
+    Supplier<Double> totalDurationSupplier,
+    double urgencyThresholdSeconds,  // e.g., 10.0
+    Supplier<Color> colorSupplier,
+    Color backgroundColor,
+    double blinkPeriodSeconds) {     // e.g., 0.25 for 4Hz flash
+  ...
+}
+```
+
 ## Available Patterns
 
 ### WPILib Built-in Patterns
@@ -311,6 +363,7 @@ LEDPattern.gradient(LEDPattern.GradientType.kContinuous, Color.kRed, Color.kBlue
 | `scrollingBlocks(color, blockSize, gapSize)` | Configurable scrolling blocks |
 | `solidIf(condition, trueColor, falseColor)` | Conditional solid color |
 | `progressBar(progress, colorSupplier, bgColor)` | Fill bar based on 0.0-1.0 value |
+| `urgentCountdown(remaining, total, threshold, color, bg, blinkPeriod)` | Countdown bar with urgent flashing mode in final seconds |
 | `statusGradient(value, lowColor, highColor)` | Blend between colors |
 | `countingBlocks(countSupplier, colorSupplier, blockSize, gapSize)` | Display N blocks |
 | `bounceRipple(color)` | Expanding/contracting ripple with comet tail |
@@ -324,11 +377,15 @@ LEDPattern.gradient(LEDPattern.GradientType.kContinuous, Color.kRed, Color.kBlue
 |---------|-------------|
 | `solidBlackPattern` | Solid black (off) |
 | `solidYellowPattern` | Solid yellow |
+| `solidRedPattern` | Solid red |
 | `solidGreenPattern` | Solid green |
+| `solidWhitePattern` | Solid white |
+| `solidOrangeRedPattern` | Solid orange-red (for storage warning) |
+| `blinkingYellowPattern` | Blinking yellow (0.5s period, for missing auto) |
 | `bounceRippleYellowPattern` | Yellow bounce ripple (spindexing, not on target) |
 | `bounceRippleGreenPattern` | Green bounce ripple (spindexing, on target) |
 | `autoSelectionPattern` | Counting blocks in alliance color |
-| `hubCountdownPattern` | Progress bar for match phase |
+| `hubCountdownPattern` | Urgent countdown bar for match phase (flashes in final 10s) |
 
 ## Simulation
 
@@ -359,4 +416,7 @@ Check the start/end indices in your `Portion` definitions. Indices are inclusive
 WPILib uses RGB order. Some LED strips expect GRB. Check your strip's data format.
 
 ### Same LEDs lighting up for different series
-Verify that portion definitions in the `P` class have non-overlapping indices for the segments you're using independently.
+Some series intentionally overlap (e.g., `WARNING_STORAGE` overlaps with `Y_AXIS`). This is by design - warning indicators share space with other displays. Make sure your code doesn't apply conflicting patterns to overlapping series simultaneously.
+
+### Warning indicators not showing
+Warning indicators (`WARNING_ALLIANCE`, `WARNING_STORAGE`, `WARNING_COMPRESSOR`) are controlled by `displayAutoSelection()` and `displayCompressorState()`. Ensure these methods are being called in the appropriate robot modes.
