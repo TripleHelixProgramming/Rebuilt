@@ -21,7 +21,7 @@ import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.Preferences;
-import frc.robot.Constants;
+import frc.robot.Constants.FeatureFlags;
 import org.littletonrobotics.junction.Logger;
 
 public class Module {
@@ -56,11 +56,11 @@ public class Module {
   }
 
   public void periodic() {
-    long t0 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t0 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
     io.updateInputs(inputs);
-    long t1 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t1 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
     Logger.processInputs("Drive/Module" + Integer.toString(index), inputs);
-    long t2 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t2 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Calculate positions for odometry
     int sampleCount = inputs.odometryTimestamps.length; // All signals are sampled together
@@ -76,10 +76,10 @@ public class Module {
     turnDisconnectedAlert.set(!inputs.turnConnected);
     Logger.recordOutput("Faults/Module" + index + "/DriveDisconnected", !inputs.driveConnected);
     Logger.recordOutput("Faults/Module" + index + "/TurnDisconnected", !inputs.turnConnected);
-    long t3 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t3 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Profiling output
-    if (Constants.PROFILING_ENABLED) {
+    if (FeatureFlags.PROFILING_ENABLED) {
       long totalMs = (t3 - t0) / 1_000_000;
       if (totalMs > 2) {
         System.out.println(

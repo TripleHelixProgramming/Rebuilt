@@ -2,6 +2,7 @@ package frc.robot;
 
 import static frc.robot.subsystems.vision.VisionConstants.*;
 
+import com.ctre.phoenix6.SignalLogger;
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -9,6 +10,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.PneumaticsModuleType;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.simulation.BatterySim;
 import edu.wpi.first.wpilibj.simulation.REVPHSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
@@ -36,6 +38,7 @@ import frc.lib.LoggedCompressor;
 import frc.lib.LoggedPowerDistribution;
 import frc.lib.ZorroController.Axis;
 import frc.robot.Constants.DIOPorts;
+import frc.robot.Constants.FeatureFlags;
 import frc.robot.auto.B_LeftTrenchAuto;
 import frc.robot.auto.B_LeftTrenchMoveFirstAuto;
 import frc.robot.auto.B_RightTrenchAuto;
@@ -88,6 +91,7 @@ import frc.robot.subsystems.vision.VisionIO;
 import frc.robot.subsystems.vision.VisionIOPhotonVision;
 import frc.robot.subsystems.vision.VisionIOPhotonVisionSim;
 import frc.robot.util.CanandgyroThread;
+import frc.robot.util.KernelLogMonitor;
 import frc.robot.util.SparkOdometryThread;
 import frc.robot.util.VisionThread;
 import org.littletonrobotics.junction.LogFileUtil;
@@ -104,6 +108,20 @@ import org.littletonrobotics.junction.wpilog.WPILOGWriter;
  * project.
  */
 public class Robot extends LoggedRobot {
+  // SESSION_DIR and SignalLogger.setPath() must be initialized before any CTRE device is
+  // constructed. A static initializer guarantees this runs before the constructor or any
+  // instance field initializer that could trigger CANHD class loading.
+  private static final String SESSION_DIR;
+
+  static {
+    if (Constants.currentMode == Constants.Mode.REAL) {
+      SESSION_DIR = createSessionDir();
+      SignalLogger.setPath(SESSION_DIR);
+    } else {
+      SESSION_DIR = null;
+    }
+  }
+
   public static final AllianceSelector allianceSelector =
       new AllianceSelector(DIOPorts.allianceColorSelector);
   public static final AutoSelector autoSelector =
@@ -150,8 +168,9 @@ public class Robot extends LoggedRobot {
     // Set up data receivers & replay source
     switch (Constants.currentMode) {
       case REAL: // Running on a real robot
-        // Log to a USB stick ("/U/logs")
-        Logger.addDataReceiver(new WPILOGWriter());
+        // SESSION_DIR and SignalLogger.setPath() were already set in the static initializer.
+        // SignalLogger will create a nested timestamp subdir inside SESSION_DIR for hoot files.
+        Logger.addDataReceiver(new WPILOGWriter(SESSION_DIR));
         Logger.addDataReceiver(new NT4Publisher());
 
         // Instantiate hardware IO implementations
@@ -177,7 +196,7 @@ public class Robot extends LoggedRobot {
                 new TurretIOSpark(),
                 new FlywheelIOTalonFX(),
                 new HoodIOSpark());
-        hopper = new Hopper(new HopperIOReal());
+        if (FeatureFlags.kHopperEnabled) hopper = new Hopper(new HopperIOReal());
         intake =
             new Intake(
                 new RollerIOTalonFX(RollerConstants.upperRollerConfig),
@@ -185,6 +204,9 @@ public class Robot extends LoggedRobot {
                 new IntakeArmIOReal());
         feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
         compressor = new LoggedCompressor(PneumaticsModuleType.REVPH, "Compressor");
+
+        // Start kernel log monitoring (singleton, starts automatically on first call)
+        KernelLogMonitor.getInstance();
         break;
 
       case SIM: // Running a physics simulator
@@ -220,7 +242,7 @@ public class Robot extends LoggedRobot {
                 new FlywheelIOSimTalonFX(),
                 new HoodIOSimSpark());
         feeder = new Feeder(new SpindexerIOSimSpark(), new KickerIOSimSpark());
-        hopper = new Hopper(new HopperIOSim());
+        if (FeatureFlags.kHopperEnabled) hopper = new Hopper(new HopperIOSim());
         var intakeArmIOSim = new IntakeArmIOSim();
         intake =
             new Intake(
@@ -262,7 +284,7 @@ public class Robot extends LoggedRobot {
                 new TurretIO() {},
                 new FlywheelIO() {},
                 new HoodIO() {});
-        hopper = new Hopper(new HopperIO() {});
+        if (FeatureFlags.kHopperEnabled) hopper = new Hopper(new HopperIO() {});
         intake = new Intake(new RollerIO() {}, new RollerIO() {}, new IntakeArmIO() {});
         feeder = new Feeder(new SpindexerIO() {}, new KickerIO() {});
         break;
@@ -281,12 +303,14 @@ public class Robot extends LoggedRobot {
 
     // Wire the hopper/intake interlocks. Done here (after both subsystems exist) to avoid a
     // circular dependency between the two subsystems.
-    intake.setDeployInterlock(
-        hopper::isDeployed,
-        () -> hopper.getDeployCommand().withTimeout(IntakeConstants.kInterlockSettleSeconds));
-    hopper.setRetractInterlock(
-        intake::isStowed,
-        () -> intake.getStopCommand().withTimeout(IntakeConstants.kInterlockSettleSeconds));
+    if (FeatureFlags.kHopperEnabled) {
+      intake.setDeployInterlock(
+          hopper::isDeployed,
+          () -> hopper.getDeployCommand().withTimeout(IntakeConstants.kInterlockSettleSeconds));
+      hopper.setRetractInterlock(
+          intake::isStowed,
+          () -> intake.getStopCommand().withTimeout(IntakeConstants.kInterlockSettleSeconds));
+    }
 
     configureControlPanelBindings();
     configureAutoOptions();
@@ -319,7 +343,7 @@ public class Robot extends LoggedRobot {
   /** This function is called periodically during all modes. */
   @Override
   public void robotPeriodic() {
-    long loopStart = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long loopStart = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Runs the Scheduler. This is responsible for polling buttons, adding
     // newly-scheduled commands, running already-scheduled commands, removing
@@ -327,7 +351,7 @@ public class Robot extends LoggedRobot {
     // This must be called from the robot's periodic block in order for anything in
     // the Command-based framework to work.
     CommandScheduler.getInstance().run();
-    long t1 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t1 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     logCANBus("CAN2", Constants.CANBusPorts.CAN2.bus);
     logCANBus("CANHD", Constants.CANBusPorts.CANHD.bus);
@@ -338,19 +362,28 @@ public class Robot extends LoggedRobot {
 
     Logger.recordOutput("USB/FreeSpaceMB", getUSBStorageFreeSpace() / 1024 / 1024);
     GameState.logValues();
-    long t2 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t2 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
+
+    // Publish kernel log events to NetworkTables (only runs on real robot)
+    if (RobotBase.isReal()) {
+      KernelLogMonitor.getInstance().publishToLogger();
+    }
+    long t3 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Profiling output
-    if (Constants.PROFILING_ENABLED) {
+    if (FeatureFlags.PROFILING_ENABLED) {
       long schedulerMs = (t1 - loopStart) / 1_000_000;
       long gameStateMs = (t2 - t1) / 1_000_000;
-      long totalMs = (t2 - loopStart) / 1_000_000;
+      long kernelMonitorMs = (t3 - t2) / 1_000_000;
+      long totalMs = (t3 - loopStart) / 1_000_000;
       if (totalMs > 20) {
         System.out.println(
             "[Robot] scheduler="
                 + schedulerMs
                 + "ms gameState="
                 + gameStateMs
+                + "ms kernelMonitor="
+                + kernelMonitorMs
                 + "ms total="
                 + totalMs
                 + "ms");
@@ -384,7 +417,7 @@ public class Robot extends LoggedRobot {
   /** This function is called once when autonomous mode is enabled. */
   @Override
   public void autonomousInit() {
-    hopper.getRetractCommand().schedule();
+    if (hopper != null) hopper.getRetractCommand().schedule();
     drive.setDefaultCommand(Commands.runOnce(drive::stop, drive).withName("Stop"));
     autoSelector.scheduleAuto();
     leds.clear();
@@ -400,7 +433,8 @@ public class Robot extends LoggedRobot {
   /** This function is called once when teleop mode is enabled. */
   @Override
   public void teleopInit() {
-    if (!hopper.isDeployed() && !hopper.isStowed()) hopper.getRetractCommand().schedule();
+    if (hopper != null && !hopper.isDeployed() && !hopper.isStowed())
+      hopper.getRetractCommand().schedule();
     autoSelector.cancelAuto();
     ControllerSelector.getInstance().scan(true);
     leds.clear();
@@ -519,13 +553,14 @@ public class Robot extends LoggedRobot {
     // Toggle hopper: deploy if stowed, stow if deployed (retracting intake first if needed).
     // runOnce has no subsystem requirements so it always executes; the scheduled command
     // requires hopper and will interrupt whatever is currently running on that subsystem.
-    zorroDriver
-        .DIn()
-        .onTrue(
-            Commands.runOnce(
-                () ->
-                    (hopper.isDeployed() ? hopper.getRetractCommand() : hopper.getDeployCommand())
-                        .schedule()));
+    if (FeatureFlags.kHopperEnabled)
+      zorroDriver
+          .DIn()
+          .onTrue(
+              Commands.runOnce(
+                  () ->
+                      (hopper.isDeployed() ? hopper.getRetractCommand() : hopper.getDeployCommand())
+                          .schedule()));
 
     // Desaturate turret and advance feeder
     zorroDriver.AIn().whileTrue(createDesaturateAndShootCommand(controller));
@@ -822,7 +857,7 @@ public class Robot extends LoggedRobot {
     logSubsystem("Vision", vision);
     logSubsystem("Launcher", launcher);
     logSubsystem("Feeder", feeder);
-    logSubsystem("Hopper", hopper);
+    if (hopper != null) logSubsystem("Hopper", hopper);
     logSubsystem("Intake", intake);
     logAlerts();
   }
@@ -843,6 +878,33 @@ public class Robot extends LoggedRobot {
         "Alerts/" + group + "/Warnings", table.getEntry("warnings").getStringArray(new String[0]));
     Logger.recordOutput(
         "Alerts/" + group + "/Infos", table.getEntry("infos").getStringArray(new String[0]));
+  }
+
+  /**
+   * Creates and returns a timestamped session directory under /U/logs/. Must be called before any
+   * CTRE devices are constructed so that SignalLogger.setPath() takes effect before auto-logging
+   * begins.
+   */
+  private static String createSessionDir() {
+    java.io.File logsDir = new java.io.File("/U/logs");
+    long maxCount = 0;
+    java.io.File[] entries = logsDir.listFiles();
+    if (entries != null) {
+      for (java.io.File entry : entries) {
+        String name = entry.getName();
+        if (name.startsWith("session_")) {
+          try {
+            long n = Long.parseLong(name.substring("session_".length()));
+            if (n > maxCount) maxCount = n;
+          } catch (NumberFormatException e) {
+            // not a session dir, skip
+          }
+        }
+      }
+    }
+    String dir = "/U/logs/session_" + (maxCount + 1) + "/";
+    new java.io.File(dir).mkdirs();
+    return dir;
   }
 
   private static void logCANBus(String name, com.ctre.phoenix6.CANBus bus) {
