@@ -44,7 +44,7 @@ public final class Constants {
     public static final boolean PROFILING_ENABLED = false;
 
     /** Set to false to disable the hopper subsystem entirely. */
-    public static final boolean kHopperEnabled = true;
+    public static final boolean kHopperEnabled = false;
   }
 
   public final class RobotConstants {
