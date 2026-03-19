@@ -872,11 +872,23 @@ public class Robot extends LoggedRobot {
    * begins.
    */
   private static String createSessionDir() {
-    String dir =
-        "/U/logs/"
-            + String.format(
-                "fpga_%ds", edu.wpi.first.wpilibj.RobotController.getFPGATime() / 1_000_000L)
-            + "/";
+    java.io.File logsDir = new java.io.File("/U/logs");
+    long maxCount = 0;
+    java.io.File[] entries = logsDir.listFiles();
+    if (entries != null) {
+      for (java.io.File entry : entries) {
+        String name = entry.getName();
+        if (name.startsWith("session_")) {
+          try {
+            long n = Long.parseLong(name.substring("session_".length()));
+            if (n > maxCount) maxCount = n;
+          } catch (NumberFormatException e) {
+            // not a session dir, skip
+          }
+        }
+      }
+    }
+    String dir = "/U/logs/session_" + (maxCount + 1) + "/";
     new java.io.File(dir).mkdirs();
     return dir;
   }
