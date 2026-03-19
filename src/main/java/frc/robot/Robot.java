@@ -10,6 +10,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.PneumaticsModuleType;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.simulation.BatterySim;
 import edu.wpi.first.wpilibj.simulation.REVPHSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
@@ -89,6 +90,7 @@ import frc.robot.subsystems.vision.VisionIO;
 import frc.robot.subsystems.vision.VisionIOPhotonVision;
 import frc.robot.subsystems.vision.VisionIOPhotonVisionSim;
 import frc.robot.util.CanandgyroThread;
+import frc.robot.util.KernelLogMonitor;
 import frc.robot.util.SparkOdometryThread;
 import frc.robot.util.VisionThread;
 import org.littletonrobotics.junction.LogFileUtil;
@@ -201,6 +203,9 @@ public class Robot extends LoggedRobot {
                 new IntakeArmIOReal());
         feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
         compressor = new LoggedCompressor(PneumaticsModuleType.REVPH, "Compressor");
+
+        // Start kernel log monitoring (singleton, starts automatically on first call)
+        KernelLogMonitor.getInstance();
         break;
 
       case SIM: // Running a physics simulator
@@ -356,17 +361,26 @@ public class Robot extends LoggedRobot {
     GameState.logValues();
     long t2 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
 
+    // Publish kernel log events to NetworkTables (only runs on real robot)
+    if (RobotBase.isReal()) {
+      KernelLogMonitor.getInstance().publishToLogger();
+    }
+    long t3 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+
     // Profiling output
     if (Constants.PROFILING_ENABLED) {
       long schedulerMs = (t1 - loopStart) / 1_000_000;
       long gameStateMs = (t2 - t1) / 1_000_000;
-      long totalMs = (t2 - loopStart) / 1_000_000;
+      long kernelMonitorMs = (t3 - t2) / 1_000_000;
+      long totalMs = (t3 - loopStart) / 1_000_000;
       if (totalMs > 20) {
         System.out.println(
             "[Robot] scheduler="
                 + schedulerMs
                 + "ms gameState="
                 + gameStateMs
+                + "ms kernelMonitor="
+                + kernelMonitorMs
                 + "ms total="
                 + totalMs
                 + "ms");
