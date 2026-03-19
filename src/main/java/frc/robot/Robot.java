@@ -863,7 +863,8 @@ public class Robot extends LoggedRobot {
   private static String createSessionDir() {
     String dir =
         "/U/logs/"
-            + new java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new java.util.Date())
+            + String.format(
+                "fpga_%ds", edu.wpi.first.wpilibj.RobotController.getFPGATime() / 1_000_000L)
             + "/";
     new java.io.File(dir).mkdirs();
     return dir;
