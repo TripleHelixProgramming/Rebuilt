@@ -368,7 +368,7 @@ public class Robot extends LoggedRobot {
     if (RobotBase.isReal()) {
       KernelLogMonitor.getInstance().publishToLogger();
     }
-    long t3 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t3 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Profiling output
     if (FeatureFlags.PROFILING_ENABLED) {
