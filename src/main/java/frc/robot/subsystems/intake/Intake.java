@@ -42,16 +42,16 @@ public class Intake extends SubsystemBase {
 
   @Override
   public void periodic() {
-    long t0 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t0 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
     upperRollerIO.updateInputs(upperRollerInputs);
     lowerRollerIO.updateInputs(lowerRollerInputs);
     intakeArmIO.updateInputs(intakeArmInputs);
-    long t1 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t1 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     Logger.processInputs("UpperRoller", upperRollerInputs);
     Logger.processInputs("LowerRoller", lowerRollerInputs);
     Logger.processInputs("IntakeArm", intakeArmInputs);
-    long t2 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t2 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     upperRollerDisconnectedAlert.set(!upperRollerInputs.connected);
     lowerRollerDisconnectedAlert.set(!lowerRollerInputs.connected);
@@ -59,7 +59,7 @@ public class Intake extends SubsystemBase {
     Logger.recordOutput("Faults/Intake/LowerRollerDisconnected", !lowerRollerInputs.connected);
 
     // Profiling output
-    if (Constants.PROFILING_ENABLED) {
+    if (Constants.FeatureFlags.PROFILING_ENABLED) {
       long totalMs = (t2 - t0) / 1_000_000;
       if (totalMs > 2) {
         System.out.println(

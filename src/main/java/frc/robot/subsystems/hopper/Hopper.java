@@ -24,14 +24,14 @@ public class Hopper extends SubsystemBase {
 
   @Override
   public void periodic() {
-    long t0 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t0 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
     hopperIO.updateInputs(hopperInputs);
-    long t1 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t1 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
     Logger.processInputs("Hopper", hopperInputs);
-    long t2 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t2 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Profiling output
-    if (Constants.PROFILING_ENABLED) {
+    if (Constants.FeatureFlags.PROFILING_ENABLED) {
       long totalMs = (t2 - t0) / 1_000_000;
       if (totalMs > 2) {
         System.out.println(

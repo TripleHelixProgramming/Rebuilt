@@ -28,9 +28,6 @@ public final class Constants {
   public static final Mode simMode = Mode.SIM;
   public static final Mode currentMode = RobotBase.isReal() ? Mode.REAL : simMode;
 
-  /** Enable to print loop timing when total exceeds 20ms. */
-  public static final boolean PROFILING_ENABLED = false;
-
   public static enum Mode {
     /** Running on a real robot. */
     REAL,
@@ -40,6 +37,14 @@ public final class Constants {
 
     /** Replaying from a log file. */
     REPLAY
+  }
+
+  public static final class FeatureFlags {
+    /** Enable to print loop timing when total exceeds 20ms. */
+    public static final boolean PROFILING_ENABLED = false;
+
+    /** Set to false to disable the hopper subsystem entirely. */
+    public static final boolean kHopperEnabled = false;
   }
 
   public final class RobotConstants {
@@ -111,7 +116,7 @@ public final class Constants {
     public static final class CANHD {
       // CAN bus that the devices are located on;
       // All swerve devices must share the same CAN bus
-      public static final CANBus bus = new CANBus("canivore", "/home/lvuser/logs/");
+      public static final CANBus bus = new CANBus("canivore");
 
       // Drivetrain
       public static final int backLeftDrive = 10;

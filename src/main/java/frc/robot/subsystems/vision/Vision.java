@@ -118,14 +118,14 @@ public class Vision extends SubsystemBase {
 
   @Override
   public void periodic() {
-    long visionStart = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long visionStart = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
     loopCounter++;
 
     // Copy cached inputs from background thread (should be fast - volatile reads)
     for (int i = 0; i < io.length; i++) {
       visionInputs[i].getSnapshot().copyTo(inputs[i]);
     }
-    long t1 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t1 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Log inputs via AdvantageKit (throttled - serialization is expensive)
     // Note: Throttling reduces CPU load but loses data granularity for replay
@@ -134,7 +134,7 @@ public class Vision extends SubsystemBase {
         Logger.processInputs("Vision/Camera" + Integer.toString(i), inputs[i]);
       }
     }
-    long t2 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t2 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Initialize logging values
     allTagPoses.clear();
@@ -221,7 +221,7 @@ public class Vision extends SubsystemBase {
       allRobotPosesRejected.addAll(robotPosesRejected);
     }
 
-    long t3 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t3 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Remove unacceptable observations
     observations.removeIf(o -> o.score < minScore);
@@ -243,7 +243,7 @@ public class Vision extends SubsystemBase {
 
       Logger.recordOutput("Vision/Summary/ObservationScore", o.score);
     }
-    long t4 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t4 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Log summary data (throttled along with processInputs)
     if (loopCounter % kLoggingDivisor == 0) {
@@ -260,10 +260,10 @@ public class Vision extends SubsystemBase {
             "Vision/Summary/RobotPosesRejected", allRobotPosesRejected.toArray(Pose3d[]::new));
       }
     }
-    long t5 = Constants.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t5 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Profiling output
-    if (Constants.PROFILING_ENABLED) {
+    if (Constants.FeatureFlags.PROFILING_ENABLED) {
       long totalMs = (t5 - visionStart) / 1_000_000;
       if (totalMs > 5) {
         System.out.println(
