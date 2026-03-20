@@ -73,8 +73,8 @@ public class Feeder extends SubsystemBase {
   }
 
   public void spinForward() {
-    spindexerIO.setVelocity(MetersPerSecond.of(3.0));
-    kickerIO.setVelocity(MetersPerSecond.of(6.0));
+    spindexerIO.setVelocity(MetersPerSecond.of(4.5));
+    kickerIO.setVelocity(MetersPerSecond.of(8.0));
   }
 
   public Command getSpinForwardCommand() {
