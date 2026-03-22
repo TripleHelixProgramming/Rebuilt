@@ -145,7 +145,7 @@ public class VisionConstants {
 
   // Logging frequency (1 = every cycle, 2 = every other cycle, etc.)
   // Higher values reduce CPU load but loses data granularity for replay
-  public static int kLoggingDivisor = 1;
+  public static int kLoggingDivisor = 2;
 
   // Vision processing interval (1 = every loop, 5 = every 5th loop = 10Hz at 50Hz robot loop)
   // Higher values batch more observations together for fusion, reducing jitter but adding latency.
