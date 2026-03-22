@@ -43,10 +43,10 @@ import frc.robot.auto.B_LeftTrenchAuto;
 import frc.robot.auto.B_LeftTrenchMoveFirstAuto;
 import frc.robot.auto.B_RightTrenchAuto;
 import frc.robot.auto.B_RightTrenchMoveFirstAuto;
+import frc.robot.auto.NewR_RightTrenchMoveFirstAuto;
 import frc.robot.auto.R_LeftTrenchAuto;
 import frc.robot.auto.R_LeftTrenchMoveFirstAuto;
 import frc.robot.auto.R_RightTrenchAuto;
-import frc.robot.auto.R_RightTrenchMoveFirstAuto;
 import frc.robot.commands.DriveCommands;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.DriveConstants;
@@ -800,7 +800,7 @@ public class Robot extends LoggedRobot {
             Alliance.Blue, 4, new B_RightTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
     autoSelector.addAuto(
         new AutoOption(
-            Alliance.Red, 4, new R_RightTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
+            Alliance.Red, 4, new NewR_RightTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
   }
 
   public static Alliance getAlliance() {
