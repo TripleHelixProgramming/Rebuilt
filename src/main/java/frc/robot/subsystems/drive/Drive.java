@@ -387,12 +387,6 @@ public class Drive extends SubsystemBase {
     return visionPose.getEstimatedPosition();
   }
 
-  /** Returns the current heading from the pose estimator. */
-  @AutoLogOutput(key = "Drive/Heading")
-  public Rotation2d getHeading() {
-    return getPose().getRotation();
-  }
-
   /**
    * Returns the field-relative heading for vision yaw validation, or null if the pose has not yet
    * been initialized by vision or an auto routine. Returning null causes the yawConsistency test to
