@@ -8,30 +8,30 @@ import frc.robot.subsystems.feeder.Feeder;
 import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.launcher.Launcher;
 
-public class NewR_RightTrenchMoveFirstAuto extends AutoMode {
+public class NewB_RightTrenchMoveFirstAuto extends AutoMode {
   private final AutoRoutine routine;
-  private final AutoTrajectory NewRedRightNeutralZone;
-  private final AutoTrajectory NewRedRightTransition;
+  private final AutoTrajectory NewBlueRightNeutralZone;
+  private final AutoTrajectory NewBlueRightTransition;
 
-  public NewR_RightTrenchMoveFirstAuto(
+  public NewB_RightTrenchMoveFirstAuto(
       Drive drivetrain,
       Feeder feederSubsystem,
       Intake intakeSubsystem,
       Launcher launcherSubsystem) {
     super(drivetrain, feederSubsystem, intakeSubsystem);
-    routine = getAutoFactory().newRoutine("NewR_RightTrenchMoveFirstAuto");
-    NewRedRightNeutralZone = routine.trajectory("NewRedRightNeutralZone");
-    NewRedRightTransition = routine.trajectory("NewRedRightTransition");
+    routine = getAutoFactory().newRoutine("NewB_RightTrenchMoveFirstAuto");
+    NewBlueRightNeutralZone = routine.trajectory("NewBlueRightNeutralZone");
+    NewBlueRightTransition = routine.trajectory("NewBlueRightTransition");
   }
 
   @Override
   public String getName() {
-    return "NewRedRightNeutralZone";
+    return "NewB_RightTrenchMoveFirstAuto";
   }
 
   @Override
   public AutoTrajectory getInitialTrajectory() {
-    return NewRedRightNeutralZone;
+    return NewBlueRightNeutralZone;
   }
 
   @Override
@@ -41,21 +41,21 @@ public class NewR_RightTrenchMoveFirstAuto extends AutoMode {
         .active()
         .onTrue(
             Commands.sequence(
-                NewRedRightNeutralZone.resetOdometry(),
+                NewBlueRightNeutralZone.resetOdometry(),
                 Commands.parallel(
-                    NewRedRightNeutralZone.cmd(),
+                    NewBlueRightNeutralZone.cmd(),
                     Commands.sequence(
                         Commands.waitSeconds(0.8), intake.getDeployCommand().withTimeout(9.2)))));
 
-    NewRedRightNeutralZone.done()
+    NewBlueRightNeutralZone.done()
         .onTrue(
             Commands.sequence(
                 stopDrive(),
                 shakeAndFeed(5.0),
                 Commands.parallel(
-                    NewRedRightTransition.cmd(), intake.getDeployCommand().withTimeout(5.0))));
+                    NewBlueRightTransition.cmd(), intake.getDeployCommand().withTimeout(5.0))));
 
-    NewRedRightTransition.done().onTrue(Commands.sequence(stopDrive(), shakeAndFeed(5.0)));
+    NewBlueRightTransition.done().onTrue(Commands.sequence(stopDrive(), shakeAndFeed(5.0)));
 
     return routine;
   }
