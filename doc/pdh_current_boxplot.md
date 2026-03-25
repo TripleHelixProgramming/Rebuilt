@@ -1,0 +1,34 @@
+# PDH Current Draw — VACHE Match Analysis
+
+![PDH Total Current Boxplot](/doc/assets/pdh_current_boxplot.png)
+
+Box & whisker plot of `/RealOutputs/PDH/TotalCurrentAmps` across all 14 usable VACHE match logs (11 quals + 3 elims). Each box spans the match from auto start to teleop end. Q13 is excluded — no teleop was detected in that log.
+
+## How to read it
+
+| Element | Meaning |
+|---------|---------|
+| Box bottom / top | Q1 / Q3 (middle 50% of samples) |
+| White line | Median |
+| Diamond | Mean |
+| Whiskers | Min / max (no outlier filtering) |
+
+## Key takeaways
+
+**Normal range:** Most matches run a median of ~86–110 A with IQRs of 56–92 A — very consistent across the event.
+
+**Peak spikes:** Whisker tops regularly reach 250–292 A. These are transient current spikes (e.g. drivetrain acceleration, shooter spinup), not sustained draws — the box tops stay well under 150 A.
+
+**Q27 is anomalous:** Median of only 28 A vs. ~90–108 A everywhere else, with a compressed IQR (22–74 A). The robot was likely disabled or disconnected for a large portion of this match.
+
+**Q54 ran the hottest:** Highest median (108 A) and Q3 (148 A) of any qual match.
+
+**Elims are consistent with quals:** E4/E8/E10 fall squarely within the qual distribution — no evidence of higher-intensity play driving unusual current.
+
+## Reproducing
+
+```
+python scripts/pdh_current_boxplot.py
+```
+
+Stats were pulled directly from the wpilog server, filtered to match time (auto start → teleop end) per log.
