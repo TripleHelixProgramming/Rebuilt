@@ -239,7 +239,18 @@ def process_match(
         found = False
         for entry in entries:
             if entry in scalars:
-                total_current += interp_entry(scalars, entry, t_abs)
+                current = interp_entry(scalars, entry, t_abs)
+                # AKit delta-logs current only on value change. Motors idle at
+                # exactly 0 A produce no log entries, so the first sample in
+                # our window may be non-zero (e.g. mid-shoot for spindexer/
+                # kicker). interp_entry extrapolates that value back to t=0,
+                # falsely accumulating energy. Zero out everything before the
+                # first actual logged timestamp within this match window.
+                ts_all = scalars[entry][0]
+                in_window = ts_all[(ts_all >= auto_start - 1.0) & (ts_all <= match_end + 1.0)]
+                if len(in_window) > 0:
+                    current[t_abs < in_window[0]] = 0.0
+                total_current += current
                 found = True
         result[group] = to_common(total_current) if found else np.zeros_like(COMMON_GRID)
 

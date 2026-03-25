@@ -14,16 +14,17 @@ exist for those loads.
 
 | Mechanism | Energy | Share |
 |-----------|-------:|------:|
-| Drive | 211.7 kJ | 61.7% |
-| Lower Roller | 27.5 kJ | 8.0% |
-| Flywheel | 26.1 kJ | 7.6% |
-| Upper Roller | 25.6 kJ | 7.5% |
-| Kicker | 18.8 kJ | 5.5% |
-| Spindexer | 15.9 kJ | 4.6% |
-| Compressor | 9.9 kJ | 2.9% |
-| Turret | 6.9 kJ | 2.0% |
+| Drive | 211.7 kJ | 63.5% |
+| Lower Roller | 27.1 kJ | 8.1% |
+| Flywheel | 26.0 kJ | 7.8% |
+| Upper Roller | 24.2 kJ | 7.3% |
+| Kicker | 12.7 kJ | 3.8% |
+| Compressor | 9.9 kJ | 3.0% |
+| Spindexer | 9.2 kJ | 2.8% |
+| Turret | 6.9 kJ | 2.1% |
+| Electronics | 5.3 kJ | 1.6% |
 | Hood | 0.4 kJ | 0.1% |
-| **Total** | **342.8 kJ** | |
+| **Total** | **333.3 kJ** | |
 
 Q54 was a high-energy match — drive consumption was notably higher than the
 event average, consistent with aggressive teleop movement.
@@ -39,35 +40,35 @@ autonomous enable; curves averaged on a common 165 s grid.
 
 | Mechanism | Avg Energy | Share |
 |-----------|----------:|------:|
-| Drive | 180.6 kJ | 55.4% |
-| Flywheel | 30.4 kJ | 9.3% |
-| Lower Roller | 26.9 kJ | 8.3% |
-| Upper Roller | 24.3 kJ | 7.4% |
-| Kicker | 22.4 kJ | 6.9% |
-| Spindexer | 19.0 kJ | 5.8% |
-| Compressor | 10.1 kJ | 3.1% |
-| Turret | 6.5 kJ | 2.0% |
-| Electronics | 5.2 kJ | 1.6% |
+| Drive | 180.6 kJ | 58.0% |
+| Flywheel | 30.2 kJ | 9.7% |
+| Lower Roller | 26.3 kJ | 8.4% |
+| Upper Roller | 23.6 kJ | 7.6% |
+| Kicker | 16.7 kJ | 5.4% |
+| Spindexer | 11.9 kJ | 3.8% |
+| Compressor | 10.1 kJ | 3.3% |
+| Turret | 6.4 kJ | 2.1% |
+| Electronics | 5.2 kJ | 1.7% |
 | Hood | 0.5 kJ | 0.2% |
-| **Total** | **326.1 kJ** | |
+| **Total** | **311.5 kJ** | |
 
 ---
 
 ## Key Observations
 
-**Drive dominates.** At 55–62% of total energy, the drivetrain is by far the
+**Drive dominates.** At 58–64% of total energy, the drivetrain is by far the
 largest consumer. All growth is approximately linear, indicating sustained
 driving throughout both auto and teleop with no extended idle periods.
 
 **Shooter system is the second-largest group.** Flywheel + rollers (Lower/Upper)
-+ Kicker + Spindexer collectively consume ~113 kJ on average (35%), nearly all
++ Kicker + Spindexer collectively consume ~98 kJ on average (31%), nearly all
 of which is teleop — the bands for these mechanisms steepen noticeably after the
 auto/teleop boundary as the shooter spins up and cycles continuously.
 
 **Compressor is non-trivial.** At ~10 kJ (3%), the compressor ranks above the
 turret. The pneumatic system runs throughout the match to maintain pressure.
 
-**Electronics overhead (5.2 kJ, 1.6%)** covers OrangePis, LEDs, RIO, radio,
+**Electronics overhead (5.2 kJ, 1.7%)** covers OrangePis, LEDs, RIO, radio,
 CANivore, and coprocessors. The ~1.5 A constant draw on PDH channels 14–15
 (OrangePis/LEDs) accounts for roughly 60% of this group, with the remainder
 split across channels 20–22 (RIO, radio, CANivore/coprocessors).
