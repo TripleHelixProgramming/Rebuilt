@@ -98,6 +98,11 @@ MECHANISM_GROUPS = {
     "Electronics": [],  # OrangePis/LEDs + RIO/radio/CANivore/coprocessors — sourced from PDH channels
 }
 
+# Mechanisms using Krakens (TalonFX/Phoenix 6) whose supply current can go
+# negative during regenerative braking.  Energy is integrated without clamping
+# for these groups so regen recovery reduces the net energy total.
+KRAKEN_GROUPS = {"Drive", "Flywheel", "Lower Roller", "Upper Roller"}
+
 # ---------------------------------------------------------------------------
 # Log reader
 
@@ -193,10 +198,15 @@ def interp_entry(
 
 
 def cumulative_energy_J(
-    t_abs: np.ndarray, current: np.ndarray, voltage: np.ndarray
+    t_abs: np.ndarray, current: np.ndarray, voltage: np.ndarray,
+    clamp: bool = False,
 ) -> np.ndarray:
-    """Trapezoid-integrate P=V*I; supply current clamped >=0. Returns J array."""
-    power = np.maximum(current, 0.0) * voltage
+    """Trapezoid-integrate P=V*I. Returns J array.
+    clamp=True: floor supply current at 0 (use for non-regen sources like PDH channels).
+    clamp=False (default): allow negative current so regen braking reduces net energy.
+    """
+    i = np.maximum(current, 0.0) if clamp else current
+    power = i * voltage
     dE    = 0.5 * (power[:-1] + power[1:]) * np.diff(t_abs)
     return np.concatenate([[0.0], np.cumsum(dE)])
 
@@ -221,8 +231,8 @@ def process_match(
 
     match_duration = match_end - auto_start   # seconds
 
-    def to_common(current: np.ndarray) -> np.ndarray:
-        energy_kJ = cumulative_energy_J(t_abs, current, voltage) / 1000.0
+    def to_common(current: np.ndarray, clamp: bool = False) -> np.ndarray:
+        energy_kJ = cumulative_energy_J(t_abs, current, voltage, clamp=clamp) / 1000.0
         t_elapsed  = np.linspace(0.0, match_duration, len(t_abs))
         return np.interp(COMMON_GRID, t_elapsed, energy_kJ,
                          left=0.0, right=energy_kJ[-1])
@@ -252,7 +262,8 @@ def process_match(
                     current[t_abs < in_window[0]] = 0.0
                 total_current += current
                 found = True
-        result[group] = to_common(total_current) if found else np.zeros_like(COMMON_GRID)
+        clamp = group not in KRAKEN_GROUPS
+        result[group] = to_common(total_current, clamp=clamp) if found else np.zeros_like(COMMON_GRID)
 
     # PDH-sourced overhead group (climber + RIO/radio/coprocessors/LEDs)
     electronics_i = extract_pdh_channel(arrays, PDH_ELECTRONICS_CHANNELS, t_abs)

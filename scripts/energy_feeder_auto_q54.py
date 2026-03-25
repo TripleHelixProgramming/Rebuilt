@@ -54,7 +54,7 @@ def main():
             in_window = ts_all[(ts_all >= AUTO_START - 1.0) & (ts_all <= AUTO_END + 1.0)]
             if len(in_window) > 0:
                 current[t_abs < in_window[0]] = 0.0
-        energies[name] = cumulative_energy_J(t_abs, current, voltage) / 1000.0   # → kJ
+        energies[name] = cumulative_energy_J(t_abs, current, voltage, clamp=True) / 1000.0   # → kJ
 
     # ── print summary ──────────────────────────────────────────────────────────
     print("\nQ54 autonomous energy (spindexer + kicker):")
