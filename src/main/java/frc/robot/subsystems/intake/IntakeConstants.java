@@ -27,6 +27,9 @@ public class IntakeConstants {
     public static final Slot1Configs velocityTorqueCurrentGains =
         new Slot1Configs().withKP(5).withKI(0.0).withKD(0.0).withKS(2.5);
 
+    // Stator current limit; reduced from default 100A — observed VACHE peaks were 56A
+    public static final int kStatorCurrentLimit = 60;
+
     public static final double maxAcceleration = 4000.0;
     public static final double maxJerk = 40000.0;
 

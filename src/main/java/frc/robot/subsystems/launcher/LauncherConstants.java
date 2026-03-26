@@ -111,6 +111,9 @@ public final class LauncherConstants {
 
     public static final Distance wheelRadius = Inches.of(1.5);
 
+    // Stator current limit; reduced from default 100A — spin-up peaks observed at 40-60A/motor
+    public static final int kStatorCurrentLimit = 60;
+
     // Velocity Controller
     public static final double maxAcceleration = 4000.0;
     public static final double maxJerk = 40000.0;

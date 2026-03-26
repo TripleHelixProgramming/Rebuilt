@@ -41,6 +41,7 @@ public class KickerIOSpark implements KickerIO {
         .inverted(false)
         .idleMode(IdleMode.kBrake)
         .smartCurrentLimit(NEOVortexConstants.kDefaultSupplyCurrentLimit)
+        .secondaryCurrentLimit(kSecondaryCurrentLimit)
         .voltageCompensation(RobotConstants.kNominalVoltage);
 
     config
