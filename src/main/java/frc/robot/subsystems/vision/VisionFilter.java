@@ -276,9 +276,7 @@ public class VisionFilter {
           Test.rollError,
           Test.heightError,
           Test.withinBoundaries,
-          Test.distanceToTags,
-          // Test.velocityConsistency,
-          Test.yawConsistency);
+          Test.distanceToTags);
 
   /**
    * Scores an observation by running all enabled tests.
