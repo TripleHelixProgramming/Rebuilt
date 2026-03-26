@@ -69,7 +69,6 @@ public class Drive extends SubsystemBase {
 
   private SwerveDriveKinematics kinematics = new SwerveDriveKinematics(moduleTranslations);
   private Rotation2d rawGyroRotation = Rotation2d.kZero;
-  private Rotation2d headingOffset = Rotation2d.kZero;
   private SwerveModulePosition[] lastModulePositions = // For delta tracking
       new SwerveModulePosition[] {
         new SwerveModulePosition(),
@@ -80,6 +79,7 @@ public class Drive extends SubsystemBase {
   private SwerveDrivePoseEstimator visionPose =
       new SwerveDrivePoseEstimator(kinematics, rawGyroRotation, lastModulePositions, new Pose2d());
   private boolean firstVisionEstimate = true;
+  private boolean poseInitialized = false;
 
   private static final ChassisSpeeds ZERO_SPEEDS = new ChassisSpeeds();
   private final SwerveModuleState[] emptyModuleStates = new SwerveModuleState[] {};
@@ -300,7 +300,7 @@ public class Drive extends SubsystemBase {
                 + headingController.calculate(pose.getRotation().getRadians(), sample.heading));
 
     // Apply the generated speeds
-    runVelocity(ChassisSpeeds.fromFieldRelativeSpeeds(speeds, getHeading()));
+    runVelocity(ChassisSpeeds.fromFieldRelativeSpeeds(speeds, pose.getRotation()));
   }
 
   /** Runs the drive in a straight line with the specified drive output. */
@@ -387,24 +387,23 @@ public class Drive extends SubsystemBase {
     return visionPose.getEstimatedPosition();
   }
 
-  @AutoLogOutput(key = "Drive/Heading")
-  /** Returns the current teleoperation orientation. */
-  public Rotation2d getHeading() {
-    return rawGyroRotation.plus(headingOffset);
+  /**
+   * Returns the field-relative heading for vision yaw validation, or null if the pose has not yet
+   * been initialized by vision or an auto routine. Returning null causes the yawConsistency test to
+   * be skipped, avoiding false rejections before the heading has field-relative meaning.
+   */
+  public Rotation2d getFieldRelativeHeading() {
+    return poseInitialized ? getPose().getRotation() : null;
   }
 
   public Rotation2d getRawGyroRotation() {
     return rawGyroRotation;
   }
 
-  /** Resets the current teleoperation orientation. */
-  public void resetHeading(Rotation2d heading) {
-    this.headingOffset = heading.minus(rawGyroRotation);
-  }
-
-  /** Resets the current teleoperation pose. */
+  /** Resets the pose estimator to the given pose. */
   public void setPose(Pose2d pose) {
-    resetHeading(pose.getRotation());
+    visionPose.resetPosition(rawGyroRotation, getModulePositions(), pose);
+    poseInitialized = true;
   }
 
   /** Adds a new timestamped vision measurement. */
@@ -412,9 +411,9 @@ public class Drive extends SubsystemBase {
       Pose2d visionRobotPoseMeters,
       double timestampSeconds,
       Matrix<N3, N1> visionMeasurementStdDevs) {
-    // Teleport the teleoperation orientation to the first vision estimate
+    // Initialize pose from the first vision estimate while disabled
     if (firstVisionEstimate && RobotState.isDisabled()) {
-      resetHeading(visionRobotPoseMeters.getRotation());
+      setPose(visionRobotPoseMeters);
       firstVisionEstimate = false;
     }
 
