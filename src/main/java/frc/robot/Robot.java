@@ -39,13 +39,13 @@ import frc.lib.ZorroController.Axis;
 import frc.robot.Constants.DIOPorts;
 import frc.robot.Constants.FeatureFlags;
 import frc.robot.auto.B_LeftTrenchAuto;
-import frc.robot.auto.B_LeftTrenchMoveFirstAuto;
 import frc.robot.auto.B_RightTrenchAuto;
-import frc.robot.auto.B_RightTrenchMoveFirstAuto;
+import frc.robot.auto.NewB_LeftTrenchMoveFirstAuto;
+import frc.robot.auto.NewB_RightTrenchMoveFirstAuto;
+import frc.robot.auto.NewR_LeftTrenchMoveFirstAuto;
+import frc.robot.auto.NewR_RightTrenchMoveFirstAuto;
 import frc.robot.auto.R_LeftTrenchAuto;
-import frc.robot.auto.R_LeftTrenchMoveFirstAuto;
 import frc.robot.auto.R_RightTrenchAuto;
-import frc.robot.auto.R_RightTrenchMoveFirstAuto;
 import frc.robot.commands.DriveCommands;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.DriveConstants;
@@ -769,16 +769,16 @@ public class Robot extends LoggedRobot {
         new AutoOption(Alliance.Red, 2, new R_RightTrenchAuto(drive, feeder, intake, launcher)));
     autoSelector.addAuto(
         new AutoOption(
-            Alliance.Blue, 3, new B_LeftTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
+            Alliance.Blue, 3, new NewB_LeftTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
     autoSelector.addAuto(
         new AutoOption(
-            Alliance.Red, 3, new R_LeftTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
+            Alliance.Red, 3, new NewR_LeftTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
     autoSelector.addAuto(
         new AutoOption(
-            Alliance.Blue, 4, new B_RightTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
+            Alliance.Blue, 4, new NewB_RightTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
     autoSelector.addAuto(
         new AutoOption(
-            Alliance.Red, 4, new R_RightTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
+            Alliance.Red, 4, new NewR_RightTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
   }
 
   public static Alliance getAlliance() {
