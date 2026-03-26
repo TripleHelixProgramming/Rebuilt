@@ -750,7 +750,7 @@ public class Robot extends LoggedRobot {
     // xboxOperator.y().and(() -> hopper.isDeployed()).whileTrue(intake.getReverseCommand());
 
     // Feeder
-    xboxOperator.a().whileTrue(feeder.getSpinForwardCommand());
+    xboxOperator.a().whileTrue(shootWithCompressorInhibit());
 
     xboxOperator.x().whileTrue(feeder.getReverseCommand());
 
@@ -791,6 +791,16 @@ public class Robot extends LoggedRobot {
     return new java.io.File("/U").getFreeSpace();
   }
 
+  /**
+   * Returns the spin-forward command with the compressor disabled for its duration. Prevents the
+   * compressor from adding 6-20A during shot cycles (VACHE power analysis recommendation).
+   */
+  private Command shootWithCompressorInhibit() {
+    var cmd = feeder.getSpinForwardCommand();
+    if (compressor == null) return cmd;
+    return cmd.beforeStarting(compressor::disable).finallyDo(compressor::enableDigital);
+  }
+
   private Command createDesaturateAndShootCommand(DriverController driver) {
     return Commands.parallel(
         DriveCommands.joystickDrive(
@@ -809,7 +819,7 @@ public class Robot extends LoggedRobot {
                 allianceSelector::fieldRotated)
             .withName("Desaturate turret"),
         Commands.sequence(
-            Commands.waitUntil(launcher::isTurretDesaturated), feeder.getSpinForwardCommand()));
+            Commands.waitUntil(launcher::isTurretDesaturated), shootWithCompressorInhibit()));
   }
 
   private static void logHIDs() {
