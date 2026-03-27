@@ -77,10 +77,9 @@ public class Vision extends SubsystemBase {
   // Cycle counter for throttled logging
   private int loopCounter = 0;
 
-  // Running count of observations accepted without the yawConsistency check active.
-  // Once this reaches yawConsistencyMinAccepted, the heading is treated as field-relative
-  // and yawConsistency is enabled (vision-only path, independent of poseAsserted).
-  private int visionAcceptedCount = 0;
+  // Set true when multiple cameras independently agree on a pose, confirming the heading
+  // is field-relative. Enables yawConsistency without requiring an authoritative pose from auto.
+  private boolean headingCorroborated = false;
 
   // Vision tests to apply (remove from set to disable specific tests)
   public static final EnumSet<Test> enabledTests = VisionFilter.DEFAULT_ENABLED_TESTS;
@@ -189,8 +188,7 @@ public class Vision extends SubsystemBase {
                 cameraIndex,
                 lastAcceptedPose[cameraIndex],
                 lastAcceptedTimestamp[cameraIndex],
-                (poseAssertedSupplier.getAsBoolean()
-                        || visionAcceptedCount >= yawConsistencyMinAccepted)
+                (poseAssertedSupplier.getAsBoolean() || headingCorroborated)
                     ? headingSupplier.get()
                     : null,
                 enabledTests);
@@ -201,7 +199,6 @@ public class Vision extends SubsystemBase {
         robotPoses.add(observation.pose());
         if (tested.score() > minScore) {
           robotPosesAccepted.add(observation.pose());
-          visionAcceptedCount++;
         } else {
           robotPosesRejected.add(observation.pose());
         }
@@ -256,6 +253,11 @@ public class Vision extends SubsystemBase {
         double cameraCountFactor = (fused.cameraCount() == 1) ? singleCameraStdDevMultiplier : 1.0;
         double linearStdDev = linearStdDevBaseline * cameraCountFactor / fused.score();
         double angularStdDev = angularStdDevBaseline * cameraCountFactor / fused.score();
+
+        // Multi-camera agreement corroborates the heading, enabling yawConsistency
+        if (fused.cameraCount() > 1) {
+          headingCorroborated = true;
+        }
 
         // Send fused vision observation to the pose estimator
         consumer.accept(
