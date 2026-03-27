@@ -136,6 +136,23 @@ public final class Constants {
     }
   }
 
+  public static final class PowerConstants {
+    /** Fixed overhead current (RoboRIO, radio, PDH, coprocessors) used in battery simulation. */
+    public static final double kElectronicsOverheadAmps = 4.5;
+
+    /**
+     * PDH total current above which the compressor is inhibited (prevents inrush during high-demand
+     * periods). Matches the 150A threshold from the VACHE power analysis.
+     */
+    public static final double kCompressorInhibitAmps = 150.0;
+
+    /**
+     * PDH total current below which the compressor load inhibit clears. Hysteresis gap prevents
+     * rapid enable/disable cycling near the inhibit threshold.
+     */
+    public static final double kCompressorResumeAmps = 100.0;
+  }
+
   public static final class PneumaticChannels {
     // hopper
     public static final int hopperForward = 14;

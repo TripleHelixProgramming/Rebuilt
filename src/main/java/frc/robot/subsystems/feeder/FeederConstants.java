@@ -17,6 +17,8 @@ public final class FeederConstants {
 
     // Motor
     public static final double motorReduction = 1.0;
+    // Hard secondary current limit to prevent 149A stall events (VACHE analysis)
+    public static final int kSecondaryCurrentLimit = 80;
     public static final LinearVelocity maxTangentialVelocity =
         MetersPerSecond.of(
             NEOVortexConstants.kFreeSpeed.in(RadiansPerSecond)
@@ -39,6 +41,8 @@ public final class FeederConstants {
 
     // Motor
     public static final double motorReduction = 1.0;
+    // Hard secondary current limit to prevent 149A stall events (VACHE analysis)
+    public static final int kSecondaryCurrentLimit = 80;
     public static final LinearVelocity maxTangentialVelocity =
         MetersPerSecond.of(
             NEOVortexConstants.kFreeSpeed.in(RadiansPerSecond)

@@ -42,9 +42,9 @@ public class RollerIOTalonFX implements RollerIO {
   public RollerIOTalonFX(RollerConfig rollerConfig) {
     motor = new TalonFX(rollerConfig.port, rollerConfig.bus);
     config = new TalonFXConfiguration();
-    config.TorqueCurrent.PeakForwardTorqueCurrent = KrakenX60Constants.kDefaultStatorCurrentLimit;
-    config.TorqueCurrent.PeakReverseTorqueCurrent = -KrakenX60Constants.kDefaultStatorCurrentLimit;
-    config.CurrentLimits.StatorCurrentLimit = KrakenX60Constants.kDefaultStatorCurrentLimit;
+    config.TorqueCurrent.PeakForwardTorqueCurrent = kStatorCurrentLimit;
+    config.TorqueCurrent.PeakReverseTorqueCurrent = -kStatorCurrentLimit;
+    config.CurrentLimits.StatorCurrentLimit = kStatorCurrentLimit;
     config.CurrentLimits.StatorCurrentLimitEnable = true;
     config.CurrentLimits.SupplyCurrentLimit = KrakenX60Constants.kDefaultSupplyCurrentLimit;
     config.CurrentLimits.SupplyCurrentLimitEnable = true;

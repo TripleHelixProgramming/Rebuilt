@@ -141,8 +141,11 @@ public class Robot extends LoggedRobot {
   private LoggedCompressor compressor;
   private PneumaticsSimulator pneumaticsSimulator;
 
-  // Battery simulation constants
-  private static final double ELECTRONICS_OVERHEAD_AMPS = 4.5; // RoboRIO + radio + PDH + misc
+  // Flywheel policy: true = flywheel permitted by driver input. Overridden by bindZorroDriver;
+  // defaults to always-enabled for Xbox/keyboard drivers that lack a dial.
+  private java.util.function.BooleanSupplier flywheelPolicy = () -> true;
+
+  // Battery simulation
   private final LinearFilter vBusFilter = LinearFilter.singlePoleIIR(0.04, Robot.defaultPeriodSecs);
 
   public Robot() {
@@ -329,14 +332,24 @@ public class Robot extends LoggedRobot {
 
     feeder.setDefaultCommand(Commands.startEnd(feeder::stop, () -> {}, feeder).withName("Stop"));
     intake.setDefaultCommand(intake.getDefaultCommand());
-    launcher.setDefaultCommand(
-        launcher
-            .initializeHoodCommand()
-            .andThen(
-                new RunCommand(
-                        () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()),
-                        launcher)
-                    .withName("Aim at hub")));
+    // Compressor default: enable when PDH load is low, disable when high (hysteresis via
+    // thresholds).
+    // Shot commands interrupt this by requiring the compressor subsystem via deadlineWith.
+    if (compressor != null) {
+      compressor.setDefaultCommand(
+          Commands.run(
+                  () -> {
+                    double pdh = powerDistribution.getTotalCurrent();
+                    if (pdh > Constants.PowerConstants.kCompressorInhibitAmps) {
+                      compressor.disable();
+                    } else if (pdh < Constants.PowerConstants.kCompressorResumeAmps) {
+                      compressor.enableDigital();
+                    }
+                    // Between thresholds: maintain current state (hysteresis).
+                  },
+                  compressor)
+              .withName("Auto"));
+    }
   }
 
   /** This function is called periodically during all modes. */
@@ -418,6 +431,7 @@ public class Robot extends LoggedRobot {
   public void autonomousInit() {
     if (hopper != null) hopper.getRetractCommand().schedule();
     drive.setDefaultCommand(Commands.runOnce(drive::stop, drive).withName("Stop"));
+    launcher.setDefaultCommand(createAutoLauncherDefault());
     autoSelector.scheduleAuto();
     leds.clear();
   }
@@ -435,6 +449,8 @@ public class Robot extends LoggedRobot {
     if (hopper != null && !hopper.isDeployed() && !hopper.isStowed())
       hopper.getRetractCommand().schedule();
     autoSelector.cancelAuto();
+    flywheelPolicy = () -> true; // reset before binding; overridden below if Zorro is driver
+    launcher.setDefaultCommand(createTeleopLauncherDefault());
     ControllerSelector.getInstance().scan(true);
     leds.clear();
   }
@@ -488,7 +504,7 @@ public class Robot extends LoggedRobot {
                     feeder.getSimCurrentDrawAmps(),
                     intake.getSimCurrentDrawAmps(),
                     pneumaticsSimulator.getCompressorCurrentAmps(),
-                    ELECTRONICS_OVERHEAD_AMPS))));
+                    Constants.PowerConstants.kElectronicsOverheadAmps))));
   }
 
   private void configureControlPanelBindings() {
@@ -508,6 +524,10 @@ public class Robot extends LoggedRobot {
 
   public DriverController bindZorroDriver(int port) {
     var zorroDriver = new CommandZorroController(port);
+    flywheelPolicy =
+        () ->
+            DriverStation.isFMSAttached()
+                || zorroDriver.axisGreaterThan(Axis.kLeftDial.value, 0.5).getAsBoolean();
 
     var controller =
         new DriverController() {
@@ -559,20 +579,6 @@ public class Robot extends LoggedRobot {
 
     // Desaturate turret and advance feeder
     zorroDriver.AIn().whileTrue(createDesaturateAndShootCommand(controller));
-
-    // Launcher
-    Trigger launcherEnabled = zorroDriver.axisGreaterThan(Axis.kLeftDial.value, 0.5).debounce(0.1);
-    launcherEnabled
-        .or(() -> DriverStation.isFMSAttached())
-        .whileTrue(
-            launcher
-                .initializeHoodCommand()
-                .andThen(
-                    new RunCommand(
-                            () ->
-                                launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()),
-                            launcher)
-                        .withName("Aim at hub")));
 
     // Intake
     zorroDriver.HIn().whileTrue(intake.getDeployCommand());
@@ -750,7 +756,7 @@ public class Robot extends LoggedRobot {
     // xboxOperator.y().and(() -> hopper.isDeployed()).whileTrue(intake.getReverseCommand());
 
     // Feeder
-    xboxOperator.a().whileTrue(feeder.getSpinForwardCommand());
+    xboxOperator.a().whileTrue(shootWithCompressorInhibit());
 
     xboxOperator.x().whileTrue(feeder.getReverseCommand());
 
@@ -791,6 +797,48 @@ public class Robot extends LoggedRobot {
     return new java.io.File("/U").getFreeSpace();
   }
 
+  private Command createAutoLauncherDefault() {
+    return launcher
+        .initializeHoodCommand()
+        .andThen(
+            new RunCommand(
+                    () -> launcher.aim(GameState.getMyHub().getTranslation(), true), launcher)
+                .withName("Aim at hub"));
+  }
+
+  private Command createTeleopLauncherDefault() {
+    return launcher
+        .initializeHoodCommand()
+        .andThen(
+            new RunCommand(
+                    () ->
+                        launcher.aim(
+                            GameState.getTarget(drive.getPose()).getTranslation(),
+                            flywheelPolicy.getAsBoolean()
+                                && GameState.isMyHubActive()
+                                && GameState.isInMyAllianceZone(drive.getPose())),
+                    launcher)
+                .withName("Aim at hub"));
+  }
+
+  /**
+   * Returns the shoot command with compressor inhibited and flywheel force-enabled for its
+   * duration. Force-enables the flywheel (overriding hub/zone policy), waits for it to reach speed,
+   * then advances the feeder. Compressor is disabled for the full shot cycle to prevent 6-20A
+   * interference (VACHE power analysis recommendation).
+   */
+  private Command shootWithCompressorInhibit() {
+    var innerCmd =
+        Commands.sequence(
+                Commands.runOnce(() -> launcher.setFlywheelForceEnabled(true)),
+                Commands.waitUntil(launcher::isFlywheelAtSpeed),
+                feeder.getSpinForwardCommand())
+            .finallyDo(() -> launcher.setFlywheelForceEnabled(false));
+    if (compressor == null) return innerCmd;
+    return innerCmd.deadlineWith(
+        Commands.run(compressor::disable, compressor).withName("Shot inhibit"));
+  }
+
   private Command createDesaturateAndShootCommand(DriverController driver) {
     return Commands.parallel(
         DriveCommands.joystickDrive(
@@ -809,7 +857,7 @@ public class Robot extends LoggedRobot {
                 allianceSelector::fieldRotated)
             .withName("Desaturate turret"),
         Commands.sequence(
-            Commands.waitUntil(launcher::isTurretDesaturated), feeder.getSpinForwardCommand()));
+            Commands.waitUntil(launcher::isTurretDesaturated), shootWithCompressorInhibit()));
   }
 
   private static void logHIDs() {
@@ -840,6 +888,7 @@ public class Robot extends LoggedRobot {
     logSubsystem("Feeder", feeder);
     if (hopper != null) logSubsystem("Hopper", hopper);
     logSubsystem("Intake", intake);
+    if (compressor != null) logSubsystem("Compressor", compressor);
     logAlerts();
   }
 
