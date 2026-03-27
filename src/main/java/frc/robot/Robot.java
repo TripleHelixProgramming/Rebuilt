@@ -4,7 +4,6 @@ import static frc.robot.subsystems.vision.VisionConstants.*;
 
 import com.ctre.phoenix6.SignalLogger;
 import edu.wpi.first.math.filter.LinearFilter;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
@@ -40,13 +39,13 @@ import frc.lib.ZorroController.Axis;
 import frc.robot.Constants.DIOPorts;
 import frc.robot.Constants.FeatureFlags;
 import frc.robot.auto.B_LeftTrenchAuto;
-import frc.robot.auto.B_LeftTrenchMoveFirstAuto;
 import frc.robot.auto.B_RightTrenchAuto;
-import frc.robot.auto.B_RightTrenchMoveFirstAuto;
+import frc.robot.auto.NewB_LeftTrenchMoveFirstAuto;
+import frc.robot.auto.NewB_RightTrenchMoveFirstAuto;
+import frc.robot.auto.NewR_LeftTrenchMoveFirstAuto;
+import frc.robot.auto.NewR_RightTrenchMoveFirstAuto;
 import frc.robot.auto.R_LeftTrenchAuto;
-import frc.robot.auto.R_LeftTrenchMoveFirstAuto;
 import frc.robot.auto.R_RightTrenchAuto;
-import frc.robot.auto.R_RightTrenchMoveFirstAuto;
 import frc.robot.commands.DriveCommands;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.DriveConstants;
@@ -184,7 +183,7 @@ public class Robot extends LoggedRobot {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
-                drive::getRawGyroRotation,
+                drive::getFieldRelativeHeading,
                 new VisionIOPhotonVision(cameraFrontRightName, robotToFrontRightCamera),
                 new VisionIOPhotonVision(cameraFrontLeftName, robotToFrontLeftCamera),
                 new VisionIOPhotonVision(cameraBackRightName, robotToBackRightCamera),
@@ -225,7 +224,7 @@ public class Robot extends LoggedRobot {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
-                drive::getRawGyroRotation,
+                drive::getFieldRelativeHeading,
                 new VisionIOPhotonVisionSim(
                     cameraFrontRightName, robotToFrontRightCamera, drive::getPose),
                 new VisionIOPhotonVisionSim(
@@ -272,7 +271,7 @@ public class Robot extends LoggedRobot {
         vision =
             new Vision(
                 drive::addVisionMeasurement,
-                drive::getRawGyroRotation,
+                drive::getFieldRelativeHeading,
                 new VisionIO() {},
                 new VisionIO() {},
                 new VisionIO() {},
@@ -544,14 +543,7 @@ public class Robot extends LoggedRobot {
     zorroDriver
         .GIn()
         .onTrue(
-            Commands.runOnce(
-                    () ->
-                        drive.resetHeading(
-                            allianceSelector.fieldRotated()
-                                ? Rotation2d.k180deg
-                                : Rotation2d.kZero),
-                    drive)
-                .ignoringDisable(true));
+            Commands.runOnce(() -> DriveCommands.resetDriverForward(drive)).ignoringDisable(true));
 
     // Toggle hopper: deploy if stowed, stow if deployed (retracting intake first if needed).
     // runOnce has no subsystem requirements so it always executes; the scheduled command
@@ -625,14 +617,7 @@ public class Robot extends LoggedRobot {
     xboxDriver
         .b()
         .onTrue(
-            Commands.runOnce(
-                    () ->
-                        drive.resetHeading(
-                            allianceSelector.fieldRotated()
-                                ? Rotation2d.k180deg
-                                : Rotation2d.kZero),
-                    drive)
-                .ignoringDisable(true));
+            Commands.runOnce(() -> DriveCommands.resetDriverForward(drive)).ignoringDisable(true));
 
     // xboxDriver
     //     .a()
@@ -749,14 +734,7 @@ public class Robot extends LoggedRobot {
     keyboard
         .button(1)
         .onTrue(
-            Commands.runOnce(
-                    () ->
-                        drive.resetHeading(
-                            allianceSelector.fieldRotated()
-                                ? Rotation2d.k180deg
-                                : Rotation2d.kZero),
-                    drive)
-                .ignoringDisable(true));
+            Commands.runOnce(() -> DriveCommands.resetDriverForward(drive)).ignoringDisable(true));
 
     return controller;
   }
@@ -791,16 +769,16 @@ public class Robot extends LoggedRobot {
         new AutoOption(Alliance.Red, 2, new R_RightTrenchAuto(drive, feeder, intake, launcher)));
     autoSelector.addAuto(
         new AutoOption(
-            Alliance.Blue, 3, new B_LeftTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
+            Alliance.Blue, 3, new NewB_LeftTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
     autoSelector.addAuto(
         new AutoOption(
-            Alliance.Red, 3, new R_LeftTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
+            Alliance.Red, 3, new NewR_LeftTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
     autoSelector.addAuto(
         new AutoOption(
-            Alliance.Blue, 4, new B_RightTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
+            Alliance.Blue, 4, new NewB_RightTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
     autoSelector.addAuto(
         new AutoOption(
-            Alliance.Red, 4, new R_RightTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
+            Alliance.Red, 4, new NewR_RightTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
   }
 
   public static Alliance getAlliance() {

@@ -49,6 +49,23 @@ public class DriveCommands {
   private static final double WHEEL_RADIUS_MAX_VELOCITY = 0.25; // Rad/Sec
   private static final double WHEEL_RADIUS_RAMP_RATE = 0.05; // Rad/Sec^2
 
+  /**
+   * The direction the driver considers "forward" for field-relative controls. This is a pure UI
+   * concept — it affects only how joystick inputs are interpreted, not the robot's pose estimate.
+   */
+  private static Rotation2d driverForwardDirection = Rotation2d.kZero;
+
+  /** Redefines the driver's "forward" to the robot's current heading. */
+  public static void resetDriverForward(Drive drive) {
+    driverForwardDirection = drive.getPose().getRotation();
+  }
+
+  /** Returns the heading to use for field-relative joystick conversion. */
+  private static Rotation2d getDriverRelativeHeading(Drive drive, boolean fieldRotated) {
+    Rotation2d heading = drive.getPose().getRotation().minus(driverForwardDirection);
+    return fieldRotated ? heading.plus(Rotation2d.kPi) : heading;
+  }
+
   private DriveCommands() {}
 
   private static Translation2d getLinearVelocityFromJoysticks(double x, double y) {
@@ -108,9 +125,7 @@ public class DriveCommands {
                 speeds =
                     ChassisSpeeds.fromFieldRelativeSpeeds(
                         speeds,
-                        fieldRotatedSupplier.getAsBoolean()
-                            ? drive.getHeading().plus(Rotation2d.kPi)
-                            : drive.getHeading());
+                        getDriverRelativeHeading(drive, fieldRotatedSupplier.getAsBoolean()));
               }
 
               drive.runVelocity(speeds);
@@ -149,9 +164,7 @@ public class DriveCommands {
               drive.runVelocity(
                   ChassisSpeeds.fromFieldRelativeSpeeds(
                       speeds,
-                      fieldRotatedSupplier.getAsBoolean()
-                          ? drive.getHeading().plus(Rotation2d.kPi)
-                          : drive.getHeading()));
+                      getDriverRelativeHeading(drive, fieldRotatedSupplier.getAsBoolean())));
             },
             drive)
         .withName("Field Relative Joystick Drive");
@@ -231,15 +244,13 @@ public class DriveCommands {
               drive.runVelocity(
                   ChassisSpeeds.fromFieldRelativeSpeeds(
                       speeds,
-                      fieldRotatedSupplier.getAsBoolean()
-                          ? drive.getHeading().plus(Rotation2d.kPi)
-                          : drive.getHeading()));
+                      getDriverRelativeHeading(drive, fieldRotatedSupplier.getAsBoolean())));
             },
             drive)
         .withName("Fixed Orientation Joystick Drive")
 
         // Reset PID controller when command starts
-        .beforeStarting(() -> angleController.reset(drive.getHeading().getRadians()));
+        .beforeStarting(() -> angleController.reset(drive.getPose().getRotation().getRadians()));
   }
 
   /** Field relative drive command that orients the robot in the direction of travel */
@@ -266,9 +277,11 @@ public class DriveCommands {
                   getLinearVelocityFromJoysticks(xSupplier.getAsDouble(), ySupplier.getAsDouble());
 
               // Calculate angular speed
+              Rotation2d driverHeading =
+                  getDriverRelativeHeading(drive, fieldRotatedSupplier.getAsBoolean());
               double omega =
                   angleController.calculate(
-                      drive.getHeading().getRadians(), linearVelocity.getAngle().getRadians());
+                      driverHeading.getRadians(), linearVelocity.getAngle().getRadians());
 
               // Convert to field relative speeds & send command
               ChassisSpeeds speeds =
@@ -276,18 +289,17 @@ public class DriveCommands {
                       linearVelocity.getX() * drive.getMaxLinearSpeedMetersPerSec(),
                       linearVelocity.getY() * drive.getMaxLinearSpeedMetersPerSec(),
                       omega);
-              drive.runVelocity(
-                  ChassisSpeeds.fromFieldRelativeSpeeds(
-                      speeds,
-                      fieldRotatedSupplier.getAsBoolean()
-                          ? drive.getHeading().plus(Rotation2d.kPi)
-                          : drive.getHeading()));
+              drive.runVelocity(ChassisSpeeds.fromFieldRelativeSpeeds(speeds, driverHeading));
             },
             drive)
         .withName("Forward Orientated Joystick Drive")
 
         // Reset PID controller when command starts
-        .beforeStarting(() -> angleController.reset(drive.getHeading().getRadians()));
+        .beforeStarting(
+            () ->
+                angleController.reset(
+                    getDriverRelativeHeading(drive, fieldRotatedSupplier.getAsBoolean())
+                        .getRadians()));
   }
 
   /**
@@ -319,9 +331,7 @@ public class DriveCommands {
               drive.runVelocity(
                   ChassisSpeeds.fromFieldRelativeSpeeds(
                       speeds,
-                      fieldRotatedSupplier.getAsBoolean()
-                          ? drive.getHeading().plus(Rotation2d.kPi)
-                          : drive.getHeading()));
+                      getDriverRelativeHeading(drive, fieldRotatedSupplier.getAsBoolean())));
             },
             drive)
         .withName("Point At Target")
@@ -435,14 +445,14 @@ public class DriveCommands {
             Commands.runOnce(
                 () -> {
                   state.positions = drive.getWheelRadiusCharacterizationPositions();
-                  state.lastAngle = drive.getHeading();
+                  state.lastAngle = drive.getRawGyroRotation();
                   state.gyroDelta = 0.0;
                 }),
 
             // Update gyro delta
             Commands.run(
                     () -> {
-                      var rotation = drive.getHeading();
+                      var rotation = drive.getRawGyroRotation();
                       state.gyroDelta += Math.abs(rotation.minus(state.lastAngle).getRadians());
                       state.lastAngle = rotation;
                     })
