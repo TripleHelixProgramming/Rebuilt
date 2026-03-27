@@ -137,6 +137,11 @@ public class VisionConstants {
   // 97%+ of legitimate observations. Multi-tag observations (0.9+) are unaffected.
   public static double minScore = 0.65;
 
+  // Number of accepted observations required before enabling the yawConsistency check via
+  // the vision-only path (independent of poseAsserted). After this many accepted poses,
+  // the heading is assumed to have enough field-relative meaning to validate new observations.
+  public static int yawConsistencyMinAccepted = 10;
+
   // Feature flags
   public static boolean kLogIndividualCameraPoses = false;
   public static boolean kLogSummaryPoses = false;

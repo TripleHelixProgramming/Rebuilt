@@ -37,7 +37,7 @@ import org.littletonrobotics.junction.Logger;
 
 public class Vision extends SubsystemBase {
   private final VisionConsumer consumer;
-  private final BooleanSupplier poseInitializedSupplier;
+  private final BooleanSupplier poseAssertedSupplier;
   private final Supplier<Rotation2d> headingSupplier;
   private final VisionIO[] io;
   private final VisionInputs[] visionInputs;
@@ -77,16 +77,21 @@ public class Vision extends SubsystemBase {
   // Cycle counter for throttled logging
   private int loopCounter = 0;
 
+  // Running count of observations accepted without the yawConsistency check active.
+  // Once this reaches yawConsistencyMinAccepted, the heading is treated as field-relative
+  // and yawConsistency is enabled (vision-only path, independent of poseAsserted).
+  private int visionAcceptedCount = 0;
+
   // Vision tests to apply (remove from set to disable specific tests)
   public static final EnumSet<Test> enabledTests = VisionFilter.DEFAULT_ENABLED_TESTS;
 
   public Vision(
       VisionConsumer consumer,
-      BooleanSupplier poseInitializedSupplier,
+      BooleanSupplier poseAssertedSupplier,
       Supplier<Rotation2d> headingSupplier,
       VisionIO... io) {
     this.consumer = consumer;
-    this.poseInitializedSupplier = poseInitializedSupplier;
+    this.poseAssertedSupplier = poseAssertedSupplier;
     this.headingSupplier = headingSupplier;
     this.io = io;
 
@@ -184,7 +189,10 @@ public class Vision extends SubsystemBase {
                 cameraIndex,
                 lastAcceptedPose[cameraIndex],
                 lastAcceptedTimestamp[cameraIndex],
-                poseInitializedSupplier.getAsBoolean() ? headingSupplier.get() : null,
+                (poseAssertedSupplier.getAsBoolean()
+                        || visionAcceptedCount >= yawConsistencyMinAccepted)
+                    ? headingSupplier.get()
+                    : null,
                 enabledTests);
 
         observationBuffer.add(tested);
@@ -193,6 +201,7 @@ public class Vision extends SubsystemBase {
         robotPoses.add(observation.pose());
         if (tested.score() > minScore) {
           robotPosesAccepted.add(observation.pose());
+          visionAcceptedCount++;
         } else {
           robotPosesRejected.add(observation.pose());
         }

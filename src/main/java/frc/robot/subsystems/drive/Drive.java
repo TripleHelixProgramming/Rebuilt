@@ -78,7 +78,7 @@ public class Drive extends SubsystemBase {
       };
   private SwerveDrivePoseEstimator visionPose =
       new SwerveDrivePoseEstimator(kinematics, rawGyroRotation, lastModulePositions, new Pose2d());
-  private boolean poseInitialized = false;
+  private boolean poseAsserted = false;
 
   private static final ChassisSpeeds ZERO_SPEEDS = new ChassisSpeeds();
   private final SwerveModuleState[] emptyModuleStates = new SwerveModuleState[] {};
@@ -387,12 +387,12 @@ public class Drive extends SubsystemBase {
   }
 
   /**
-   * Returns whether the pose estimator has been authoritatively initialized (by an auto routine or
-   * FMS). Before initialization, the gyro heading is robot-relative and should not be used for
+   * Returns whether the pose estimator has been authoritatively initialized by an auto routine.
+   * Before initialization, the gyro heading is robot-relative and should not be used for
    * field-relative validation such as the vision yawConsistency test.
    */
-  public boolean isPoseInitialized() {
-    return poseInitialized;
+  public boolean isPoseAsserted() {
+    return poseAsserted;
   }
 
   public Rotation2d getRawGyroRotation() {
@@ -402,7 +402,7 @@ public class Drive extends SubsystemBase {
   /** Resets the pose estimator to the given pose. */
   public void setPose(Pose2d pose) {
     visionPose.resetPosition(rawGyroRotation, getModulePositions(), pose);
-    poseInitialized = true;
+    poseAsserted = true;
   }
 
   /** Adds a new timestamped vision measurement. */
@@ -411,9 +411,9 @@ public class Drive extends SubsystemBase {
       double timestampSeconds,
       Matrix<N3, N1> visionMeasurementStdDevs) {
     // Track the latest vision estimate while disabled, before the pose is authoritatively
-    // initialized (by auto routine). Does not set poseInitialized, so yawConsistency
-    // stays dormant until the heading is known-good.
-    if (!poseInitialized && RobotState.isDisabled()) {
+    // initialized by an auto routine. Does not set poseAsserted; yawConsistency is gated
+    // in Vision.java on poseAsserted or accumulated accepted-observation count.
+    if (!poseAsserted && RobotState.isDisabled()) {
       visionPose.resetPosition(rawGyroRotation, getModulePositions(), visionRobotPoseMeters);
     }
 
