@@ -116,6 +116,17 @@ public class GameState {
     return DriverStation.getAlliance();
   }
 
+  /**
+   * Returns true if the given pose is inside our alliance zone (within allianceZone_x_len of our
+   * end wall). Returns false when alliance is unknown.
+   */
+  public static boolean isInMyAllianceZone(Pose2d pose) {
+    Alliance alliance = getMyAlliance();
+    if (alliance == Alliance.Blue) return Field.Region.BlueZone.contains(pose);
+    if (alliance == Alliance.Red) return Field.Region.RedZone.contains(pose);
+    return false;
+  }
+
   public static void logValues() {
     getMyAlliance();
     getAutoWinner();
@@ -129,6 +140,10 @@ public class GameState {
     Logger.recordOutput("GameState/GameData", DriverStation.getGameSpecificMessage());
     Logger.recordOutput("GameState/CurrentPhase", getCurrentPhase());
     Logger.recordOutput("GameState/IsMyHubActive", isMyHubActive());
+  }
+
+  public static Pose3d getMyHub() {
+    return Robot.getAlliance() == Alliance.Red ? Field.redHubCenter : Field.blueHubCenter;
   }
 
   public static Pose3d getTarget(Pose2d robotPose) {

@@ -141,6 +141,10 @@ public class Robot extends LoggedRobot {
   private LoggedCompressor compressor;
   private PneumaticsSimulator pneumaticsSimulator;
 
+  // Flywheel policy: true = flywheel permitted by driver input. Overridden by bindZorroDriver;
+  // defaults to always-enabled for Xbox/keyboard drivers that lack a dial.
+  private java.util.function.BooleanSupplier flywheelPolicy = () -> true;
+
   // Battery simulation constants
   private static final double ELECTRONICS_OVERHEAD_AMPS = 4.5; // RoboRIO + radio + PDH + misc
   private final LinearFilter vBusFilter = LinearFilter.singlePoleIIR(0.04, Robot.defaultPeriodSecs);
@@ -329,14 +333,6 @@ public class Robot extends LoggedRobot {
 
     feeder.setDefaultCommand(Commands.startEnd(feeder::stop, () -> {}, feeder).withName("Stop"));
     intake.setDefaultCommand(intake.getDefaultCommand());
-    launcher.setDefaultCommand(
-        launcher
-            .initializeHoodCommand()
-            .andThen(
-                new RunCommand(
-                        () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()),
-                        launcher)
-                    .withName("Aim at hub")));
   }
 
   /** This function is called periodically during all modes. */
@@ -418,6 +414,7 @@ public class Robot extends LoggedRobot {
   public void autonomousInit() {
     if (hopper != null) hopper.getRetractCommand().schedule();
     drive.setDefaultCommand(Commands.runOnce(drive::stop, drive).withName("Stop"));
+    launcher.setDefaultCommand(createAutoLauncherDefault());
     autoSelector.scheduleAuto();
     leds.clear();
   }
@@ -435,6 +432,8 @@ public class Robot extends LoggedRobot {
     if (hopper != null && !hopper.isDeployed() && !hopper.isStowed())
       hopper.getRetractCommand().schedule();
     autoSelector.cancelAuto();
+    flywheelPolicy = () -> true; // reset before binding; overridden below if Zorro is driver
+    launcher.setDefaultCommand(createTeleopLauncherDefault());
     ControllerSelector.getInstance().scan(true);
     leds.clear();
   }
@@ -508,6 +507,10 @@ public class Robot extends LoggedRobot {
 
   public DriverController bindZorroDriver(int port) {
     var zorroDriver = new CommandZorroController(port);
+    flywheelPolicy =
+        () ->
+            DriverStation.isFMSAttached()
+                || zorroDriver.axisGreaterThan(Axis.kLeftDial.value, 0.5).getAsBoolean();
 
     var controller =
         new DriverController() {
@@ -559,20 +562,6 @@ public class Robot extends LoggedRobot {
 
     // Desaturate turret and advance feeder
     zorroDriver.AIn().whileTrue(createDesaturateAndShootCommand(controller));
-
-    // Launcher
-    Trigger launcherEnabled = zorroDriver.axisGreaterThan(Axis.kLeftDial.value, 0.5).debounce(0.1);
-    launcherEnabled
-        .or(() -> DriverStation.isFMSAttached())
-        .whileTrue(
-            launcher
-                .initializeHoodCommand()
-                .andThen(
-                    new RunCommand(
-                            () ->
-                                launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()),
-                            launcher)
-                        .withName("Aim at hub")));
 
     // Intake
     zorroDriver.HIn().whileTrue(intake.getDeployCommand());
@@ -791,14 +780,45 @@ public class Robot extends LoggedRobot {
     return new java.io.File("/U").getFreeSpace();
   }
 
+  private Command createAutoLauncherDefault() {
+    return launcher
+        .initializeHoodCommand()
+        .andThen(
+            new RunCommand(
+                    () -> launcher.aim(GameState.getMyHub().getTranslation(), true), launcher)
+                .withName("Aim at hub"));
+  }
+
+  private Command createTeleopLauncherDefault() {
+    return launcher
+        .initializeHoodCommand()
+        .andThen(
+            new RunCommand(
+                    () ->
+                        launcher.aim(
+                            GameState.getTarget(drive.getPose()).getTranslation(),
+                            flywheelPolicy.getAsBoolean()
+                                && GameState.isMyHubActive()
+                                && GameState.isInMyAllianceZone(drive.getPose())),
+                    launcher)
+                .withName("Aim at hub"));
+  }
+
   /**
-   * Returns the spin-forward command with the compressor disabled for its duration. Prevents the
-   * compressor from adding 6-20A during shot cycles (VACHE power analysis recommendation).
+   * Returns the shoot command with compressor inhibited and flywheel force-enabled for its
+   * duration. Force-enables the flywheel (overriding hub/zone policy), waits for it to reach speed,
+   * then advances the feeder. Compressor is disabled for the full shot cycle to prevent 6-20A
+   * interference (VACHE power analysis recommendation).
    */
   private Command shootWithCompressorInhibit() {
-    var cmd = feeder.getSpinForwardCommand();
-    if (compressor == null) return cmd;
-    return cmd.beforeStarting(compressor::disable).finallyDo(compressor::enableDigital);
+    var innerCmd =
+        Commands.sequence(
+                Commands.runOnce(() -> launcher.setFlywheelForceEnabled(true)),
+                Commands.waitUntil(launcher::isFlywheelAtSpeed),
+                feeder.getSpinForwardCommand())
+            .finallyDo(() -> launcher.setFlywheelForceEnabled(false));
+    if (compressor == null) return innerCmd;
+    return innerCmd.beforeStarting(compressor::disable).finallyDo(compressor::enableDigital);
   }
 
   private Command createDesaturateAndShootCommand(DriverController driver) {

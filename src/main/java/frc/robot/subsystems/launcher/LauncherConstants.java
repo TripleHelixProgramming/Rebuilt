@@ -114,6 +114,10 @@ public final class LauncherConstants {
     // Stator current limit; reduced from default 100A — spin-up peaks observed at 40-60A/motor
     public static final int kStatorCurrentLimit = 60;
 
+    // At-speed tolerance: flywheel actual speed must be within this fraction of its setpoint
+    // before the feeder is allowed to advance during a shot cycle.
+    public static final double kAtSpeedToleranceFraction = 0.05;
+
     // Velocity Controller
     public static final double maxAcceleration = 4000.0;
     public static final double maxJerk = 40000.0;

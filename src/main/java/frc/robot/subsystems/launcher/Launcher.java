@@ -21,6 +21,7 @@ import edu.wpi.first.wpilibj2.command.StartEndCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import frc.robot.Robot;
+import frc.robot.subsystems.launcher.LauncherConstants.FlywheelConstants;
 import frc.robot.subsystems.launcher.LauncherConstants.FlywheelConstants.FlywheelScaling;
 import java.util.ArrayList;
 import java.util.function.Supplier;
@@ -67,6 +68,14 @@ public class Launcher extends SubsystemBase {
   private double fuelSpawnTimer = 0.0;
   private double ballisticSimTimer = 0.0;
   private double ballisticLogTimer = 0.0;
+
+  // Flywheel enable state
+  // policyEnabled is set by aim() callers based on hub-active / alliance-zone checks.
+  // forceEnabled is set by shot commands to override the policy and spin up before shooting.
+  // hoodInitialized gates isFlywheelAtSpeed() to prevent shooting during hood initialization.
+  private boolean flywheelForceEnabled = false;
+  private boolean hoodInitialized = false;
+  private double flywheelSetpointMetersPerSec = 0.0; // last computed setpoint, even while disabled
 
   // Turret desaturation
   private final PIDController headingController = new PIDController(1.5, 0.0, 0.1);
@@ -175,7 +184,11 @@ public class Launcher extends SubsystemBase {
     return flywheelInputs.currentAmps * 2 + turretInputs.currentAmps + hoodInputs.currentAmps;
   }
 
-  public void aim(Translation3d target) {
+  /**
+   * @param policyEnabled whether hub-active / alliance-zone conditions permit the flywheel to run.
+   *     Ignored when {@link #setFlywheelForceEnabled} is active (e.g. during a shot command).
+   */
+  public void aim(Translation3d target, boolean policyEnabled) {
     long aimStart = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Get vector from static target to turret
@@ -187,10 +200,17 @@ public class Launcher extends SubsystemBase {
         Math.hypot(vectorTurretBaseToTarget.getX(), vectorTurretBaseToTarget.getY());
     Rotation2d dynamicImpactAngle = getImpactAngle(horizontalDistance);
 
-    // Set flywheel speed assuming a motionless robot
+    // Compute nominal flywheel setpoint (always needed for turret aim direction)
     var v0_nominal = getV0Nominal(vectorTurretBaseToTarget, dynamicImpactAngle, nominalKey);
     var flywheelSetpoint = MetersPerSecond.of(flywheelSetpointfromBallistics(v0_nominal.getNorm()));
-    flywheelIO.setVelocity(flywheelSetpoint);
+    flywheelSetpointMetersPerSec = flywheelSetpoint.in(MetersPerSecond);
+
+    // Spin flywheel only when policy or force-enable permits
+    if (policyEnabled || flywheelForceEnabled) {
+      flywheelIO.setVelocity(flywheelSetpoint);
+    } else {
+      flywheelIO.setOpenLoop(Volts.of(0.0));
+    }
     long t1 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Get translation velocities (m/s) of the turret caused by motion of the chassis
@@ -205,12 +225,19 @@ public class Launcher extends SubsystemBase {
     double initialSpeedMetersPerSec =
         ballisticsFromFlywheelSetpoint(flywheelInputs.velocityMetersPerSec);
 
-    // Replan shot using actual initial shot speed speed
-    var v0_total = getV0Replanned(vectorTurretBaseToTarget, initialSpeedMetersPerSec, replannedKey);
+    // Replan shot using actual flywheel speed; fall back to nominal direction when the flywheel is
+    // off or still spinning up so the turret continues tracking the target rather than returning
+    // early due to a near-zero velocity vector.
+    Translation3d v0_forAim;
+    if (initialSpeedMetersPerSec < 0.5) {
+      v0_forAim = v0_nominal; // flywheel off / spinning up — aim using ideal direction
+    } else {
+      v0_forAim = getV0Replanned(vectorTurretBaseToTarget, initialSpeedMetersPerSec, replannedKey);
+    }
     long t3 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Point turret to align velocity vectors
-    var v0_flywheel = v0_total.minus(v_base);
+    var v0_flywheel = v0_forAim.minus(v_base);
 
     // Check if v0_flywheel has non-zero horizontal component
     double v0_horizontal = Math.hypot(v0_flywheel.getX(), v0_flywheel.getY());
@@ -262,7 +289,7 @@ public class Launcher extends SubsystemBase {
       fuelNominal.add(
           new BallisticObject(turretBasePose.getTranslation(), v0_nominal, target.getMeasureZ()));
       fuelReplanned.add(
-          new BallisticObject(turretBasePose.getTranslation(), v0_total, target.getMeasureZ()));
+          new BallisticObject(turretBasePose.getTranslation(), v0_forAim, target.getMeasureZ()));
       fuelActual.add(
           new BallisticObject(turretBasePose.getTranslation(), v0_actual, target.getMeasureZ()));
     }
@@ -300,6 +327,23 @@ public class Launcher extends SubsystemBase {
   @AutoLogOutput(key = "Launcher/HorizontalAimAngle")
   public Rotation2d getHorizontalAimAngle() {
     return horizontalAimAngle;
+  }
+
+  /**
+   * Called by shot commands to override hub/zone policy and force the flywheel on so it can spin up
+   * before the feeder advances. Must be cleared (false) when the shot command ends.
+   */
+  public void setFlywheelForceEnabled(boolean force) {
+    flywheelForceEnabled = force;
+  }
+
+  /** True when the flywheel is spinning at its current setpoint within the at-speed tolerance. */
+  @AutoLogOutput(key = "Launcher/FlywheelAtSpeed")
+  public boolean isFlywheelAtSpeed() {
+    if (!hoodInitialized) return false;
+    if (flywheelSetpointMetersPerSec < 1e-6) return false;
+    double error = Math.abs(flywheelInputs.velocityMetersPerSec - flywheelSetpointMetersPerSec);
+    return error < flywheelSetpointMetersPerSec * FlywheelConstants.kAtSpeedToleranceFraction;
   }
 
   public double getTurretDesaturationDelta() {
@@ -548,6 +592,7 @@ public class Launcher extends SubsystemBase {
     return new StartEndCommand(
             // initialize
             () -> {
+              hoodInitialized = false;
               hoodIO.configureSoftLimits(false);
               hoodIO.setOpenLoop(Volts.of(1.0));
             },
@@ -555,6 +600,7 @@ public class Launcher extends SubsystemBase {
             () -> {
               hoodIO.configureSoftLimits(true);
               hoodIO.resetEncoder();
+              hoodInitialized = true;
             },
             // requirements
             this)
