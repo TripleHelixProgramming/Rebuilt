@@ -78,7 +78,6 @@ public class Drive extends SubsystemBase {
       };
   private SwerveDrivePoseEstimator visionPose =
       new SwerveDrivePoseEstimator(kinematics, rawGyroRotation, lastModulePositions, new Pose2d());
-  private boolean firstVisionEstimate = true;
   private boolean poseInitialized = false;
 
   private static final ChassisSpeeds ZERO_SPEEDS = new ChassisSpeeds();
@@ -388,12 +387,12 @@ public class Drive extends SubsystemBase {
   }
 
   /**
-   * Returns the field-relative heading for vision yaw validation, or null if the pose has not yet
-   * been initialized by vision or an auto routine. Returning null causes the yawConsistency test to
-   * be skipped, avoiding false rejections before the heading has field-relative meaning.
+   * Returns whether the pose estimator has been authoritatively initialized (by an auto routine or
+   * FMS). Before initialization, the gyro heading is robot-relative and should not be used for
+   * field-relative validation such as the vision yawConsistency test.
    */
-  public Rotation2d getFieldRelativeHeading() {
-    return poseInitialized ? getPose().getRotation() : null;
+  public boolean isPoseInitialized() {
+    return poseInitialized;
   }
 
   public Rotation2d getRawGyroRotation() {
@@ -411,10 +410,11 @@ public class Drive extends SubsystemBase {
       Pose2d visionRobotPoseMeters,
       double timestampSeconds,
       Matrix<N3, N1> visionMeasurementStdDevs) {
-    // Initialize pose from the first vision estimate while disabled
-    if (firstVisionEstimate && RobotState.isDisabled()) {
-      setPose(visionRobotPoseMeters);
-      firstVisionEstimate = false;
+    // Track the latest vision estimate while disabled, before the pose is authoritatively
+    // initialized (by auto routine or FMS). Does not set poseInitialized, so yawConsistency
+    // stays dormant until the heading is known-good.
+    if (!poseInitialized && RobotState.isDisabled()) {
+      visionPose.resetPosition(rawGyroRotation, getModulePositions(), visionRobotPoseMeters);
     }
 
     visionPose.addVisionMeasurement(
