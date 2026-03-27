@@ -411,7 +411,7 @@ public class Drive extends SubsystemBase {
       double timestampSeconds,
       Matrix<N3, N1> visionMeasurementStdDevs) {
     // Track the latest vision estimate while disabled, before the pose is authoritatively
-    // initialized (by auto routine or FMS). Does not set poseInitialized, so yawConsistency
+    // initialized (by auto routine). Does not set poseInitialized, so yawConsistency
     // stays dormant until the heading is known-good.
     if (!poseInitialized && RobotState.isDisabled()) {
       visionPose.resetPosition(rawGyroRotation, getModulePositions(), visionRobotPoseMeters);
