@@ -145,8 +145,7 @@ public class Robot extends LoggedRobot {
   // defaults to always-enabled for Xbox/keyboard drivers that lack a dial.
   private java.util.function.BooleanSupplier flywheelPolicy = () -> true;
 
-  // Battery simulation constants
-  private static final double ELECTRONICS_OVERHEAD_AMPS = 4.5; // RoboRIO + radio + PDH + misc
+  // Battery simulation
   private final LinearFilter vBusFilter = LinearFilter.singlePoleIIR(0.04, Robot.defaultPeriodSecs);
 
   public Robot() {
@@ -333,6 +332,24 @@ public class Robot extends LoggedRobot {
 
     feeder.setDefaultCommand(Commands.startEnd(feeder::stop, () -> {}, feeder).withName("Stop"));
     intake.setDefaultCommand(intake.getDefaultCommand());
+    // Compressor default: enable when PDH load is low, disable when high (hysteresis via
+    // thresholds).
+    // Shot commands interrupt this by requiring the compressor subsystem via deadlineWith.
+    if (compressor != null) {
+      compressor.setDefaultCommand(
+          Commands.run(
+                  () -> {
+                    double pdh = powerDistribution.getTotalCurrent();
+                    if (pdh > Constants.PowerConstants.kCompressorInhibitAmps) {
+                      compressor.disable();
+                    } else if (pdh < Constants.PowerConstants.kCompressorResumeAmps) {
+                      compressor.enableDigital();
+                    }
+                    // Between thresholds: maintain current state (hysteresis).
+                  },
+                  compressor)
+              .withName("Auto"));
+    }
   }
 
   /** This function is called periodically during all modes. */
@@ -487,7 +504,7 @@ public class Robot extends LoggedRobot {
                     feeder.getSimCurrentDrawAmps(),
                     intake.getSimCurrentDrawAmps(),
                     pneumaticsSimulator.getCompressorCurrentAmps(),
-                    ELECTRONICS_OVERHEAD_AMPS))));
+                    Constants.PowerConstants.kElectronicsOverheadAmps))));
   }
 
   private void configureControlPanelBindings() {
@@ -818,7 +835,8 @@ public class Robot extends LoggedRobot {
                 feeder.getSpinForwardCommand())
             .finallyDo(() -> launcher.setFlywheelForceEnabled(false));
     if (compressor == null) return innerCmd;
-    return innerCmd.beforeStarting(compressor::disable).finallyDo(compressor::enableDigital);
+    return innerCmd.deadlineWith(
+        Commands.run(compressor::disable, compressor).withName("Shot inhibit"));
   }
 
   private Command createDesaturateAndShootCommand(DriverController driver) {
@@ -870,6 +888,7 @@ public class Robot extends LoggedRobot {
     logSubsystem("Feeder", feeder);
     if (hopper != null) logSubsystem("Hopper", hopper);
     logSubsystem("Intake", intake);
+    if (compressor != null) logSubsystem("Compressor", compressor);
     logAlerts();
   }
 
