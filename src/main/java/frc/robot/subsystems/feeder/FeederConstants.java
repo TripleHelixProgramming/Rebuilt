@@ -16,7 +16,7 @@ public final class FeederConstants {
     public static final Distance radius = Inches.of(3.0);
 
     // Motor
-    public static final double motorReduction = 1.0;
+    public static final double motorReduction = 5.0;
     public static final LinearVelocity maxTangentialVelocity =
         MetersPerSecond.of(
             NEOVortexConstants.kFreeSpeed.in(RadiansPerSecond)
