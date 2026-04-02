@@ -111,6 +111,8 @@ public final class Constants {
       // Intake
       public static final int intakeRollerLower = 22;
       public static final int intakeRollerUpper = 23;
+      public static final int intakeArmRight = 24;
+      public static final int intakeArmLeft = 25;
     }
 
     public static final class CANHD {
