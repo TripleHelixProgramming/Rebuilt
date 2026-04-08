@@ -41,6 +41,7 @@ public class SpindexerIOSpark implements SpindexerIO {
         .inverted(false)
         .idleMode(IdleMode.kBrake)
         .smartCurrentLimit(NEOVortexConstants.kDefaultSupplyCurrentLimit)
+        .secondaryCurrentLimit(kSecondaryCurrentLimit)
         .voltageCompensation(RobotConstants.kNominalVoltage);
 
     config
