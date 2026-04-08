@@ -31,12 +31,14 @@ import frc.robot.util.VisionThread.VisionInputs;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import org.littletonrobotics.junction.Logger;
 
 public class Vision extends SubsystemBase {
   private final VisionConsumer consumer;
-  private final Supplier<Rotation2d> gyroYawSupplier;
+  private final BooleanSupplier poseAssertedSupplier;
+  private final Supplier<Rotation2d> headingSupplier;
   private final VisionIO[] io;
   private final VisionInputs[] visionInputs;
   private final VisionIOInputsAutoLogged[] inputs;
@@ -75,12 +77,21 @@ public class Vision extends SubsystemBase {
   // Cycle counter for throttled logging
   private int loopCounter = 0;
 
+  // Set true when multiple cameras independently agree on a pose, confirming the heading
+  // is field-relative. Enables yawConsistency without requiring an authoritative pose from auto.
+  private boolean headingCorroborated = false;
+
   // Vision tests to apply (remove from set to disable specific tests)
   public static final EnumSet<Test> enabledTests = VisionFilter.DEFAULT_ENABLED_TESTS;
 
-  public Vision(VisionConsumer consumer, Supplier<Rotation2d> gyroYawSupplier, VisionIO... io) {
+  public Vision(
+      VisionConsumer consumer,
+      BooleanSupplier poseAssertedSupplier,
+      Supplier<Rotation2d> headingSupplier,
+      VisionIO... io) {
     this.consumer = consumer;
-    this.gyroYawSupplier = gyroYawSupplier;
+    this.poseAssertedSupplier = poseAssertedSupplier;
+    this.headingSupplier = headingSupplier;
     this.io = io;
 
     // Initialize per-camera velocity tracking arrays
@@ -177,7 +188,9 @@ public class Vision extends SubsystemBase {
                 cameraIndex,
                 lastAcceptedPose[cameraIndex],
                 lastAcceptedTimestamp[cameraIndex],
-                gyroYawSupplier.get(),
+                (poseAssertedSupplier.getAsBoolean() || headingCorroborated)
+                    ? headingSupplier.get()
+                    : null,
                 enabledTests);
 
         observationBuffer.add(tested);
@@ -240,6 +253,11 @@ public class Vision extends SubsystemBase {
         double cameraCountFactor = (fused.cameraCount() == 1) ? singleCameraStdDevMultiplier : 1.0;
         double linearStdDev = linearStdDevBaseline * cameraCountFactor / fused.score();
         double angularStdDev = angularStdDevBaseline * cameraCountFactor / fused.score();
+
+        // Multi-camera agreement corroborates the heading, enabling yawConsistency
+        if (fused.cameraCount() > 1) {
+          headingCorroborated = true;
+        }
 
         // Send fused vision observation to the pose estimator
         consumer.accept(
