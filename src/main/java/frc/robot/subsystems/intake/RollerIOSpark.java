@@ -2,7 +2,8 @@ package frc.robot.subsystems.intake;
 
 import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.MetersPerSecond;
-import static frc.robot.subsystems.feeder.FeederConstants.KickerConstants.*;
+import static frc.robot.subsystems.intake.IntakeConstants.RollerConfig;
+import static frc.robot.subsystems.intake.IntakeConstants.RollerConstants.*;
 import static frc.robot.util.SparkUtil.*;
 
 import com.revrobotics.PersistMode;
@@ -18,7 +19,6 @@ import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkFlexConfig;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
-import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.NEOVortexConstants;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.util.SparkOdometryThread;
@@ -31,14 +31,17 @@ public class RollerIOSpark implements RollerIO {
   private final SparkClosedLoopController controller;
   private final SparkInputs sparkInputs;
 
-  public RollerIOSpark() {
-    flex = new SparkFlex(CAN2.kicker, MotorType.kBrushless);
+  private final double KP = 0.11;
+  private final double KD = 0.0;
+
+  public RollerIOSpark(RollerConfig rollerConfig) {
+    flex = new SparkFlex(rollerConfig.port, MotorType.kBrushless);
     encoder = flex.getEncoder();
     controller = flex.getClosedLoopController();
 
     var config = new SparkFlexConfig();
     config
-        .inverted(false)
+        .inverted(rollerConfig.inverted)
         .idleMode(IdleMode.kBrake)
         .smartCurrentLimit(NEOVortexConstants.kDefaultSupplyCurrentLimit)
         .voltageCompensation(RobotConstants.kNominalVoltage);
@@ -50,7 +53,7 @@ public class RollerIOSpark implements RollerIO {
         .uvwAverageDepth(2)
         .uvwMeasurementPeriod(8);
 
-    config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kPSim, 0.0, kDSim);
+    config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(KP, 0.0, KD);
 
     tryUntilOk(
         flex,
@@ -65,7 +68,7 @@ public class RollerIOSpark implements RollerIO {
   public void updateInputs(RollerIOInputs inputs) {
 
     inputs.connected = sparkInputs.isConnected();
-    inputs.velocityMetersPerSec = sparkInputs.getVelocity() * radius.in(Meters);
+    inputs.velocityMetersPerSec = sparkInputs.getVelocity() * rollerRadius.in(Meters);
     inputs.appliedVolts = sparkInputs.getAppliedVolts();
     inputs.currentAmps = sparkInputs.getOutputCurrent();
   }
@@ -83,7 +86,7 @@ public class RollerIOSpark implements RollerIO {
             * tangentialVelocity.in(MetersPerSecond)
             / maxTangentialVelocity.in(MetersPerSecond);
     controller.setSetpoint(
-        tangentialVelocity.in(MetersPerSecond) / radius.in(Meters),
+        tangentialVelocity.in(MetersPerSecond) / rollerRadius.in(Meters),
         ControlType.kVelocity,
         ClosedLoopSlot.kSlot0,
         feedforwardVolts);
