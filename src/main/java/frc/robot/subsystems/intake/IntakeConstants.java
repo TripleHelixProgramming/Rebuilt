@@ -8,7 +8,6 @@ import com.ctre.phoenix6.configs.Slot1Configs;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
-import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.KrakenX60Constants;
 
@@ -59,6 +58,9 @@ public class IntakeConstants {
 
     public static final double kPSim = 1.0;
     public static final double kDSim = 1.0;
+
+    public static final double kPRealPos = 1.0;
+    public static final double kPRealVel = 1.0;
 
     public static final double maxPos = 1.0;
     public static final double minPos = 1.0;

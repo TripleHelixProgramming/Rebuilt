@@ -1,31 +1,30 @@
 package frc.robot.subsystems.intake;
 
+import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.intake.IntakeConstants.ArmConstants.*;
 import static frc.robot.subsystems.intake.IntakeConstants.ArmConstants.motorReduction;
-import static edu.wpi.first.units.Units.*;
 
 import com.revrobotics.PersistMode;
 import com.revrobotics.ResetMode;
 import com.revrobotics.sim.SparkMaxSim;
 import com.revrobotics.spark.FeedbackSensor;
-import com.revrobotics.spark.SparkClosedLoopController;
-import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.SparkBase.ControlType;
+import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
-import com.revrobotics.spark.config.SparkMaxConfig;
+import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
-
-import frc.robot.Robot;
-import frc.robot.Constants.RobotConstants;
-import frc.robot.Constants.CANBusPorts.CAN2;
-import frc.robot.Constants.MotorConstants.NEOConstants;
+import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
+import frc.robot.Constants.CANBusPorts.CAN2;
+import frc.robot.Constants.MotorConstants.NEOConstants;
+import frc.robot.Constants.RobotConstants;
+import frc.robot.Robot;
 
 public class IntakeArmIOSim implements IntakeArmIO {
-  
+
   private final DCMotorSim armSim;
 
   private final SparkMax maxRight;
@@ -45,43 +44,40 @@ public class IntakeArmIOSim implements IntakeArmIO {
     armConfig = new SparkMaxConfig();
 
     armConfig
-      .inverted(false)
-      .idleMode(IdleMode.kBrake)
-      .smartCurrentLimit(NEOConstants.kDefaultSupplyCurrentLimit)
-      .voltageCompensation(RobotConstants.kNominalVoltage);
+        .inverted(false)
+        .idleMode(IdleMode.kBrake)
+        .smartCurrentLimit(NEOConstants.kDefaultSupplyCurrentLimit)
+        .voltageCompensation(RobotConstants.kNominalVoltage);
 
     armConfig
-      .encoder
-      .positionConversionFactor(encoderPositionFactor)
-      .velocityConversionFactor(encoderVelocityFactor);
+        .encoder
+        .positionConversionFactor(encoderPositionFactor)
+        .velocityConversionFactor(encoderVelocityFactor);
+
+    armConfig.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kPSim, 0.0, kDSim);
 
     armConfig
-      .closedLoop
-      .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-      .pid(kPSim, 0.0, kDSim);
-
-    armConfig
-      .softLimit
-      .forwardSoftLimit(maxPos)
-      .forwardSoftLimitEnabled(true)
-      .reverseSoftLimit(minPos)
-      .reverseSoftLimitEnabled(true);
+        .softLimit
+        .forwardSoftLimit(maxPos)
+        .forwardSoftLimitEnabled(true)
+        .reverseSoftLimit(minPos)
+        .reverseSoftLimitEnabled(true);
 
     followerConfig = new SparkMaxConfig();
 
-    followerConfig
-      .apply(armConfig)
-      .follow(CAN2.intakeArmRight);
+    followerConfig.apply(armConfig).follow(CAN2.intakeArmRight);
 
     maxRight.configure(armConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     maxSim = new SparkMaxSim(maxRight, gearbox);
 
-    armSim = new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
+    armSim =
+        new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
 
     armSim.setState(0.0, 0.0);
     maxSim.setPosition(0.0);
 
-    maxLeft.configure(followerConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+    maxLeft.configure(
+        followerConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
   }
 
   @Override

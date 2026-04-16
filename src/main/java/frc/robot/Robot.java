@@ -11,7 +11,6 @@ import edu.wpi.first.wpilibj.PneumaticsModuleType;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.simulation.BatterySim;
-import edu.wpi.first.wpilibj.simulation.REVPHSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -248,8 +247,6 @@ public class Robot extends LoggedRobot {
                 new RollerIOSimTalonFX(RollerConstants.upperRollerConfig),
                 new RollerIOSimTalonFX(RollerConstants.lowerRollerConfig),
                 intakeArmIOSim);
-        pneumaticsSimulator =
-            new PneumaticsSimulator(intakeArmIOSim.intakeArmPneumatic, new REVPHSim(1));
         break;
 
       case REPLAY: // Replaying a log

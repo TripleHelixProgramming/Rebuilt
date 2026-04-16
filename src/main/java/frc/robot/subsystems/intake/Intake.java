@@ -5,7 +5,6 @@ import static edu.wpi.first.units.Units.Volts;
 
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
-import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -77,23 +76,18 @@ public class Intake extends SubsystemBase {
   public void stop() {
     upperRollerIO.setOpenLoop(Volts.of(0.0));
     lowerRollerIO.setOpenLoop(Volts.of(0.0));
-    intakeArmIO.retract();
   }
 
-  public void deployArm() {
-    intakeArmIO.deploy();
-  }
+  public void deployArm() {}
 
-  public void retractArm() {
-    intakeArmIO.retract();
-  }
+  public void retractArm() {}
 
   public Boolean isDeployed() {
-    return intakeArmInputs.isDeployed == DoubleSolenoid.Value.kForward;
+    return false;
   }
 
   public boolean isStowed() {
-    return intakeArmInputs.isDeployed == DoubleSolenoid.Value.kReverse;
+    return false;
   }
 
   /**
