@@ -4,6 +4,8 @@ import static frc.robot.subsystems.vision.VisionConstants.*;
 
 import com.ctre.phoenix6.SignalLogger;
 import edu.wpi.first.math.filter.LinearFilter;
+import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
@@ -562,17 +564,51 @@ public class Robot extends LoggedRobot {
 
     // Launcher
     Trigger launcherEnabled = zorroDriver.axisGreaterThan(Axis.kLeftDial.value, 0.5).debounce(0.1);
-    launcherEnabled
-        .or(() -> DriverStation.isFMSAttached())
-        .whileTrue(
-            launcher
-                .initializeHoodCommand()
-                .andThen(
-                    new RunCommand(
-                            () ->
-                                launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()),
-                            launcher)
-                        .withName("Aim at hub")));
+
+    // When the F switch is facing the driver (or up), aim at the hub. When the F switch is facing
+    // away from the driver (or down), aim at a point in front of the robot based on the right dial.
+    // It will only sense the change when the robot is enabled. It must be turned off for the swith
+    // to update. This is because the default command for the launcher (which reads the F switch)
+    // only runs when the robot is enabled, so changes to the F switch won't be registered until
+    // then. NOTE: the F switch is flipped in the code. (meaning in code if it says up, its facing
+    // the driver, and if it says down, its facing away from the driver) This is because of how the
+    // switch is mounted on the controller.
+
+    if (zorroDriver.getHID().getFUp()) {
+      launcherEnabled
+          .or(() -> DriverStation.isFMSAttached())
+          .whileTrue(
+              launcher
+                  .initializeHoodCommand()
+                  .andThen(
+                      new RunCommand(
+                              () ->
+                                  launcher.aim(
+                                      GameState.getTarget(drive.getPose()).getTranslation()),
+                              launcher)
+                          .withName("Aim at hub")));
+    } else {
+      launcherEnabled
+          .or(() -> DriverStation.isFMSAttached())
+          .whileTrue(
+              launcher
+                  .initializeHoodCommand()
+                  .andThen(
+                      new RunCommand(
+                              () -> {
+                                // Map right dial [0,1] into desired distance scale [0.25, 4.0]
+                                double scale = zorroDriver.getRightDial() * 3.75 + 0.25;
+                                var pose = drive.getPose();
+                                var forward =
+                                    new Translation2d(
+                                        pose.getRotation().getCos(), pose.getRotation().getSin());
+                                var target2d = pose.getTranslation().plus(forward.times(scale));
+                                launcher.aim(
+                                    new Translation3d(target2d.getX(), target2d.getY(), 0.0));
+                              },
+                              launcher)
+                          .withName("Aim at manual target")));
+    }
 
     // Intake
     zorroDriver.HIn().whileTrue(intake.getDeployCommand());
