@@ -241,12 +241,11 @@ public class Robot extends LoggedRobot {
                 new HoodIOSimSpark());
         feeder = new Feeder(new SpindexerIOSimSpark(), new KickerIOSimSpark());
         if (FeatureFlags.kHopperEnabled) hopper = new Hopper(new HopperIOSim());
-        var intakeArmIOSim = new IntakeArmIOSimSpark();
         intake =
             new Intake(
                 new RollerIOSimSpark(RollerConstants.upperRollerConfig),
                 new RollerIOSimSpark(RollerConstants.lowerRollerConfig),
-                intakeArmIOSim);
+                new IntakeArmIOSimSpark());
         break;
 
       case REPLAY: // Replaying a log

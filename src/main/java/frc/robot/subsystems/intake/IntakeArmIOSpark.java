@@ -27,8 +27,8 @@ import frc.robot.util.SparkOdometryThread;
 import frc.robot.util.SparkOdometryThread.SparkInputs;
 
 public class IntakeArmIOSpark implements IntakeArmIO {
-  private final double kPRealPos = 1.0;
-  private final double kPRealVel = 1.0;
+  private static final double kPPos = 1.0;
+  private static final double kPVel = 1.0;
 
   private final SparkMax intakeArmRight;
   private final SparkMax intakeArmLeft;
@@ -63,8 +63,8 @@ public class IntakeArmIOSpark implements IntakeArmIO {
     rightArmConfig
         .closedLoop
         .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-        .pid(kPRealPos, 0.0, 0.0, ClosedLoopSlot.kSlot0)
-        .pid(kPRealVel, 0.0, 0.0, ClosedLoopSlot.kSlot1);
+        .pid(kPPos, 0.0, 0.0, ClosedLoopSlot.kSlot0)
+        .pid(kPVel, 0.0, 0.0, ClosedLoopSlot.kSlot1);
 
     rightArmConfig
         .softLimit

@@ -26,8 +26,8 @@ import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
 
 public class IntakeArmIOSimSpark implements IntakeArmIO {
-  private final double kPSim = 1.0;
-  private final double kDSim = 1.0;
+  private static final double kP = 1.0;
+  private static final double kD = 1.0;
 
   private final DCMotorSim armSim;
 
@@ -58,7 +58,7 @@ public class IntakeArmIOSimSpark implements IntakeArmIO {
         .positionConversionFactor(encoderPositionFactor)
         .velocityConversionFactor(encoderVelocityFactor);
 
-    armConfig.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kPSim, 0.0, kDSim);
+    armConfig.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kP, 0.0, kD);
 
     armConfig
         .softLimit
