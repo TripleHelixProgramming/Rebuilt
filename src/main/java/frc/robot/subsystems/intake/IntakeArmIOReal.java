@@ -1,5 +1,6 @@
 package frc.robot.subsystems.intake;
 
+import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static frc.robot.subsystems.intake.IntakeConstants.ArmConstants.*;
 import static frc.robot.util.SparkUtil.*;
 
@@ -16,6 +17,8 @@ import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.Debouncer;
+import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.NEOConstants;
@@ -62,9 +65,9 @@ public class IntakeArmIOReal implements IntakeArmIO {
 
     rightArmConfig
         .softLimit
-        .forwardSoftLimit(maxPos)
+        .forwardSoftLimit(maxPosRad)
         .forwardSoftLimitEnabled(true)
-        .reverseSoftLimit(minPos)
+        .reverseSoftLimit(minPosRad)
         .reverseSoftLimitEnabled(true);
 
     leftArmConfig = new SparkMaxConfig();
@@ -108,14 +111,15 @@ public class IntakeArmIOReal implements IntakeArmIO {
   }
 
   @Override
-  public void setPosition(double position) {
-    double setpoint = MathUtil.clamp(position, minPos, maxPos);
+  public void setPosition(Angle rotation) {
+    double setpoint = MathUtil.clamp(rotation.magnitude(), minPosRad, maxPosRad);
     intakeArmController.setSetpoint(setpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0);
   }
 
   @Override
-  public void setVelocity(double velocity) {
-    intakeArmController.setSetpoint(velocity, ControlType.kVelocity, ClosedLoopSlot.kSlot1);
+  public void setVelocity(AngularVelocity velocity) {
+    intakeArmController.setSetpoint(
+        velocity.in(RadiansPerSecond), ControlType.kVelocity, ClosedLoopSlot.kSlot1);
   }
 
   @Override
@@ -140,6 +144,6 @@ public class IntakeArmIOReal implements IntakeArmIO {
 
   @Override
   public void resetEncoder() {
-    encoderSpark.setPosition(maxPos);
+    encoderSpark.setPosition(minPosRad);
   }
 }

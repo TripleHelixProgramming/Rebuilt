@@ -2,11 +2,13 @@ package frc.robot.subsystems.intake;
 
 import static edu.wpi.first.units.Units.MetersPerSecond;
 import static edu.wpi.first.units.Units.Volts;
+import static frc.robot.subsystems.intake.IntakeConstants.ArmConstants.*;
 
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.StartEndCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import java.util.function.BooleanSupplier;
@@ -24,6 +26,7 @@ public class Intake extends SubsystemBase {
 
   private final Alert upperRollerDisconnectedAlert;
   private final Alert lowerRollerDisconnectedAlert;
+  private final Alert intakeArmDisconnectedAlert;
 
   // Injected after both subsystems are created to avoid a circular dependency.
   // When set, getDeployCommand() and getReverseCommand() will deploy the hopper first if needed.
@@ -37,6 +40,7 @@ public class Intake extends SubsystemBase {
 
     upperRollerDisconnectedAlert = new Alert("Disconnected upper intake roller", AlertType.kError);
     lowerRollerDisconnectedAlert = new Alert("Disconnected lower intake roller", AlertType.kError);
+    intakeArmDisconnectedAlert = new Alert("Disconnected intake arm", AlertType.kError);
   }
 
   @Override
@@ -54,8 +58,10 @@ public class Intake extends SubsystemBase {
 
     upperRollerDisconnectedAlert.set(!upperRollerInputs.connected);
     lowerRollerDisconnectedAlert.set(!lowerRollerInputs.connected);
+    intakeArmDisconnectedAlert.set(!intakeArmInputs.connected);
     Logger.recordOutput("Faults/Intake/UpperRollerDisconnected", !upperRollerInputs.connected);
     Logger.recordOutput("Faults/Intake/LowerRollerDisconnected", !lowerRollerInputs.connected);
+    Logger.recordOutput("Faults/Intake/IntakeArmDisconnected", !intakeArmInputs.connected);
 
     // Profiling output
     if (Constants.FeatureFlags.PROFILING_ENABLED) {
@@ -76,11 +82,16 @@ public class Intake extends SubsystemBase {
   public void stop() {
     upperRollerIO.setOpenLoop(Volts.of(0.0));
     lowerRollerIO.setOpenLoop(Volts.of(0.0));
+    intakeArmIO.setPosition(minPos);
   }
 
-  public void deployArm() {}
+  public void deployArm() {
+    intakeArmIO.setPosition(maxPos);
+  }
 
-  public void retractArm() {}
+  public void retractArm() {
+    intakeArmIO.setPosition(minPos);
+  }
 
   public Boolean isDeployed() {
     return false;
@@ -162,5 +173,23 @@ public class Intake extends SubsystemBase {
             this.idle().withTimeout(1.0),
             Commands.runOnce(this::deployArm, this))
         .repeatedly();
+  }
+
+  public Command initializeIntakeArmCommand() {
+    return new StartEndCommand(
+            // initialize
+            () -> {
+              intakeArmIO.configureSoftLimits(false);
+              intakeArmIO.setOpenLoop(Volts.of(1.0));
+            },
+            // end
+            () -> {
+              intakeArmIO.configureSoftLimits(true);
+              intakeArmIO.resetEncoder();
+            },
+            // requirements
+            this)
+        .withTimeout(1.0)
+        .withName("Initialize intake arm");
   }
 }

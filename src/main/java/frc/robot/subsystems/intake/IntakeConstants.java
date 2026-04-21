@@ -6,6 +6,7 @@ import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.Slot1Configs;
 import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
 import frc.robot.Constants.CANBusPorts.CAN2;
@@ -53,8 +54,10 @@ public class IntakeConstants {
   }
 
   public static class ArmConstants {
-    public static final double encoderPositionFactor = 1.0;
-    public static final double encoderVelocityFactor = 1.0;
+    public static final double motorReduction = 15.0;
+
+    public static final double encoderPositionFactor = 2 * Math.PI / motorReduction;
+    public static final double encoderVelocityFactor = (2 * Math.PI) / (60.0 * motorReduction);
 
     public static final double kPSim = 1.0;
     public static final double kDSim = 1.0;
@@ -62,10 +65,10 @@ public class IntakeConstants {
     public static final double kPRealPos = 1.0;
     public static final double kPRealVel = 1.0;
 
-    public static final double maxPos = 1.0;
-    public static final double minPos = 1.0;
-
-    public static final double motorReduction = 1.0;
+    public static final Angle maxPos = Degrees.of(90.0);
+    public static final Angle minPos = Degrees.of(0.0);
+    public static final double maxPosRad = maxPos.in(Radians);
+    public static final double minPosRad = minPos.in(Radians);
 
     public static final DCMotor gearbox = DCMotor.getNEO(2);
   }

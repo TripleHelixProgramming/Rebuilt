@@ -325,7 +325,8 @@ public class Robot extends LoggedRobot {
     Field.plotRegions();
 
     feeder.setDefaultCommand(Commands.startEnd(feeder::stop, () -> {}, feeder).withName("Stop"));
-    intake.setDefaultCommand(intake.getDefaultCommand());
+    intake.setDefaultCommand(
+        intake.initializeIntakeArmCommand().andThen(intake.getDefaultCommand()));
     launcher.setDefaultCommand(
         launcher
             .initializeHoodCommand()

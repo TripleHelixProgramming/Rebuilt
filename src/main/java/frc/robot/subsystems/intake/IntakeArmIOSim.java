@@ -15,6 +15,7 @@ import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.system.plant.LinearSystemId;
+import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
@@ -58,9 +59,9 @@ public class IntakeArmIOSim implements IntakeArmIO {
 
     armConfig
         .softLimit
-        .forwardSoftLimit(maxPos)
+        .forwardSoftLimit(maxPosRad)
         .forwardSoftLimitEnabled(true)
-        .reverseSoftLimit(minPos)
+        .reverseSoftLimit(minPosRad)
         .reverseSoftLimitEnabled(true);
 
     followerConfig = new SparkMaxConfig();
@@ -87,9 +88,9 @@ public class IntakeArmIOSim implements IntakeArmIO {
     armSim.setInput(maxSim.getAppliedOutput() * busVoltage);
     armSim.update(Robot.defaultPeriodSecs);
 
-    if (maxSim.getPosition() > maxPos) {
-      armSim.setState(maxPos, 0.0);
-      maxSim.setPosition(maxPos);
+    if (maxSim.getPosition() > maxPosRad) {
+      armSim.setState(maxPosRad, 0.0);
+      maxSim.setPosition(maxPosRad);
     }
 
     maxSim.iterate(armSim.getAngularVelocityRadPerSec(), busVoltage, Robot.defaultPeriodSecs);
@@ -108,8 +109,8 @@ public class IntakeArmIOSim implements IntakeArmIO {
   }
 
   @Override
-  public void setPosition(double position) {
-    controller.setSetpoint(position, ControlType.kPosition);
+  public void setPosition(Angle rotation) {
+    controller.setSetpoint(rotation.magnitude(), ControlType.kPosition);
   }
 
   @Override
@@ -120,6 +121,6 @@ public class IntakeArmIOSim implements IntakeArmIO {
 
   @Override
   public void resetEncoder() {
-    maxSim.setPosition(maxPos);
+    maxSim.setPosition(maxPosRad);
   }
 }
