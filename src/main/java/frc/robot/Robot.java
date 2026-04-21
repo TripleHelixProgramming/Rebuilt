@@ -72,6 +72,7 @@ import frc.robot.subsystems.intake.IntakeArmIOSim;
 import frc.robot.subsystems.intake.IntakeConstants;
 import frc.robot.subsystems.intake.IntakeConstants.RollerConstants;
 import frc.robot.subsystems.intake.RollerIO;
+import frc.robot.subsystems.intake.RollerIOSimSpark;
 import frc.robot.subsystems.intake.RollerIOSimTalonFX;
 import frc.robot.subsystems.intake.RollerIOSpark;
 import frc.robot.subsystems.launcher.FlywheelIO;
@@ -245,8 +246,8 @@ public class Robot extends LoggedRobot {
         var intakeArmIOSim = new IntakeArmIOSim();
         intake =
             new Intake(
-                new RollerIOSimTalonFX(RollerConstants.upperRollerConfig),
-                new RollerIOSimTalonFX(RollerConstants.lowerRollerConfig),
+                new RollerIOSimSpark(RollerConstants.upperRollerConfig),
+                new RollerIOSimSpark(RollerConstants.lowerRollerConfig),
                 intakeArmIOSim);
         pneumaticsSimulator =
             new PneumaticsSimulator(intakeArmIOSim.intakeArmPneumatic, new REVPHSim(1));
