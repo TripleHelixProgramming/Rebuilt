@@ -155,6 +155,8 @@ wpi.java.configureTestTasks(test)
 // Configure string concat to always inline compile
 tasks.withType(JavaCompile) {
     options.compilerArgs.add '-XDstringConcat=inline'
+    // Ensure Java compiler treats source files as UTF-8 so Unicode comments/characters compile
+    options.encoding = 'UTF-8'
 }
 
 // Create version file
