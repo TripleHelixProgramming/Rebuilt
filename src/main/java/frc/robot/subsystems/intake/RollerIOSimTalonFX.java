@@ -6,6 +6,8 @@ import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
+import com.ctre.phoenix6.configs.Slot0Configs;
+import com.ctre.phoenix6.configs.Slot1Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.NeutralOut;
 import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
@@ -14,6 +16,7 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.math.filter.Debouncer;
+import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
@@ -26,6 +29,13 @@ import frc.robot.Robot;
 import frc.robot.subsystems.intake.IntakeConstants.RollerConfig;
 
 public class RollerIOSimTalonFX implements RollerIO {
+  private static final double kP = 0.11;
+  private static final double kD = 0.0;
+  private static final Slot0Configs velocityVoltageGains =
+      new Slot0Configs().withKP(kP).withKI(0.0).withKD(kD).withKS(0.1).withKV(0.12);
+  private static final Slot1Configs velocityTorqueCurrentGains =
+      new Slot1Configs().withKP(kP).withKI(0.0).withKD(kD).withKS(2.5);
+  private static final DCMotor gearbox = DCMotor.getKrakenX60(numMotors);
 
   private final DCMotorSim rollerSim;
 
