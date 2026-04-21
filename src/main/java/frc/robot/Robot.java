@@ -66,8 +66,8 @@ import frc.robot.subsystems.hopper.HopperIOReal;
 import frc.robot.subsystems.hopper.HopperIOSim;
 import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.intake.IntakeArmIO;
-import frc.robot.subsystems.intake.IntakeArmIOReal;
-import frc.robot.subsystems.intake.IntakeArmIOSim;
+import frc.robot.subsystems.intake.IntakeArmIOSpark;
+import frc.robot.subsystems.intake.IntakeArmIOSimSpark;
 import frc.robot.subsystems.intake.IntakeConstants;
 import frc.robot.subsystems.intake.IntakeConstants.RollerConstants;
 import frc.robot.subsystems.intake.RollerIO;
@@ -199,7 +199,7 @@ public class Robot extends LoggedRobot {
             new Intake(
                 new RollerIOTalonFX(RollerConstants.upperRollerConfig),
                 new RollerIOTalonFX(RollerConstants.lowerRollerConfig),
-                new IntakeArmIOReal());
+                new IntakeArmIOSpark());
         feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
         compressor = new LoggedCompressor(PneumaticsModuleType.REVPH, "Compressor");
 
@@ -241,7 +241,7 @@ public class Robot extends LoggedRobot {
                 new HoodIOSimSpark());
         feeder = new Feeder(new SpindexerIOSimSpark(), new KickerIOSimSpark());
         if (FeatureFlags.kHopperEnabled) hopper = new Hopper(new HopperIOSim());
-        var intakeArmIOSim = new IntakeArmIOSim();
+        var intakeArmIOSim = new IntakeArmIOSimSpark();
         intake =
             new Intake(
                 new RollerIOSimTalonFX(RollerConstants.upperRollerConfig),

@@ -2,11 +2,11 @@ package frc.robot.subsystems.intake;
 
 import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.intake.IntakeConstants.ArmConstants.*;
-import static frc.robot.subsystems.intake.IntakeConstants.ArmConstants.motorReduction;
 
 import com.revrobotics.PersistMode;
 import com.revrobotics.ResetMode;
 import com.revrobotics.sim.SparkMaxSim;
+import com.revrobotics.spark.ClosedLoopSlot;
 import com.revrobotics.spark.FeedbackSensor;
 import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkClosedLoopController;
@@ -16,6 +16,7 @@ import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
@@ -24,7 +25,9 @@ import frc.robot.Constants.MotorConstants.NEOConstants;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
 
-public class IntakeArmIOSim implements IntakeArmIO {
+public class IntakeArmIOSimSpark implements IntakeArmIO {
+  private final double kPSim = 1.0;
+  private final double kDSim = 1.0;
 
   private final DCMotorSim armSim;
 
@@ -36,7 +39,7 @@ public class IntakeArmIOSim implements IntakeArmIO {
   private final SparkMaxConfig armConfig;
   private final SparkMaxConfig followerConfig;
 
-  public IntakeArmIOSim() {
+  public IntakeArmIOSimSpark() {
     maxRight = new SparkMax(CAN2.intakeArmRight, MotorType.kBrushless);
     maxLeft = new SparkMax(CAN2.intakeArmLeft, MotorType.kBrushless);
 
@@ -109,8 +112,13 @@ public class IntakeArmIOSim implements IntakeArmIO {
   }
 
   @Override
-  public void setPosition(Angle rotation) {
-    controller.setSetpoint(rotation.magnitude(), ControlType.kPosition);
+  public void setPosition(Angle rotation, AngularVelocity velocity) {
+    double feedforward =
+        RobotConstants.kNominalVoltage
+            * velocity.in(RadiansPerSecond)
+            / maxAngularVelocity.in(RadiansPerSecond);
+    controller.setSetpoint(
+        rotation.magnitude(), ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforward);
   }
 
   @Override

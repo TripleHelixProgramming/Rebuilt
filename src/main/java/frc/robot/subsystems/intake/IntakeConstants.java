@@ -11,6 +11,7 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
 import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.KrakenX60Constants;
+import frc.robot.Constants.MotorConstants.NEOConstants;
 
 public class IntakeConstants {
   /** Time (seconds) to wait after resolving an intake/hopper interlock before proceeding. */
@@ -59,11 +60,8 @@ public class IntakeConstants {
     public static final double encoderPositionFactor = 2 * Math.PI / motorReduction;
     public static final double encoderVelocityFactor = (2 * Math.PI) / (60.0 * motorReduction);
 
-    public static final double kPSim = 1.0;
-    public static final double kDSim = 1.0;
-
-    public static final double kPRealPos = 1.0;
-    public static final double kPRealVel = 1.0;
+    public static final AngularVelocity maxAngularVelocity =
+        NEOConstants.kFreeSpeed.div(motorReduction);
 
     public static final Angle maxPos = Degrees.of(90.0);
     public static final Angle minPos = Degrees.of(0.0);

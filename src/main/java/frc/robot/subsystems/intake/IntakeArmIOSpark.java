@@ -26,7 +26,10 @@ import frc.robot.Constants.RobotConstants;
 import frc.robot.util.SparkOdometryThread;
 import frc.robot.util.SparkOdometryThread.SparkInputs;
 
-public class IntakeArmIOReal implements IntakeArmIO {
+public class IntakeArmIOSpark implements IntakeArmIO {
+  private final double kPRealPos = 1.0;
+  private final double kPRealVel = 1.0;
+
   private final SparkMax intakeArmRight;
   private final SparkMax intakeArmLeft;
   private final RelativeEncoder encoderSpark;
@@ -38,7 +41,7 @@ public class IntakeArmIOReal implements IntakeArmIO {
 
   private final Debouncer connectedDebounce = new Debouncer(0.5, Debouncer.DebounceType.kFalling);
 
-  public IntakeArmIOReal() {
+  public IntakeArmIOSpark() {
     intakeArmRight = new SparkMax(CAN2.intakeArmRight, MotorType.kBrushless);
     intakeArmLeft = new SparkMax(CAN2.intakeArmLeft, MotorType.kBrushless);
     encoderSpark = intakeArmRight.getEncoder();
@@ -111,9 +114,14 @@ public class IntakeArmIOReal implements IntakeArmIO {
   }
 
   @Override
-  public void setPosition(Angle rotation) {
+  public void setPosition(Angle rotation, AngularVelocity velocity) {
+    double feedforward =
+        RobotConstants.kNominalVoltage
+            * velocity.in(RadiansPerSecond)
+            / maxAngularVelocity.in(RadiansPerSecond);
     double setpoint = MathUtil.clamp(rotation.magnitude(), minPosRad, maxPosRad);
-    intakeArmController.setSetpoint(setpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0);
+    intakeArmController.setSetpoint(
+        setpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforward);
   }
 
   @Override

@@ -1,6 +1,7 @@
 package frc.robot.subsystems.intake;
 
 import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static edu.wpi.first.units.Units.Volts;
 import static frc.robot.subsystems.intake.IntakeConstants.ArmConstants.*;
 
@@ -82,15 +83,15 @@ public class Intake extends SubsystemBase {
   public void stop() {
     upperRollerIO.setOpenLoop(Volts.of(0.0));
     lowerRollerIO.setOpenLoop(Volts.of(0.0));
-    intakeArmIO.setPosition(minPos);
+    intakeArmIO.setPosition(minPos, RadiansPerSecond.of(0.0));
   }
 
   public void deployArm() {
-    intakeArmIO.setPosition(maxPos);
+    intakeArmIO.setPosition(maxPos, RadiansPerSecond.of(0.0));
   }
 
   public void retractArm() {
-    intakeArmIO.setPosition(minPos);
+    intakeArmIO.setPosition(minPos, RadiansPerSecond.of(0.0));
   }
 
   public Boolean isDeployed() {

@@ -19,7 +19,7 @@ public interface IntakeArmIO {
 
   public default void setOpenLoop(Voltage volts) {}
 
-  public default void setPosition(Angle rotation) {}
+  public default void setPosition(Angle rotation, AngularVelocity velocity) {}
 
   public default void setVelocity(AngularVelocity velocity) {}
 
