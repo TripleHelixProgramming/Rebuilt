@@ -3,14 +3,11 @@ package frc.robot.subsystems.intake;
 import static edu.wpi.first.units.Units.*;
 
 import com.ctre.phoenix6.CANBus;
-import com.ctre.phoenix6.configs.Slot0Configs;
-import com.ctre.phoenix6.configs.Slot1Configs;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
 import frc.robot.Constants.CANBusPorts.CAN2;
-import frc.robot.Constants.MotorConstants.KrakenX60Constants;
 import frc.robot.Constants.MotorConstants.NEOConstants;
 
 public class IntakeConstants {
@@ -22,18 +19,13 @@ public class IntakeConstants {
 
     // motor controller
     public static final double motorReduction = 1.0;
-    public static final AngularVelocity maxAngularVelocity =
-        KrakenX60Constants.kFreeSpeed.div(motorReduction);
-    public static final Slot0Configs velocityVoltageGains =
-        new Slot0Configs().withKP(0.11).withKI(0.0).withKD(0.0).withKS(0.1).withKV(0.12);
-    public static final Slot1Configs velocityTorqueCurrentGains =
-        new Slot1Configs().withKP(5).withKI(0.0).withKD(0.0).withKS(2.5);
-
+    public static final int numMotors = 1;
     public static final double maxAcceleration = 4000.0;
     public static final double maxJerk = 40000.0;
 
-    // simulation
-    public static final DCMotor gearbox = DCMotor.getKrakenX60(2);
+    // roller constants
+    public static final double encoderPositionFactor = 2.0 * Math.PI / motorReduction; // Meters
+    public static final double encoderVelocityFactor = encoderPositionFactor / 60.0; // Meters/sec
 
     // configs
     public static final RollerConfig upperRollerConfig =
