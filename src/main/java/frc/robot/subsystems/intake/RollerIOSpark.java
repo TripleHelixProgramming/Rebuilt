@@ -1,8 +1,6 @@
 package frc.robot.subsystems.intake;
 
-import static edu.wpi.first.units.Units.Meters;
-import static edu.wpi.first.units.Units.MetersPerSecond;
-import static frc.robot.subsystems.intake.IntakeConstants.RollerConfig;
+import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.intake.IntakeConstants.RollerConstants.*;
 import static frc.robot.util.SparkUtil.*;
 
@@ -21,18 +19,23 @@ import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.Constants.MotorConstants.NEOVortexConstants;
 import frc.robot.Constants.RobotConstants;
+import frc.robot.subsystems.intake.IntakeConstants.RollerConfig;
 import frc.robot.util.SparkOdometryThread;
 import frc.robot.util.SparkOdometryThread.SparkInputs;
 
 public class RollerIOSpark implements RollerIO {
+  private static final double KP = 0.001;
+  private static final double KD = 0.0;
+  private static final LinearVelocity maxTangentialVelocity =
+      MetersPerSecond.of(
+          NEOVortexConstants.kFreeSpeed.in(RadiansPerSecond)
+              * rollerRadius.in(Meters)
+              / motorReduction);
 
   private final SparkFlex flex;
   private final RelativeEncoder encoder;
   private final SparkClosedLoopController controller;
   private final SparkInputs sparkInputs;
-
-  private final double KP = 0.11;
-  private final double KD = 0.0;
 
   public RollerIOSpark(RollerConfig rollerConfig) {
     flex = new SparkFlex(rollerConfig.port, MotorType.kBrushless);
@@ -66,7 +69,6 @@ public class RollerIOSpark implements RollerIO {
 
   @Override
   public void updateInputs(RollerIOInputs inputs) {
-
     inputs.connected = sparkInputs.isConnected();
     inputs.velocityMetersPerSec = sparkInputs.getVelocity() * rollerRadius.in(Meters);
     inputs.appliedVolts = sparkInputs.getAppliedVolts();
