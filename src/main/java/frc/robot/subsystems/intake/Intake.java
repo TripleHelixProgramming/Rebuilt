@@ -181,7 +181,7 @@ public class Intake extends SubsystemBase {
             // initialize
             () -> {
               intakeArmIO.configureSoftLimits(false);
-              intakeArmIO.setOpenLoop(Volts.of(1.0));
+              intakeArmIO.setOpenLoop(Volts.of(-1.0));
             },
             // end
             () -> {

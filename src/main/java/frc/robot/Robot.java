@@ -7,7 +7,6 @@ import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
-import edu.wpi.first.wpilibj.PneumaticsModuleType;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.simulation.BatterySim;
@@ -32,7 +31,6 @@ import frc.lib.ControllerSelector.ControllerType;
 import frc.lib.ControllerSelector.DriverConfig;
 import frc.lib.ControllerSelector.DriverController;
 import frc.lib.ControllerSelector.OperatorConfig;
-import frc.lib.LoggedCompressor;
 import frc.lib.LoggedPowerDistribution;
 import frc.lib.ZorroController.Axis;
 import frc.robot.Constants.DIOPorts;
@@ -137,8 +135,6 @@ public class Robot extends LoggedRobot {
   private Intake intake;
   private Hopper hopper;
   private LEDController leds = LEDController.getInstance();
-  private LoggedCompressor compressor;
-  private PneumaticsSimulator pneumaticsSimulator;
 
   // Battery simulation constants
   private static final double ELECTRONICS_OVERHEAD_AMPS = 4.5; // RoboRIO + radio + PDH + misc
@@ -201,7 +197,6 @@ public class Robot extends LoggedRobot {
                 new RollerIOSpark(RollerConstants.lowerRollerConfig),
                 new IntakeArmIOSpark());
         feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
-        compressor = new LoggedCompressor(PneumaticsModuleType.REVPH, "Compressor");
 
         // Start kernel log monitoring (singleton, starts automatically on first call)
         KernelLogMonitor.getInstance();
@@ -352,7 +347,6 @@ public class Robot extends LoggedRobot {
     logCANBus("CAN2", Constants.CANBusPorts.CAN2.bus);
     logCANBus("CANHD", Constants.CANBusPorts.CANHD.bus);
     powerDistribution.log();
-    if (compressor != null) compressor.log();
     logHIDs();
     logScheduler();
 
@@ -441,9 +435,6 @@ public class Robot extends LoggedRobot {
   public void teleopPeriodic() {
     leds.displayHubCountdown();
     leds.displayRobotState(() -> launcher.isOnTarget(), () -> feeder.isSpinning());
-    if (!DriverStation.isFMSAttached()) {
-      leds.displayCompressorState(compressor != null && compressor.isEnabled());
-    }
   }
 
   /** This function is called once when test mode is enabled. */
@@ -470,11 +461,8 @@ public class Robot extends LoggedRobot {
   /** This function is called periodically whilst in simulation. */
   @Override
   public void simulationPeriodic() {
-    // Skip battery simulation during replay (pneumaticsSimulator is only initialized in SIM mode)
-    if (pneumaticsSimulator == null) return;
 
     // Update battery voltage based on total current draw this cycle
-    pneumaticsSimulator.update(Robot.defaultPeriodSecs);
     RoboRioSim.setVInVoltage(
         vBusFilter.calculate(
             Math.max(
@@ -484,7 +472,6 @@ public class Robot extends LoggedRobot {
                     launcher.getSimCurrentDrawAmps(),
                     feeder.getSimCurrentDrawAmps(),
                     intake.getSimCurrentDrawAmps(),
-                    pneumaticsSimulator.getCompressorCurrentAmps(),
                     ELECTRONICS_OVERHEAD_AMPS))));
   }
 
