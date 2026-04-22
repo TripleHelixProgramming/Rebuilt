@@ -75,7 +75,7 @@ public class IntakeArmIOSpark implements IntakeArmIO {
 
     leftArmConfig = new SparkMaxConfig();
 
-    leftArmConfig.apply(rightArmConfig).follow(CAN2.intakeArmRight);
+    leftArmConfig.apply(rightArmConfig).follow(CAN2.intakeArmRight, true);
 
     rightArmConfig
         .signals
@@ -152,6 +152,6 @@ public class IntakeArmIOSpark implements IntakeArmIO {
 
   @Override
   public void resetEncoder() {
-    encoderSpark.setPosition(minPosRad);
+    encoderSpark.setPosition(0.0);
   }
 }

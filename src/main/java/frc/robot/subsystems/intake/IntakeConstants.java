@@ -55,8 +55,9 @@ public class IntakeConstants {
     public static final AngularVelocity maxAngularVelocity =
         NEOConstants.kFreeSpeed.div(motorReduction);
 
+    public static final Angle backlash = Degrees.of(25);
     public static final Angle maxPos = Degrees.of(90.0);
-    public static final Angle minPos = Degrees.of(0.0);
+    public static final Angle minPos = Degrees.of(0.0).minus(backlash);
     public static final double maxPosRad = maxPos.in(Radians);
     public static final double minPosRad = minPos.in(Radians);
 
