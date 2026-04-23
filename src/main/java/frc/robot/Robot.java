@@ -4,6 +4,7 @@ import static frc.robot.subsystems.vision.VisionConstants.*;
 
 import com.ctre.phoenix6.SignalLogger;
 import edu.wpi.first.math.filter.LinearFilter;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -566,7 +567,9 @@ public class Robot extends LoggedRobot {
     Trigger launcherEnabled = zorroDriver.axisGreaterThan(Axis.kLeftDial.value, 0.5).debounce(0.1);
 
     // When the F switch is facing the driver (or up), aim at the hub. When the F switch is facing
-    // away from the driver (or down), aim at a point in front of the robot based on the right dial.
+    // away from the driver (or down), aim at a point based on the right dial. The right dial
+    // rotates the turret with a set distance in front of the robot, so the robot can move around
+    // while pointing the same target.
     // It will only sense the change when the robot is enabled. It must be turned off for the swith
     // to update. This is because the default command for the launcher (which reads the F switch)
     // only runs when the robot is enabled, so changes to the F switch won't be registered until
@@ -595,20 +598,22 @@ public class Robot extends LoggedRobot {
                   .initializeHoodCommand()
                   .andThen(
                       new RunCommand(
-                              () -> {
-                                // Map right dial [0,1] into desired distance scale [0.25, 4.0]
-                                double scale = zorroDriver.getRightDial() * 3.75 + 0.25;
-                                var pose = drive.getPose();
-                                var forward =
-                                    new Translation2d(
-                                        pose.getRotation().getCos(), pose.getRotation().getSin());
-                                var target2d = pose.getTranslation().plus(forward.times(scale));
-                                launcher.aim(
-                                    new Translation3d(target2d.getX(), target2d.getY(), 0.0));
-                              },
-                              launcher)
-                          .withName("Aim at manual target")));
+                          () -> {
+                            Translation2d t2 =
+                                drive
+                                    .getPose()
+                                    .getTranslation()
+                                    .plus(
+                                        new Translation2d(0.0, 0.0)
+                                            .rotateBy(
+                                                Rotation2d.fromDegrees(
+                                                    zorroDriver.getRightDial())));
+                            launcher.aim(new Translation3d(t2.getX(), t2.getY(), 0.0));
+                          },
+                          launcher)
+                          .withName("Aim at target based on right dial")));
     }
+    
 
     // Intake
     zorroDriver.HIn().whileTrue(intake.getDeployCommand());
