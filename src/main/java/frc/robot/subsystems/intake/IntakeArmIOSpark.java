@@ -4,6 +4,7 @@ import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static frc.robot.subsystems.intake.IntakeConstants.ArmConstants.*;
 import static frc.robot.util.SparkUtil.*;
 
+import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.PersistMode;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.ResetMode;
@@ -17,6 +18,7 @@ import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.Debouncer;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Voltage;
@@ -30,8 +32,9 @@ public class IntakeArmIOSpark implements IntakeArmIO {
   private static final double kPPos = 1.0;
   private static final double kPVel = 1.0;
 
-  private final SparkMax intakeArmRight;
   private final SparkMax intakeArmLeft;
+  private final SparkMax intakeArmRight;
+  private final AbsoluteEncoder absoluteEncoder;
   private final RelativeEncoder encoderSpark;
   private final SparkClosedLoopController intakeArmController;
   private final SparkInputs sparkInputs;
@@ -41,11 +44,14 @@ public class IntakeArmIOSpark implements IntakeArmIO {
 
   private final Debouncer connectedDebounce = new Debouncer(0.5, Debouncer.DebounceType.kFalling);
 
+  private boolean relativeEncoderSeeded = false;
+
   public IntakeArmIOSpark() {
-    intakeArmRight = new SparkMax(CAN2.intakeArmRight, MotorType.kBrushless);
     intakeArmLeft = new SparkMax(CAN2.intakeArmLeft, MotorType.kBrushless);
-    encoderSpark = intakeArmRight.getEncoder();
-    intakeArmController = intakeArmRight.getClosedLoopController();
+    intakeArmRight = new SparkMax(CAN2.intakeArmRight, MotorType.kBrushless);
+    absoluteEncoder = intakeArmLeft.getAbsoluteEncoder();
+    encoderSpark = intakeArmLeft.getEncoder();
+    intakeArmController = intakeArmLeft.getClosedLoopController();
 
     rightArmConfig = new SparkMaxConfig();
 
@@ -84,33 +90,39 @@ public class IntakeArmIOSpark implements IntakeArmIO {
         .outputCurrentPeriodMs(20);
 
     tryUntilOk(
-        intakeArmRight,
-        5,
-        () ->
-            intakeArmRight.configure(
-                rightArmConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters));
-    tryUntilOk(
         intakeArmLeft,
         5,
         () ->
             intakeArmLeft.configure(
+                rightArmConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters));
+    tryUntilOk(
+        intakeArmRight,
+        5,
+        () ->
+            intakeArmRight.configure(
                 leftArmConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters));
 
-    sparkInputs = SparkOdometryThread.getInstance().registerSpark(intakeArmRight, encoderSpark);
+    sparkInputs = SparkOdometryThread.getInstance().registerSpark(intakeArmLeft, encoderSpark);
   }
 
   @Override
   public void updateInputs(IntakeArmIOInputs inputs) {
+    if (!relativeEncoderSeeded) {
+      encoderSpark.setPosition(absoluteEncoder.getPosition());
+    }
+
     inputs.position = sparkInputs.getPosition();
     inputs.velocityMetersPerSec = sparkInputs.getVelocity();
     inputs.appliedVolts = sparkInputs.getAppliedVolts();
     inputs.currentAmps = sparkInputs.getOutputCurrent();
     inputs.connected = connectedDebounce.calculate(sparkInputs.isConnected());
+
+    inputs.absolutePosition = new Rotation2d(absoluteEncoder.getPosition());
   }
 
   @Override
   public void setOpenLoop(Voltage volts) {
-    intakeArmRight.setVoltage(volts);
+    intakeArmLeft.setVoltage(volts);
   }
 
   @Override
@@ -135,18 +147,18 @@ public class IntakeArmIOSpark implements IntakeArmIO {
     rightArmConfig.softLimit.forwardSoftLimitEnabled(enable);
     rightArmConfig.softLimit.reverseSoftLimitEnabled(enable);
     tryUntilOk(
-        intakeArmRight,
-        5,
-        () ->
-            intakeArmRight.configure(
-                rightArmConfig,
-                ResetMode.kNoResetSafeParameters,
-                PersistMode.kNoPersistParameters));
-    tryUntilOk(
         intakeArmLeft,
         5,
         () ->
             intakeArmLeft.configure(
+                rightArmConfig,
+                ResetMode.kNoResetSafeParameters,
+                PersistMode.kNoPersistParameters));
+    tryUntilOk(
+        intakeArmRight,
+        5,
+        () ->
+            intakeArmRight.configure(
                 leftArmConfig, ResetMode.kNoResetSafeParameters, PersistMode.kNoPersistParameters));
   }
 
