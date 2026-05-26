@@ -14,6 +14,7 @@ import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.config.AbsoluteEncoderConfig;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.MathUtil;
@@ -39,8 +40,9 @@ public class IntakeArmIOSpark implements IntakeArmIO {
   private final SparkClosedLoopController intakeArmController;
   private final SparkInputs sparkInputs;
 
-  private final SparkMaxConfig rightArmConfig;
   private final SparkMaxConfig leftArmConfig;
+  private final SparkMaxConfig rightArmConfig;
+  private final AbsoluteEncoderConfig absEncoderConfig;
 
   private final Debouncer connectedDebounce = new Debouncer(0.5, Debouncer.DebounceType.kFalling);
 
@@ -53,37 +55,46 @@ public class IntakeArmIOSpark implements IntakeArmIO {
     encoderSpark = intakeArmLeft.getEncoder();
     intakeArmController = intakeArmLeft.getClosedLoopController();
 
-    rightArmConfig = new SparkMaxConfig();
+    absEncoderConfig = new AbsoluteEncoderConfig();
 
-    rightArmConfig
+    absEncoderConfig
+        .zeroOffset(absEncoderOffset)
+        .positionConversionFactor(absEncoderPositionFactor)
+        .velocityConversionFactor(absEncoderVelocityFactor);
+
+    leftArmConfig = new SparkMaxConfig();
+
+    leftArmConfig
         .inverted(false)
         .idleMode(IdleMode.kBrake)
         .smartCurrentLimit(NEOConstants.kDefaultSupplyCurrentLimit)
         .voltageCompensation(RobotConstants.kNominalVoltage);
 
-    rightArmConfig
+    leftArmConfig
         .encoder
         .positionConversionFactor(encoderPositionFactor)
         .velocityConversionFactor(encoderVelocityFactor);
 
-    rightArmConfig
+    leftArmConfig.absoluteEncoder.apply(absEncoderConfig);
+
+    leftArmConfig
         .closedLoop
         .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
         .pid(kPPos, 0.0, 0.0, ClosedLoopSlot.kSlot0)
         .pid(kPVel, 0.0, 0.0, ClosedLoopSlot.kSlot1);
 
-    rightArmConfig
+    leftArmConfig
         .softLimit
         .forwardSoftLimit(maxPosRad)
         .forwardSoftLimitEnabled(true)
         .reverseSoftLimit(minPosRad)
         .reverseSoftLimitEnabled(true);
 
-    leftArmConfig = new SparkMaxConfig();
+    rightArmConfig = new SparkMaxConfig();
 
-    leftArmConfig.apply(rightArmConfig).follow(CAN2.intakeArmRight, true);
+    rightArmConfig.apply(leftArmConfig).follow(CAN2.intakeArmRight, true);
 
-    rightArmConfig
+    leftArmConfig
         .signals
         .appliedOutputPeriodMs(20)
         .busVoltagePeriodMs(20)
@@ -94,13 +105,13 @@ public class IntakeArmIOSpark implements IntakeArmIO {
         5,
         () ->
             intakeArmLeft.configure(
-                rightArmConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters));
+                leftArmConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters));
     tryUntilOk(
         intakeArmRight,
         5,
         () ->
             intakeArmRight.configure(
-                leftArmConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters));
+                rightArmConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters));
 
     sparkInputs = SparkOdometryThread.getInstance().registerSpark(intakeArmLeft, encoderSpark);
   }
@@ -144,22 +155,22 @@ public class IntakeArmIOSpark implements IntakeArmIO {
 
   @Override
   public void configureSoftLimits(boolean enable) {
-    rightArmConfig.softLimit.forwardSoftLimitEnabled(enable);
-    rightArmConfig.softLimit.reverseSoftLimitEnabled(enable);
+    leftArmConfig.softLimit.forwardSoftLimitEnabled(enable);
+    leftArmConfig.softLimit.reverseSoftLimitEnabled(enable);
     tryUntilOk(
         intakeArmLeft,
         5,
         () ->
             intakeArmLeft.configure(
-                rightArmConfig,
-                ResetMode.kNoResetSafeParameters,
-                PersistMode.kNoPersistParameters));
+                leftArmConfig, ResetMode.kNoResetSafeParameters, PersistMode.kNoPersistParameters));
     tryUntilOk(
         intakeArmRight,
         5,
         () ->
             intakeArmRight.configure(
-                leftArmConfig, ResetMode.kNoResetSafeParameters, PersistMode.kNoPersistParameters));
+                rightArmConfig,
+                ResetMode.kNoResetSafeParameters,
+                PersistMode.kNoPersistParameters));
   }
 
   @Override

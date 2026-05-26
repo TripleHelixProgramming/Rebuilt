@@ -52,6 +52,11 @@ public class IntakeConstants {
     public static final double encoderPositionFactor = 2 * Math.PI / motorReduction;
     public static final double encoderVelocityFactor = (2 * Math.PI) / (60.0 * motorReduction);
 
+    public static final double absEncoderPositionFactor = 2 * Math.PI;
+    public static final double absEncoderVelocityFactor = (2 * Math.PI) / 60.0;
+
+    public static final double absEncoderOffset = 0;
+
     public static final AngularVelocity maxAngularVelocity =
         NEOConstants.kFreeSpeed.div(motorReduction);
 
