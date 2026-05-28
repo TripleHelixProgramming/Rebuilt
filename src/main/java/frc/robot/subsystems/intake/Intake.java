@@ -9,7 +9,6 @@ import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.StartEndCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import java.util.function.BooleanSupplier;
@@ -176,21 +175,21 @@ public class Intake extends SubsystemBase {
         .repeatedly();
   }
 
-  public Command initializeIntakeArmCommand() {
-    return new StartEndCommand(
-            // initialize
-            () -> {
-              intakeArmIO.configureSoftLimits(false);
-              intakeArmIO.setOpenLoop(Volts.of(1.0));
-            },
-            // end
-            () -> {
-              intakeArmIO.configureSoftLimits(true);
-              intakeArmIO.resetEncoder();
-            },
-            // requirements
-            this)
-        .withTimeout(1.0)
-        .withName("Initialize intake arm");
-  }
+  // public Command initializeIntakeArmCommand() {
+  //   return new StartEndCommand(
+  //           // initialize
+  //           () -> {
+  //             intakeArmIO.configureSoftLimits(false);
+  //             intakeArmIO.setOpenLoop(Volts.of(1.0));
+  //           },
+  //           // end
+  //           () -> {
+  //             intakeArmIO.configureSoftLimits(true);
+  //             intakeArmIO.resetEncoder();
+  //           },
+  //           // requirements
+  //           this)
+  //       .withTimeout(1.0)
+  //       .withName("Initialize intake arm");
+  // }
 }

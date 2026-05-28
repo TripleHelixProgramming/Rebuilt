@@ -120,6 +120,7 @@ public class IntakeArmIOSpark implements IntakeArmIO {
   public void updateInputs(IntakeArmIOInputs inputs) {
     if (!relativeEncoderSeeded) {
       encoderSpark.setPosition(absoluteEncoder.getPosition());
+      relativeEncoderSeeded = true;
     }
 
     inputs.position = sparkInputs.getPosition();
