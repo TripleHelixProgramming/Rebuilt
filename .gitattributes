@@ -8,3 +8,4 @@
 *.ico binary
 *.jar binary
 *.whl binary
+*.glb binary
