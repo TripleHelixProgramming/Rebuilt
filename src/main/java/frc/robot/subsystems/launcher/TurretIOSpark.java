@@ -47,12 +47,12 @@ public class TurretIOSpark implements TurretIO {
   private double oversaturationLessMargin = 0.0;
 
   public TurretIOSpark() {
-    turnSpark = new SparkMax(CAN2.turret, MotorType.kBrushless);
+    turnSpark = new SparkMax(CAN2.TURRET, MotorType.kBrushless);
     controller = turnSpark.getClosedLoopController();
     turnSparkEncoder = turnSpark.getEncoder();
     absoluteEncoder =
         new DutyCycleEncoder(
-            new DigitalInput(DIOPorts.turretAbsEncoder),
+            new DigitalInput(DIOPorts.TURRET_ABS_ENCODER),
             2 * Math.PI,
             ABS_ENCODER_OFFSET.getRadians() + MECHANISM_OFFSET.getRadians());
 

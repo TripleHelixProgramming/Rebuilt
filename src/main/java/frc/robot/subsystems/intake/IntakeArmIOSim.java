@@ -11,7 +11,7 @@ public class IntakeArmIOSim implements IntakeArmIO {
 
   public IntakeArmIOSim() {
     intakeArmPneumatic =
-        new DoubleSolenoidSim(PneumaticsModuleType.REVPH, intakeArmForward, intakeArmReverse);
+        new DoubleSolenoidSim(PneumaticsModuleType.REVPH, INTAKE_ARM_FWD, INTAKE_ARM_REV);
     intakeArmPneumatic.set(kReverse);
   }
 

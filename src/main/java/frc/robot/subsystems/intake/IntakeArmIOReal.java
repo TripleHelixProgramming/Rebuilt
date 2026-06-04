@@ -11,7 +11,7 @@ public class IntakeArmIOReal implements IntakeArmIO {
 
   public IntakeArmIOReal() {
     intakeArmPneumatic =
-        new DoubleSolenoid(PneumaticsModuleType.REVPH, intakeArmForward, intakeArmReverse);
+        new DoubleSolenoid(PneumaticsModuleType.REVPH, INTAKE_ARM_FWD, INTAKE_ARM_REV);
   }
 
   @Override

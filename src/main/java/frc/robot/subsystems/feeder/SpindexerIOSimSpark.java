@@ -36,7 +36,7 @@ public class SpindexerIOSimSpark implements SpindexerIO {
   private final SparkFlexSim flexSim;
 
   public SpindexerIOSimSpark() {
-    flex = new SparkFlex(CAN2.spindexer, MotorType.kBrushless);
+    flex = new SparkFlex(CAN2.SPINDEXER, MotorType.kBrushless);
     controller = flex.getClosedLoopController();
 
     var config = new SparkFlexConfig();
@@ -73,7 +73,7 @@ public class SpindexerIOSimSpark implements SpindexerIO {
 
     // Update inputs
     inputs.connected = true;
-    inputs.velocityMetersPerSec = flexSim.getVelocity() * radius.in(Meters);
+    inputs.velocityMetersPerSec = flexSim.getVelocity() * RADIUS.in(Meters);
     inputs.appliedVolts = flexSim.getAppliedOutput() * flexSim.getBusVoltage();
     inputs.currentAmps = Math.abs(flexSim.getMotorCurrent());
   }
@@ -90,7 +90,7 @@ public class SpindexerIOSimSpark implements SpindexerIO {
             * tangentialVelocity.in(MetersPerSecond)
             / MAX_TANGENTIAL_VELOCITY.in(MetersPerSecond);
     controller.setSetpoint(
-        tangentialVelocity.in(MetersPerSecond) / radius.in(Meters),
+        tangentialVelocity.in(MetersPerSecond) / RADIUS.in(Meters),
         ControlType.kVelocity,
         ClosedLoopSlot.kSlot0,
         feedforwardVolts);

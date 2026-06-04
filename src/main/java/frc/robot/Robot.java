@@ -123,11 +123,11 @@ public class Robot extends LoggedRobot {
   }
 
   public static final AllianceSelector allianceSelector =
-      new AllianceSelector(DIOPorts.allianceColorSelector);
+      new AllianceSelector(DIOPorts.ALLIANCE_COLOR_SELECTOR);
   public static final AutoSelector autoSelector =
-      new AutoSelector(DIOPorts.autonomousModeSelector, allianceSelector::getAllianceColor);
+      new AutoSelector(DIOPorts.AUTONOMOUS_MODE_SELECTOR, allianceSelector::getAllianceColor);
   public final LoggedPowerDistribution powerDistribution =
-      new LoggedPowerDistribution(CAN2.pd, ModuleType.kRev, "PD");
+      new LoggedPowerDistribution(CAN2.PD, ModuleType.kRev, "PD");
 
   private final java.util.Set<String> activeCommands = new java.util.LinkedHashSet<>();
 
@@ -185,10 +185,10 @@ public class Robot extends LoggedRobot {
             new Vision(
                 drive::addVisionMeasurement,
                 drive::getFieldRelativeHeading,
-                new VisionIOPhotonVision(cameraFrontRightName, robotToFrontRightCamera),
-                new VisionIOPhotonVision(cameraFrontLeftName, robotToFrontLeftCamera),
-                new VisionIOPhotonVision(cameraBackRightName, robotToBackRightCamera),
-                new VisionIOPhotonVision(cameraBackLeftName, robotToBackLeftCamera));
+                new VisionIOPhotonVision(CAMERA_FRONT_RIGHT_NAME, ROBOT_TO_FRONT_RIGHT_CAMERA),
+                new VisionIOPhotonVision(CAMERA_FRONT_LEFT_NAME, ROBOT_TO_FRONT_LEFT_CAMERA),
+                new VisionIOPhotonVision(CAMERA_BACK_RIGHT_NAME, ROBOT_TO_BACK_RIGHT_CAMERA),
+                new VisionIOPhotonVision(CAMERA_BACK_LEFT_NAME, ROBOT_TO_BACK_LEFT_CAMERA));
         launcher =
             new Launcher(
                 drive::getPose,
@@ -199,8 +199,8 @@ public class Robot extends LoggedRobot {
         if (FeatureFlags.HOPPER_ENABLED) hopper = new Hopper(new HopperIOReal());
         intake =
             new Intake(
-                new RollerIOSpark(RollerConstants.upperRollerConfig),
-                new RollerIOSpark(RollerConstants.lowerRollerConfig),
+                new RollerIOSpark(RollerConstants.UPPER_ROLLER_CONFIG),
+                new RollerIOSpark(RollerConstants.LOWER_ROLLER_CONFIG),
                 new IntakeArmIOReal());
         feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
         compressor = new LoggedCompressor(PneumaticsModuleType.REVPH, "Compressor");
@@ -227,13 +227,13 @@ public class Robot extends LoggedRobot {
                 drive::addVisionMeasurement,
                 drive::getFieldRelativeHeading,
                 new VisionIOPhotonVisionSim(
-                    cameraFrontRightName, robotToFrontRightCamera, drive::getPose),
+                    CAMERA_FRONT_RIGHT_NAME, ROBOT_TO_FRONT_RIGHT_CAMERA, drive::getPose),
                 new VisionIOPhotonVisionSim(
-                    cameraFrontLeftName, robotToFrontLeftCamera, drive::getPose),
+                    CAMERA_FRONT_LEFT_NAME, ROBOT_TO_FRONT_LEFT_CAMERA, drive::getPose),
                 new VisionIOPhotonVisionSim(
-                    cameraBackRightName, robotToBackRightCamera, drive::getPose),
+                    CAMERA_BACK_RIGHT_NAME, ROBOT_TO_BACK_RIGHT_CAMERA, drive::getPose),
                 new VisionIOPhotonVisionSim(
-                    cameraBackLeftName, robotToBackLeftCamera, drive::getPose));
+                    CAMERA_BACK_LEFT_NAME, ROBOT_TO_BACK_LEFT_CAMERA, drive::getPose));
         launcher =
             new Launcher(
                 drive::getPose,
@@ -246,8 +246,8 @@ public class Robot extends LoggedRobot {
         var intakeArmIOSim = new IntakeArmIOSim();
         intake =
             new Intake(
-                new RollerIOSimSpark(RollerConstants.upperRollerConfig),
-                new RollerIOSimSpark(RollerConstants.lowerRollerConfig),
+                new RollerIOSimSpark(RollerConstants.UPPER_ROLLER_CONFIG),
+                new RollerIOSimSpark(RollerConstants.LOWER_ROLLER_CONFIG),
                 intakeArmIOSim);
         pneumaticsSimulator =
             new PneumaticsSimulator(intakeArmIOSim.intakeArmPneumatic, new REVPHSim(1));
@@ -353,8 +353,8 @@ public class Robot extends LoggedRobot {
     CommandScheduler.getInstance().run();
     long t1 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
-    logCANBus("CAN2", Constants.CANBusPorts.CAN2.bus);
-    logCANBus("CANHD", Constants.CANBusPorts.CANHD.bus);
+    logCANBus("CAN2", Constants.CANBusPorts.CAN2.BUS);
+    logCANBus("CANHD", Constants.CANBusPorts.CANHD.BUS);
     powerDistribution.log();
     if (compressor != null) compressor.log();
     logHIDs();

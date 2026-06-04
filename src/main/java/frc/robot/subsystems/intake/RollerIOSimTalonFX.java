@@ -6,8 +6,6 @@ import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
-import com.ctre.phoenix6.configs.Slot0Configs;
-import com.ctre.phoenix6.configs.Slot1Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.NeutralOut;
 import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
@@ -29,13 +27,7 @@ import frc.robot.Robot;
 import frc.robot.subsystems.intake.IntakeConstants.RollerConfig;
 
 public class RollerIOSimTalonFX implements RollerIO {
-  private static final double KP = 0.11;
-  private static final double KD = 0.0;
-  private static final Slot0Configs VELOCITY_VOLTAGE_GAINS =
-      new Slot0Configs().withKP(KP).withKI(0.0).withKD(KD).withKS(0.1).withKV(0.12);
-  private static final Slot1Configs VELOCITY_TORQUE_CURRENT_GAINS =
-      new Slot1Configs().withKP(KP).withKI(0.0).withKD(KD).withKS(2.5);
-  private static final DCMotor GEARBOX = DCMotor.getKrakenX60(numMotors);
+  private static final DCMotor GEARBOX = DCMotor.getKrakenX60(1);
 
   private final DCMotorSim rollerSim;
 
@@ -101,7 +93,7 @@ public class RollerIOSimTalonFX implements RollerIO {
     inputs.appliedVolts = appliedVolts.getValueAsDouble();
     inputs.currentAmps = supplyCurrent.getValueAsDouble();
     inputs.velocityMetersPerSec =
-        velocity.getValue().in(RadiansPerSecond) * rollerRadius.in(Meters) / MOTOR_REDUCTION;
+        velocity.getValue().in(RadiansPerSecond) * RADIUS.in(Meters) / MOTOR_REDUCTION;
   }
 
   @Override
@@ -117,7 +109,7 @@ public class RollerIOSimTalonFX implements RollerIO {
   public void setVelocity(LinearVelocity tangentialVelocity) {
     AngularVelocity angularVelocity =
         RadiansPerSecond.of(
-            tangentialVelocity.in(MetersPerSecond) * MOTOR_REDUCTION / rollerRadius.in(Meters));
+            tangentialVelocity.in(MetersPerSecond) * MOTOR_REDUCTION / RADIUS.in(Meters));
     motor.setControl(velocityTorqueCurrentRequest.withVelocity(angularVelocity));
   }
 }

@@ -24,13 +24,9 @@ import frc.robot.util.SparkOdometryThread;
 import frc.robot.util.SparkOdometryThread.SparkInputs;
 
 public class RollerIOSpark implements RollerIO {
-  private static final double KP = 0.001;
-  private static final double KD = 0.0;
   private static final LinearVelocity MAX_TANGENTIAL_VELOCITY =
       MetersPerSecond.of(
-          NEOVortexConstants.FREE_SPEED.in(RadiansPerSecond)
-              * rollerRadius.in(Meters)
-              / MOTOR_REDUCTION);
+          NEOVortexConstants.FREE_SPEED.in(RadiansPerSecond) * RADIUS.in(Meters) / MOTOR_REDUCTION);
 
   private final SparkFlex flex;
   private final RelativeEncoder encoder;
@@ -56,7 +52,7 @@ public class RollerIOSpark implements RollerIO {
         .uvwAverageDepth(2)
         .uvwMeasurementPeriod(8);
 
-    config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(KP, 0.0, KD);
+    config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kP, 0.0, kD);
 
     tryUntilOk(
         flex,
@@ -70,7 +66,7 @@ public class RollerIOSpark implements RollerIO {
   @Override
   public void updateInputs(RollerIOInputs inputs) {
     inputs.connected = sparkInputs.isConnected();
-    inputs.velocityMetersPerSec = sparkInputs.getVelocity() * rollerRadius.in(Meters);
+    inputs.velocityMetersPerSec = sparkInputs.getVelocity() * RADIUS.in(Meters);
     inputs.appliedVolts = sparkInputs.getAppliedVolts();
     inputs.currentAmps = sparkInputs.getOutputCurrent();
   }
@@ -88,7 +84,7 @@ public class RollerIOSpark implements RollerIO {
             * tangentialVelocity.in(MetersPerSecond)
             / MAX_TANGENTIAL_VELOCITY.in(MetersPerSecond);
     controller.setSetpoint(
-        tangentialVelocity.in(MetersPerSecond) / rollerRadius.in(Meters),
+        tangentialVelocity.in(MetersPerSecond) / RADIUS.in(Meters),
         ControlType.kVelocity,
         ClosedLoopSlot.kSlot0,
         feedforwardVolts);

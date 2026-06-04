@@ -21,7 +21,7 @@ public final class LauncherConstants {
   // Geometry
   public static final Distance FUEL_RADIUS = Inches.of(3);
   public static final Distance CEILING_HEIGHT = Feet.of(11).plus(Inches.of(2));
-  public static final double G = 9.81;
+  public static final double GRAVITY = 9.81;
 
   // Distance-based impact angle: steeper at close range, shallower at far range
   public static final Distance IMPACT_ANGLE_CLOSE_DISTANCE = Meters.of(2.0);

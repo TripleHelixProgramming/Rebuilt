@@ -134,7 +134,7 @@ public class Vision extends SubsystemBase {
 
     // Log inputs via AdvantageKit (throttled - serialization is expensive)
     // Note: Throttling reduces CPU load but loses data granularity for replay
-    if (loopCounter % kLoggingDivisor == 0) {
+    if (loopCounter % LOGGING_DIVISOR == 0) {
       for (int i = 0; i < io.length; i++) {
         Logger.processInputs("Vision/Camera" + Integer.toString(i), inputs[i]);
       }
@@ -184,7 +184,7 @@ public class Vision extends SubsystemBase {
 
         // Add pose to log
         robotPoses.add(observation.pose());
-        if (tested.score() > minScore) {
+        if (tested.score() > MIN_SCORE) {
           robotPosesAccepted.add(observation.pose());
         } else {
           robotPosesRejected.add(observation.pose());
@@ -194,7 +194,7 @@ public class Vision extends SubsystemBase {
       }
 
       // Log camera datadata
-      if (kLogIndividualCameraPoses) {
+      if (LOG_INDIVIDUAL_CAMERA_POSES) {
         Logger.recordOutput(
             "Vision/Camera" + Integer.toString(cameraIndex) + "/TagPoses",
             tagPoses.toArray(new Pose3d[tagPoses.size()]));
@@ -221,9 +221,9 @@ public class Vision extends SubsystemBase {
 
     // Process observations in batches every processingIntervalLoops
     // This allows cameras to accumulate observations before fusion decides what agrees
-    if (loopCounter % processingIntervalLoops == 0) {
+    if (loopCounter % PROCESSING_INTERVAL_LOOPS == 0) {
       // Remove unacceptable observations before fusion
-      observationBuffer.removeIf(o -> o.score() < minScore);
+      observationBuffer.removeIf(o -> o.score() < MIN_SCORE);
 
       // Fuse correlated observations from multiple cameras into averaged poses
       // This reduces jitter from multiple cameras reporting slightly different poses
@@ -237,9 +237,10 @@ public class Vision extends SubsystemBase {
         // Calculate standard deviations
         // Single-camera observations get much higher stddev (less trust) to reduce jitter
         // Multi-camera fused observations get lower stddev (more trust)
-        double cameraCountFactor = (fused.cameraCount() == 1) ? singleCameraStdDevMultiplier : 1.0;
-        double linearStdDev = linearStdDevBaseline * cameraCountFactor / fused.score();
-        double angularStdDev = angularStdDevBaseline * cameraCountFactor / fused.score();
+        double cameraCountFactor =
+            (fused.cameraCount() == 1) ? SINGLE_CAMERA_STD_DEV_MULTIPLIER : 1.0;
+        double linearStdDev = LINEAR_STD_DEV_BASELINE * cameraCountFactor / fused.score();
+        double angularStdDev = ANGULAR_STD_DEV_BASELINE * cameraCountFactor / fused.score();
 
         // Send fused vision observation to the pose estimator
         consumer.accept(
@@ -257,16 +258,16 @@ public class Vision extends SubsystemBase {
     long t4 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Log summary data (throttled along with processInputs)
-    if (loopCounter % kLoggingDivisor == 0) {
-      if (kLogSummaryPoses) {
+    if (loopCounter % LOGGING_DIVISOR == 0) {
+      if (LOG_SUMMARY_POSES) {
         Logger.recordOutput("Vision/Summary/TagPoses", allTagPoses.toArray(Pose3d[]::new));
         Logger.recordOutput("Vision/Summary/RobotPoses", allRobotPoses.toArray(Pose3d[]::new));
       }
-      if (kLogAcceptedPoses) {
+      if (LOG_ACCEPTED_POSES) {
         Logger.recordOutput(
             "Vision/Summary/RobotPosesAccepted", allRobotPosesAccepted.toArray(Pose3d[]::new));
       }
-      if (kLogRejectedPoses) {
+      if (LOG_REJECTED_POSES) {
         Logger.recordOutput(
             "Vision/Summary/RobotPosesRejected", allRobotPosesRejected.toArray(Pose3d[]::new));
       }
@@ -310,16 +311,16 @@ public class Vision extends SubsystemBase {
   public static synchronized AprilTagFieldLayout getAprilTagLayout() {
     if (cachedLayout == null) {
       // Try to load custom layout only if requested and not connected to FMS
-      if (useCustomAprilTagLayout && !DriverStation.isFMSAttached()) {
+      if (USE_CUSTOM_APRIL_TAG_LAYOUT && !DriverStation.isFMSAttached()) {
         try {
-          cachedLayout = new AprilTagFieldLayout(customAprilTagLayoutPath);
+          cachedLayout = new AprilTagFieldLayout(CUSTOM_APRIL_TAG_LAYOUT_PATH);
         } catch (IOException e) {
           System.err.println("Error loading custom AprilTag layout: " + e.getMessage());
         }
       }
       // Otherwise load default layout
       if (cachedLayout == null) {
-        cachedLayout = AprilTagFieldLayout.loadField(defaultAprilTagFieldLayout);
+        cachedLayout = AprilTagFieldLayout.loadField(DEFAULT_APRIL_TAG_FIELD_LAYOUT);
       }
     }
     return cachedLayout;

@@ -34,9 +34,9 @@ public class VisionFilter {
   private static final Rectangle2d arenaRectangle;
 
   static {
-    double halfWidth = minRobotWidthHalfMeters;
+    double halfWidth = MIN_ROBOT_WIDTH_HALF_METERS;
     var cornerA = new Translation2d(halfWidth, halfWidth);
-    var cornerB = new Translation2d(fieldXLenMeters - halfWidth, fieldYLenMeters - halfWidth);
+    var cornerB = new Translation2d(FIELD_X_LEN_METERS - halfWidth, FIELD_Y_LEN_METERS - halfWidth);
     arenaRectangle = new Rectangle2d(cornerA, cornerB);
   }
 
@@ -140,7 +140,7 @@ public class VisionFilter {
       @Override
       public double test(TestContext ctx) {
         if (ctx.observation().tagCount() == 1) {
-          return 1.0 - normalizedSigmoid(ctx.observation().ambiguity(), ambiguityTolerance, 4.0);
+          return 1.0 - normalizedSigmoid(ctx.observation().ambiguity(), AMBIGUITY_TOLERANCE, 4.0);
         }
         return 1.0;
       }
@@ -152,7 +152,7 @@ public class VisionFilter {
         return 1.0
             - normalizedSigmoid(
                 Math.abs(ctx.observation().pose().getRotation().getY()),
-                pitchToleranceRadians,
+                PITCH_TOLERANCE_RADIANS,
                 1.0);
       }
     },
@@ -162,7 +162,9 @@ public class VisionFilter {
       public double test(TestContext ctx) {
         return 1.0
             - normalizedSigmoid(
-                Math.abs(ctx.observation().pose().getRotation().getX()), rollToleranceRadians, 1.0);
+                Math.abs(ctx.observation().pose().getRotation().getX()),
+                ROLL_TOLERANCE_RADIANS,
+                1.0);
       }
     },
 
@@ -171,7 +173,7 @@ public class VisionFilter {
       public double test(TestContext ctx) {
         return 1.0
             - normalizedSigmoid(
-                Math.abs(ctx.observation().pose().getZ()), elevationToleranceMeters, 1.0);
+                Math.abs(ctx.observation().pose().getZ()), ELEVATION_TOLERANCE_METERS, 1.0);
       }
     },
 
@@ -196,7 +198,7 @@ public class VisionFilter {
       public double test(TestContext ctx) {
         return 1.0
             - normalizedSigmoid(
-                ctx.observation().averageTagDistance(), tagDistanceToleranceMeters, 1.0);
+                ctx.observation().averageTagDistance(), TAG_DISTANCE_TOLERANCE_METERS, 1.0);
       }
     },
 
@@ -214,12 +216,12 @@ public class VisionFilter {
       @Override
       public double test(TestContext ctx) {
         // No history from this camera — express uncertainty, not confidence
-        if (ctx.lastAcceptedPose() == null) return velocityUncertainScore;
+        if (ctx.lastAcceptedPose() == null) return VELOCITY_UNCERTAIN_SCORE;
 
         double dt = ctx.observation().timestamp() - ctx.lastAcceptedTimestamp();
         if (dt <= 0.001) return 1.0; // Near-simultaneous, skip check
         // Stale history — treat the same as no history
-        if (dt > velocityCheckTimeoutSeconds) return velocityUncertainScore;
+        if (dt > VELOCITY_CHECK_TIMEOUT_SECONDS) return VELOCITY_UNCERTAIN_SCORE;
 
         double distance =
             ctx.observation()
@@ -229,7 +231,7 @@ public class VisionFilter {
                 .getDistance(ctx.lastAcceptedPose().getTranslation());
         double impliedVelocity = distance / dt;
 
-        return 1.0 - normalizedSigmoid(impliedVelocity, maxReasonableVelocityMps, 2.0);
+        return 1.0 - normalizedSigmoid(impliedVelocity, MAX_REASONABLE_VELOCITY_MPS, 2.0);
       }
     },
 
@@ -250,7 +252,7 @@ public class VisionFilter {
         double gyroYaw = ctx.gyroYaw().getRadians();
         double yawError = Math.abs(MathUtil.angleModulus(visionYaw - gyroYaw));
 
-        return 1.0 - normalizedSigmoid(yawError, yawToleranceRadians, 4.0);
+        return 1.0 - normalizedSigmoid(yawError, YAW_TOLERANCE_RADIANS, 4.0);
       }
     };
 
@@ -376,10 +378,10 @@ public class VisionFilter {
         if (obsA.cameraIndex() == obsB.cameraIndex()) continue;
 
         double timeB = obsB.observation().timestamp();
-        if (Math.abs(timeA - timeB) > correlationTimeWindowSeconds) continue;
+        if (Math.abs(timeA - timeB) > CORRELATION_TIME_WINDOW_SECONDS) continue;
 
         var transB = obsB.observation().pose().toPose2d().getTranslation();
-        if (transA.getDistance(transB) > correlationPoseThresholdMeters) continue;
+        if (transA.getDistance(transB) > CORRELATION_POSE_THRESHOLD_METERS) continue;
 
         // Observations agree - merge their clusters
         var clusterA = clusterMap.get(i);
@@ -440,7 +442,7 @@ public class VisionFilter {
         double avgTime = sumTime / sumWeight;
 
         // Boost score for correlated observations
-        double fusedScore = Math.min(1.0, maxScore * correlationBoostFactor);
+        double fusedScore = Math.min(1.0, maxScore * CORRELATION_BOOST_FACTOR);
 
         result.add(
             new FusedObservation(

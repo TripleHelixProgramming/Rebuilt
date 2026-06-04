@@ -50,8 +50,8 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
   private final StatusSignal<Current> flywheelCurrent;
 
   public FlywheelIOSimTalonFX() {
-    flywheelLeaderTalon = new TalonFX(CAN2.flywheelLeader, CAN2.bus);
-    flywheelFollowerTalon = new TalonFX(CAN2.flywheelFollower, CAN2.bus);
+    flywheelLeaderTalon = new TalonFX(CAN2.FLYWHEEL_LEADER, CAN2.BUS);
+    flywheelFollowerTalon = new TalonFX(CAN2.FLYWHEEL_FOLLOWER, CAN2.BUS);
     // Configuration
     config = new TalonFXConfiguration();
     config.MotorOutput.withInverted(InvertedValue.CounterClockwise_Positive)
@@ -78,7 +78,7 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
         50.0, flywheelVelocity, flywheelAppliedVolts, flywheelCurrent);
 
     flywheelFollowerTalon.setControl(
-        new Follower(CAN2.flywheelLeader, MotorAlignmentValue.Opposed));
+        new Follower(CAN2.FLYWHEEL_LEADER, MotorAlignmentValue.Opposed));
   }
 
   @Override

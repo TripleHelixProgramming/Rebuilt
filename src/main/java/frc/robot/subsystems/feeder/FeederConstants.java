@@ -12,14 +12,14 @@ import frc.robot.Constants.MotorConstants.NEOVortexConstants;
 public final class FeederConstants {
   public static final class SpindexerConstants {
     // Geometry
-    public static final Distance radius = Inches.of(3.0);
+    public static final Distance RADIUS = Inches.of(3.0);
 
     // Motor
     public static final double MOTOR_REDUCTION = 1.0;
     public static final LinearVelocity MAX_TANGENTIAL_VELOCITY =
         MetersPerSecond.of(
             NEOVortexConstants.FREE_SPEED.in(RadiansPerSecond)
-                * radius.in(Meters)
+                * RADIUS.in(Meters)
                 / MOTOR_REDUCTION);
 
     // Encoder
@@ -34,14 +34,14 @@ public final class FeederConstants {
 
   public static final class KickerConstants {
     // Geometry
-    public static final Distance radius = Inches.of(1.5);
+    public static final Distance RADIUS = Inches.of(1.5);
 
     // Motor
     public static final double MOTOR_REDUCTION = 5.0;
     public static final LinearVelocity MAX_TANGENTIAL_VELOCITY =
         MetersPerSecond.of(
             NEOVortexConstants.FREE_SPEED.in(RadiansPerSecond)
-                * radius.in(Meters)
+                * RADIUS.in(Meters)
                 / MOTOR_REDUCTION);
 
     // Encoder

@@ -41,7 +41,7 @@ public class TurretIOSimSpark implements TurretIO {
   private double oversaturationLessMargin = 0.0;
 
   public TurretIOSimSpark() {
-    turnSpark = new SparkMax(CAN2.turret, MotorType.kBrushless);
+    turnSpark = new SparkMax(CAN2.TURRET, MotorType.kBrushless);
     controller = turnSpark.getClosedLoopController();
 
     var turnConfig = new SparkMaxConfig();

@@ -48,8 +48,8 @@ public class FlywheelIOTalonFX implements FlywheelIO {
   private final StatusSignal<Current> flywheelCurrent, followerCurrent;
 
   public FlywheelIOTalonFX() {
-    flywheelLeaderTalon = new TalonFX(CAN2.flywheelLeader, CAN2.bus);
-    flywheelFollowerTalon = new TalonFX(CAN2.flywheelFollower, CAN2.bus);
+    flywheelLeaderTalon = new TalonFX(CAN2.FLYWHEEL_LEADER, CAN2.BUS);
+    flywheelFollowerTalon = new TalonFX(CAN2.FLYWHEEL_FOLLOWER, CAN2.BUS);
     // Configuration
     config = new TalonFXConfiguration();
     config.MotorOutput.withNeutralMode(NeutralModeValue.Brake)
@@ -87,7 +87,7 @@ public class FlywheelIOTalonFX implements FlywheelIO {
     // configurations require certain status signals for proper follower behavior
 
     flywheelFollowerTalon.setControl(
-        new Follower(CAN2.flywheelLeader, MotorAlignmentValue.Opposed));
+        new Follower(CAN2.FLYWHEEL_LEADER, MotorAlignmentValue.Opposed));
   }
 
   @Override

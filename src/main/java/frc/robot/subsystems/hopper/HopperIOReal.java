@@ -10,7 +10,7 @@ public class HopperIOReal implements HopperIO {
   public final DoubleSolenoid hopperPneumatic;
 
   public HopperIOReal() {
-    hopperPneumatic = new DoubleSolenoid(PneumaticsModuleType.REVPH, hopperForward, hopperReverse);
+    hopperPneumatic = new DoubleSolenoid(PneumaticsModuleType.REVPH, HOPPER_FWD, HOPPER_REV);
   }
 
   @Override

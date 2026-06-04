@@ -38,7 +38,7 @@ public class HoodIOSpark implements HoodIO {
   private final Debouncer connectedDebounce = new Debouncer(0.5, Debouncer.DebounceType.kFalling);
 
   public HoodIOSpark() {
-    hoodSpark = new SparkMax(CAN2.hood, MotorType.kBrushless);
+    hoodSpark = new SparkMax(CAN2.HOOD, MotorType.kBrushless);
     encoderSpark = hoodSpark.getEncoder();
     hoodController = hoodSpark.getClosedLoopController();
 

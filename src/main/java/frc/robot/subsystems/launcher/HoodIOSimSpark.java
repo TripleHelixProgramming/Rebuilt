@@ -37,7 +37,7 @@ public class HoodIOSimSpark implements HoodIO {
   private final SparkMaxConfig hoodConfig;
 
   public HoodIOSimSpark() {
-    max = new SparkMax(CAN2.hood, MotorType.kBrushless);
+    max = new SparkMax(CAN2.HOOD, MotorType.kBrushless);
     controller = max.getClosedLoopController();
 
     hoodConfig = new SparkMaxConfig();

@@ -10,8 +10,7 @@ public class HopperIOSim implements HopperIO {
   public final DoubleSolenoidSim hopperPneumatic;
 
   public HopperIOSim() {
-    hopperPneumatic =
-        new DoubleSolenoidSim(PneumaticsModuleType.REVPH, hopperForward, hopperReverse);
+    hopperPneumatic = new DoubleSolenoidSim(PneumaticsModuleType.REVPH, HOPPER_FWD, HOPPER_REV);
   }
 
   @Override

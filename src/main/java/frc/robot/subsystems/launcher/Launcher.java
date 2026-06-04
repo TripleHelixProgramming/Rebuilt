@@ -376,12 +376,12 @@ public class Launcher extends SubsystemBase {
       Logger.recordOutput("Launcher/" + key + "/Reachable", false);
       return v0nominalLast;
     }
-    double v_0r = dr * Math.sqrt(G / denominator);
+    double v_0r = dr * Math.sqrt(GRAVITY / denominator);
     if (!(v_0r >= 1e-6)) {
       Logger.recordOutput("Launcher/" + key + "/Reachable", false);
       return v0nominalLast;
     }
-    double v_0z = (G * dr) / v_0r - v_0r * impactAngle.getTan();
+    double v_0z = (GRAVITY * dr) / v_0r - v_0r * impactAngle.getTan();
 
     double v_0x = v_0r * d.toTranslation2d().getAngle().getCos();
     double v_0y = v_0r * d.toTranslation2d().getAngle().getSin();
@@ -409,7 +409,7 @@ public class Launcher extends SubsystemBase {
     double rHatY = d.getY() / dr;
 
     double v_sq = v_flywheel * v_flywheel;
-    double discriminant = v_sq * v_sq - G * (G * dr * dr + 2 * dz * v_sq);
+    double discriminant = v_sq * v_sq - GRAVITY * (GRAVITY * dr * dr + 2 * dz * v_sq);
 
     // Guard: discriminant < 0 means target is beyond maximum range for current flywheel speed.
     // Using < 1e-6 threshold adds safety margin against sqrt of tiny negative values from
@@ -421,12 +421,12 @@ public class Launcher extends SubsystemBase {
     }
 
     // High-arc solution (lower trajectory would use v_sq - sqrt(discriminant))
-    double tanTheta = (v_sq + Math.sqrt(discriminant)) / (G * dr);
+    double tanTheta = (v_sq + Math.sqrt(discriminant)) / (GRAVITY * dr);
 
     // sin(2*atan(x)) = 2x/(1+x²) - avoids two trig function calls
     Logger.recordOutput(
         "Launcher/" + key + "/PredictedRange",
-        (v_sq * 2.0 * tanTheta) / (G * (1.0 + tanTheta * tanTheta)));
+        (v_sq * 2.0 * tanTheta) / (GRAVITY * (1.0 + tanTheta * tanTheta)));
 
     // Effective velocity available for ballistics
     double v_r = v_flywheel / Math.sqrt(1 + tanTheta * tanTheta);
@@ -489,7 +489,7 @@ public class Launcher extends SubsystemBase {
       Logger.recordOutput("Launcher/" + key + "/TravelTime", dr / v_r);
     }
 
-    var max_height = turretBasePose.getZ() + v_z * v_z / (2 * G);
+    var max_height = turretBasePose.getZ() + v_z * v_z / (2 * GRAVITY);
     Logger.recordOutput("Launcher/" + key + "/MaxHeight", max_height);
 
     boolean clearsCeiling = Meters.of(max_height).plus(FUEL_RADIUS).lt(CEILING_HEIGHT);
@@ -522,7 +522,7 @@ public class Launcher extends SubsystemBase {
     for (int i = traj.size() - 1; i >= 0; i--) {
       BallisticObject o = traj.get(i);
 
-      o.vz -= G * dt;
+      o.vz -= GRAVITY * dt;
       o.px += o.vx * dt;
       o.py += o.vy * dt;
       o.pz += o.vz * dt;

@@ -27,14 +27,10 @@ import frc.robot.subsystems.intake.IntakeConstants.RollerConfig;
 
 public class RollerIOSimSpark implements RollerIO {
   private static final double KICKER_MOI_KG_M2 = 0.00052;
-  private static final double KP = 0.11;
-  private static final double KD = 0.0;
   private static final LinearVelocity MAX_TANGENTIAL_VELOCITY =
       MetersPerSecond.of(
-          NEOVortexConstants.FREE_SPEED.in(RadiansPerSecond)
-              * rollerRadius.in(Meters)
-              / MOTOR_REDUCTION);
-  private static final DCMotor GEARBOX = DCMotor.getNeoVortex(numMotors);
+          NEOVortexConstants.FREE_SPEED.in(RadiansPerSecond) * RADIUS.in(Meters) / MOTOR_REDUCTION);
+  private static final DCMotor GEARBOX = DCMotor.getNeoVortex(1);
 
   private final DCMotorSim rollerSim;
 
@@ -58,7 +54,7 @@ public class RollerIOSimSpark implements RollerIO {
         .positionConversionFactor(ENCODER_POSITION_FACTOR)
         .velocityConversionFactor(ENCODER_VELOCITY_FACTOR);
 
-    config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(KP, 0.0, KD);
+    config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kP, 0.0, kD);
 
     flex.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     flexSim = new SparkFlexSim(flex, GEARBOX);
@@ -79,7 +75,7 @@ public class RollerIOSimSpark implements RollerIO {
 
     // Update inputs
     inputs.connected = true;
-    inputs.velocityMetersPerSec = flexSim.getVelocity() * rollerRadius.in(Meters);
+    inputs.velocityMetersPerSec = flexSim.getVelocity() * RADIUS.in(Meters);
     inputs.appliedVolts = flexSim.getAppliedOutput() * flexSim.getBusVoltage();
     inputs.currentAmps = Math.abs(flexSim.getMotorCurrent());
   }
@@ -96,7 +92,7 @@ public class RollerIOSimSpark implements RollerIO {
             * tangentialVelocity.in(MetersPerSecond)
             / MAX_TANGENTIAL_VELOCITY.in(MetersPerSecond);
     controller.setSetpoint(
-        tangentialVelocity.in(MetersPerSecond) / rollerRadius.in(Meters),
+        tangentialVelocity.in(MetersPerSecond) / RADIUS.in(Meters),
         ControlType.kVelocity,
         ClosedLoopSlot.kSlot0,
         feedforwardVolts);

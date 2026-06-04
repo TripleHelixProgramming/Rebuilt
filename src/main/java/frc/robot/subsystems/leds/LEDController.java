@@ -75,7 +75,7 @@ public class LEDController extends SubsystemBase {
 
     // X feedback on center LEDs (robot-relative: positive = forward)
     var x = robotRelativeDelta.getMeasureX().in(Centimeters);
-    if (Math.abs(x) < LEDConstants.kPoseSeekXToleranceCm) {
+    if (Math.abs(x) < LEDConstants.POSE_SEEK_X_TOL_CM) {
       LEDSeries.POSE_X.applyPattern(solidWhitePattern);
     } else if (x > 0) {
       // Need to move forward
@@ -87,7 +87,7 @@ public class LEDController extends SubsystemBase {
 
     // Heading feedback on rotation LEDs (angular error is frame-independent)
     var theta = MathUtil.inputModulus(delta.getRotation().getDegrees(), -180, 180);
-    if (Math.abs(theta) < LEDConstants.kPoseSeekHeadingToleranceDegrees) {
+    if (Math.abs(theta) < LEDConstants.POSE_SEEK_HEADING_TOL_DEGREES) {
       LEDSeries.POSE_ROTATION.applyPattern(solidWhitePattern);
     } else if (theta > 0) {
       // Need to rotate CCW
@@ -101,7 +101,7 @@ public class LEDController extends SubsystemBase {
 
     // Y feedback on end LEDs (robot-relative: positive = move left)
     var y = robotRelativeDelta.getMeasureY().in(Centimeters);
-    if (Math.abs(y) < LEDConstants.kPoseSeekYToleranceCm) {
+    if (Math.abs(y) < LEDConstants.POSE_SEEK_Y_TOL_CM) {
       LEDSeries.POSE_Y.applyPattern(solidWhitePattern);
     } else if (y > 0) {
       // Need to move left
@@ -145,8 +145,8 @@ public class LEDController extends SubsystemBase {
       LEDCustomPattern.countingBlocks(
           () -> Robot.autoSelector.get().get().getOptionNumber(),
           () -> Robot.autoSelector.get().get().getAllianceColor(),
-          LEDConstants.kLEDsPerBlock,
-          LEDConstants.kLEDsBetweenBlocks);
+          LEDConstants.LEDS_PER_BLOCK,
+          LEDConstants.LEDS_BETWEEN_BLOCKS);
 
   /**
    * Pattern displaying a progress bar for the current match phase. Shows remaining time as a

@@ -32,7 +32,7 @@ public class KickerIOSpark implements KickerIO {
   private final SparkInputs sparkInputs;
 
   public KickerIOSpark() {
-    flex = new SparkFlex(CAN2.kicker, MotorType.kBrushless);
+    flex = new SparkFlex(CAN2.KICKER, MotorType.kBrushless);
     encoder = flex.getEncoder();
     controller = flex.getClosedLoopController();
 
@@ -65,7 +65,7 @@ public class KickerIOSpark implements KickerIO {
   public void updateInputs(KickerIOInputs inputs) {
 
     inputs.connected = sparkInputs.isConnected();
-    inputs.velocityMetersPerSec = sparkInputs.getVelocity() * radius.in(Meters);
+    inputs.velocityMetersPerSec = sparkInputs.getVelocity() * RADIUS.in(Meters);
     inputs.appliedVolts = sparkInputs.getAppliedVolts();
     inputs.currentAmps = sparkInputs.getOutputCurrent();
   }
@@ -83,7 +83,7 @@ public class KickerIOSpark implements KickerIO {
             * tangentialVelocity.in(MetersPerSecond)
             / MAX_TANGENTIAL_VELOCITY.in(MetersPerSecond);
     controller.setSetpoint(
-        tangentialVelocity.in(MetersPerSecond) / radius.in(Meters),
+        tangentialVelocity.in(MetersPerSecond) / RADIUS.in(Meters),
         ControlType.kVelocity,
         ClosedLoopSlot.kSlot0,
         feedforwardVolts);
