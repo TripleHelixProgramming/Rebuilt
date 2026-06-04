@@ -91,7 +91,7 @@ public class VisionConstants {
   public static double velocityCheckTimeoutSeconds =
       0.5; // Skip check if no observation for this long
   public static final double maxReasonableVelocityMps =
-      DriveConstants.drivetrainSpeedLimit.in(MetersPerSecond) * 1.5; // Allow some margin
+      DriveConstants.DRIVETRAIN_SPEED_LIMIT.in(MetersPerSecond) * 1.5; // Allow some margin
 
   // Score returned by velocityConsistency when it can't verify the observation
   // (no history from this camera, or last observation is older than velocityCheckTimeoutSeconds).

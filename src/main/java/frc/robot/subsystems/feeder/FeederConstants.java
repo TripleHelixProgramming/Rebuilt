@@ -15,16 +15,17 @@ public final class FeederConstants {
     public static final Distance radius = Inches.of(3.0);
 
     // Motor
-    public static final double motorReduction = 1.0;
-    public static final LinearVelocity maxTangentialVelocity =
+    public static final double MOTOR_REDUCTION = 1.0;
+    public static final LinearVelocity MAX_TANGENTIAL_VELOCITY =
         MetersPerSecond.of(
-            NEOVortexConstants.freeSpeed.in(RadiansPerSecond)
+            NEOVortexConstants.FREE_SPEED.in(RadiansPerSecond)
                 * radius.in(Meters)
-                / motorReduction);
+                / MOTOR_REDUCTION);
 
     // Encoder
-    public static final double encoderPositionFactor = 2.0 * Math.PI / motorReduction; // Meters
-    public static final double encoderVelocityFactor = encoderPositionFactor / 60.0; // Meters/sec
+    public static final double ENCODER_POSITION_FACTOR = 2.0 * Math.PI / MOTOR_REDUCTION; // Meters
+    public static final double ENCODER_VELOCITY_FACTOR =
+        ENCODER_POSITION_FACTOR / 60.0; // Meters/sec
 
     // Simulation
     public static final double kP = 0.005;
@@ -36,16 +37,17 @@ public final class FeederConstants {
     public static final Distance radius = Inches.of(1.5);
 
     // Motor
-    public static final double motorReduction = 5.0;
-    public static final LinearVelocity maxTangentialVelocity =
+    public static final double MOTOR_REDUCTION = 5.0;
+    public static final LinearVelocity MAX_TANGENTIAL_VELOCITY =
         MetersPerSecond.of(
-            NEOVortexConstants.freeSpeed.in(RadiansPerSecond)
+            NEOVortexConstants.FREE_SPEED.in(RadiansPerSecond)
                 * radius.in(Meters)
-                / motorReduction);
+                / MOTOR_REDUCTION);
 
     // Encoder
-    public static final double encoderPositionFactor = 2.0 * Math.PI / motorReduction; // Meters
-    public static final double encoderVelocityFactor = encoderPositionFactor / 60.0; // Meters/sec
+    public static final double ENCODER_POSITION_FACTOR = 2.0 * Math.PI / MOTOR_REDUCTION; // Meters
+    public static final double ENCODER_VELOCITY_FACTOR =
+        ENCODER_POSITION_FACTOR / 60.0; // Meters/sec
 
     // Simulation
     public static final double kP = 0.0025;

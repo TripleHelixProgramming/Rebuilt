@@ -14,14 +14,15 @@ public class IntakeConstants {
     public static final Distance rollerRadius = Inches.of(0.85);
 
     // motor controller
-    public static final double motorReduction = 1.0;
+    public static final double MOTOR_REDUCTION = 1.0;
     public static final int numMotors = 1;
-    public static final double maxAcceleration = 4000.0;
-    public static final double maxJerk = 40000.0;
+    public static final double MAX_ACCELERATION = 4000.0;
+    public static final double MAX_JERK = 40000.0;
 
     // roller constants
-    public static final double encoderPositionFactor = 2.0 * Math.PI / motorReduction; // Meters
-    public static final double encoderVelocityFactor = encoderPositionFactor / 60.0; // Meters/sec
+    public static final double ENCODER_POSITION_FACTOR = 2.0 * Math.PI / MOTOR_REDUCTION; // Meters
+    public static final double ENCODER_VELOCITY_FACTOR =
+        ENCODER_POSITION_FACTOR / 60.0; // Meters/sec
 
     // configs
     public static final RollerConfig upperRollerConfig =

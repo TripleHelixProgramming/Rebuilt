@@ -57,7 +57,7 @@ import org.littletonrobotics.junction.Logger;
 
 public class Drive extends SubsystemBase {
   static final double ODOMETRY_FREQUENCY =
-      new CANBus(drivetrainConstants.CANBusName).isNetworkFD() ? 250.0 : 100.0;
+      new CANBus(DRIVETRAIN_CONSTANTS.CANBusName).isNetworkFD() ? 250.0 : 100.0;
 
   protected static final Lock ODOMETRY_LOCK = new ReentrantLock();
   private final GyroIO gyroIO;
@@ -67,7 +67,7 @@ public class Drive extends SubsystemBase {
   private final Alert gyroDisconnectedAlert =
       new Alert("Disconnected gyro, using kinematics as fallback.", AlertType.kError);
 
-  private SwerveDriveKinematics kinematics = new SwerveDriveKinematics(moduleTranslations);
+  private SwerveDriveKinematics kinematics = new SwerveDriveKinematics(MODULE_TRANSLATIONS);
   private Rotation2d rawGyroRotation = Rotation2d.kZero;
   private SwerveModulePosition[] lastModulePositions = // For delta tracking
       new SwerveModulePosition[] {
@@ -126,7 +126,7 @@ public class Drive extends SubsystemBase {
         this::runVelocity,
         new PPHolonomicDriveController(
             new PIDConstants(5.0, 0.0, 0.0), new PIDConstants(5.0, 0.0, 0.0)),
-        ppConfig,
+        PP_CONFIG,
         () -> DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red,
         this);
     Pathfinding.setPathfinder(new LocalADStarAK());
@@ -156,18 +156,18 @@ public class Drive extends SubsystemBase {
 
   @Override
   public void periodic() {
-    long startNanos = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
+    long startNanos = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     ODOMETRY_LOCK.lock(); // Prevents odometry updates while reading data
-    long t1 = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
+    long t1 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
     gyroIO.updateInputs(gyroInputs);
-    long t2 = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
+    long t2 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
     Logger.processInputs("Drive/Gyro", gyroInputs);
-    long t3 = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
+    long t3 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
     for (var module : modules) {
       module.periodic();
     }
-    long t4 = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
+    long t4 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
     ODOMETRY_LOCK.unlock();
 
     // Stop moving when disabled
@@ -182,7 +182,7 @@ public class Drive extends SubsystemBase {
       Logger.recordOutput("SwerveStates/Setpoints", emptyModuleStates);
       Logger.recordOutput("SwerveStates/SetpointsOptimized", emptyModuleStates);
     }
-    long t5 = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
+    long t5 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Update odometry
     double[] sampleTimestamps =
@@ -216,7 +216,7 @@ public class Drive extends SubsystemBase {
 
       chassisSpeeds = kinematics.toChassisSpeeds(getModuleStates());
     }
-    long t6 = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
+    long t6 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Update gyro alert
     boolean gyroDisconnected = !gyroInputs.connected && Constants.currentMode != Mode.SIM;
@@ -224,7 +224,7 @@ public class Drive extends SubsystemBase {
     Logger.recordOutput("Faults/Drive/GyroDisconnected", gyroDisconnected);
 
     // Profiling output
-    if (FeatureFlags.profilingEnabled) {
+    if (FeatureFlags.PROFILING_ENABLED) {
       long totalMs = (t6 - startNanos) / 1_000_000;
       if (totalMs > 5) {
         System.out.println(
@@ -262,7 +262,7 @@ public class Drive extends SubsystemBase {
     Logger.recordOutput("SwerveStates/Setpoints", states);
 
     // 2: Desaturate (apply wheel limits FIRST)
-    SwerveDriveKinematics.desaturateWheelSpeeds(states, drivetrainSpeedLimit.in(MetersPerSecond));
+    SwerveDriveKinematics.desaturateWheelSpeeds(states, DRIVETRAIN_SPEED_LIMIT.in(MetersPerSecond));
 
     // 3: Reconstruct the ACTUAL chassis speeds after limiting
     ChassisSpeeds limitedSpeeds = kinematics.toChassisSpeeds(states);
@@ -276,7 +276,7 @@ public class Drive extends SubsystemBase {
     // (Optional but usually unnecessary)
     // desaturate again for safety
     SwerveDriveKinematics.desaturateWheelSpeeds(
-        finalStates, drivetrainSpeedLimit.in(MetersPerSecond));
+        finalStates, DRIVETRAIN_SPEED_LIMIT.in(MetersPerSecond));
 
     // 6: Send to modules
     for (int i = 0; i < 4; i++) {
@@ -322,7 +322,7 @@ public class Drive extends SubsystemBase {
   public void stopWithX() {
     Rotation2d[] headings = new Rotation2d[4];
     for (int i = 0; i < 4; i++) {
-      headings[i] = moduleTranslations[i].getAngle();
+      headings[i] = MODULE_TRANSLATIONS[i].getAngle();
     }
     kinematics.resetHeadings(headings);
     stop();
@@ -423,12 +423,12 @@ public class Drive extends SubsystemBase {
 
   /** Returns the maximum linear speed in meters per sec. */
   public double getMaxLinearSpeedMetersPerSec() {
-    return maxChassisVelocity.in(MetersPerSecond);
+    return MAX_CHASSIS_VELOCITY.in(MetersPerSecond);
   }
 
   /** Returns the maximum angular speed in radians per sec. */
   public double getMaxAngularSpeedRadPerSec() {
-    return maxChassisAngularVelocity.in(RadiansPerSecond);
+    return MAX_CHASSIS_ANGULAR_VELOCITY.in(RadiansPerSecond);
   }
 
   /** Returns the total motor current draw across all modules for battery simulation. */

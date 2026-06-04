@@ -69,7 +69,7 @@ public class RollerIOSimTalonFX implements RollerIO {
 
     rollerSim =
         new DCMotorSim(
-            LinearSystemId.createDCMotorSystem(GEARBOX, 0.0005, motorReduction), GEARBOX);
+            LinearSystemId.createDCMotorSystem(GEARBOX, 0.0005, MOTOR_REDUCTION), GEARBOX);
 
     velocity = motor.getVelocity();
     acceleration = motor.getAcceleration();
@@ -95,13 +95,13 @@ public class RollerIOSimTalonFX implements RollerIO {
     motorSim.setSupplyVoltage(RoboRioSim.getVInVoltage());
     rollerSim.setInput(motorSim.getMotorVoltage());
     rollerSim.update(Robot.defaultPeriodSecs);
-    motorSim.setRawRotorPosition(rollerSim.getAngularPositionRotations() * motorReduction);
-    motorSim.setRotorVelocity(rollerSim.getAngularVelocity().times(motorReduction));
+    motorSim.setRawRotorPosition(rollerSim.getAngularPositionRotations() * MOTOR_REDUCTION);
+    motorSim.setRotorVelocity(rollerSim.getAngularVelocity().times(MOTOR_REDUCTION));
 
     inputs.appliedVolts = appliedVolts.getValueAsDouble();
     inputs.currentAmps = supplyCurrent.getValueAsDouble();
     inputs.velocityMetersPerSec =
-        velocity.getValue().in(RadiansPerSecond) * rollerRadius.in(Meters) / motorReduction;
+        velocity.getValue().in(RadiansPerSecond) * rollerRadius.in(Meters) / MOTOR_REDUCTION;
   }
 
   @Override
@@ -117,7 +117,7 @@ public class RollerIOSimTalonFX implements RollerIO {
   public void setVelocity(LinearVelocity tangentialVelocity) {
     AngularVelocity angularVelocity =
         RadiansPerSecond.of(
-            tangentialVelocity.in(MetersPerSecond) * motorReduction / rollerRadius.in(Meters));
+            tangentialVelocity.in(MetersPerSecond) * MOTOR_REDUCTION / rollerRadius.in(Meters));
     motor.setControl(velocityTorqueCurrentRequest.withVelocity(angularVelocity));
   }
 }

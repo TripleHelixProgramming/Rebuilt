@@ -486,8 +486,8 @@ public class DriveCommands {
                         return;
                       }
 
-                      double wheelRadius =
-                          (state.gyroDelta * driveBaseRadius.in(Meters)) / wheelDelta;
+                      double WHEEL_RADIUS =
+                          (state.gyroDelta * DRIVE_BASE_RADIUS.in(Meters)) / wheelDelta;
 
                       System.out.println(
                           "\tWheel Delta: " + formatter.format(wheelDelta) + " radians");
@@ -495,9 +495,9 @@ public class DriveCommands {
                           "\tGyro Delta: " + formatter.format(state.gyroDelta) + " radians");
                       System.out.println(
                           "\tWheel Radius: "
-                              + formatter.format(wheelRadius)
+                              + formatter.format(WHEEL_RADIUS)
                               + " meters, "
-                              + formatter.format(Units.metersToInches(wheelRadius))
+                              + formatter.format(Units.metersToInches(WHEEL_RADIUS))
                               + " inches");
                     })));
   }

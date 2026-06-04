@@ -49,19 +49,19 @@ public class TurretIOSimSpark implements TurretIO {
     turnConfig
         .inverted(false)
         .idleMode(IdleMode.kBrake)
-        .smartCurrentLimit(NEO550Constants.defaultSupplyCurrentLimit)
-        .voltageCompensation(RobotConstants.nominalVoltage);
+        .smartCurrentLimit(NEO550Constants.DEFAULT_SUPPLY_CURRENT_LIMIT)
+        .voltageCompensation(RobotConstants.NOMINAL_VOLTAGE);
 
     turnConfig
         .encoder
-        .positionConversionFactor(encoderPositionFactor)
-        .velocityConversionFactor(encoderVelocityFactor);
+        .positionConversionFactor(ENCODER_POSITION_FACTOR)
+        .velocityConversionFactor(ENCODER_VELOCITY_FACTOR);
 
     turnConfig
         .softLimit
-        .forwardSoftLimit(upperLimitRad)
+        .forwardSoftLimit(UPPER_LIMIT_RAD)
         .forwardSoftLimitEnabled(true)
-        .reverseSoftLimit(lowerLimitRad)
+        .reverseSoftLimit(LOWER_LIMIT_RAD)
         .reverseSoftLimitEnabled(true);
 
     turnConfig
@@ -77,9 +77,10 @@ public class TurretIOSimSpark implements TurretIO {
 
     turnSim =
         new DCMotorSim(
-            LinearSystemId.createDCMotorSystem(GEARBOX, TURRET_MOI_KG_M2, motorReduction), GEARBOX);
+            LinearSystemId.createDCMotorSystem(GEARBOX, TURRET_MOI_KG_M2, MOTOR_REDUCTION),
+            GEARBOX);
 
-    turnSim.setState(2.0 * Math.PI - mechanismOffset.getRadians(), 0);
+    turnSim.setState(2.0 * Math.PI - MECHANISM_OFFSET.getRadians(), 0);
     turnSparkSim.setPosition(turnSim.getAngularPositionRad());
   }
 
@@ -94,13 +95,13 @@ public class TurretIOSimSpark implements TurretIO {
 
     // Update inputs
     inputs.motorControllerConnected = true;
-    inputs.relativePosition = new Rotation2d(turnSparkSim.getPosition()).plus(mechanismOffset);
+    inputs.relativePosition = new Rotation2d(turnSparkSim.getPosition()).plus(MECHANISM_OFFSET);
     inputs.velocityRadPerSec = turnSparkSim.getVelocity();
     inputs.appliedVolts = turnSparkSim.getAppliedOutput() * turnSparkSim.getBusVoltage();
     inputs.currentAmps = Math.abs(turnSparkSim.getMotorCurrent());
 
     inputs.absoluteEncoderConnected = true;
-    inputs.absolutePosition = new Rotation2d(turnSparkSim.getPosition()).plus(mechanismOffset);
+    inputs.absolutePosition = new Rotation2d(turnSparkSim.getPosition()).plus(MECHANISM_OFFSET);
 
     inputs.oversaturation = oversaturation;
     inputs.oversaturationLessMargin = oversaturationLessMargin;
@@ -117,16 +118,16 @@ public class TurretIOSimSpark implements TurretIO {
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
     double setpoint =
         MathUtil.inputModulus(
-            rotation.getRadians() - mechanismOffset.getRadians(), 0.0, 2.0 * Math.PI);
-    double clampedSetpoint = MathUtil.clamp(setpoint, lowerLimitRad, upperLimitRad);
+            rotation.getRadians() - MECHANISM_OFFSET.getRadians(), 0.0, 2.0 * Math.PI);
+    double clampedSetpoint = MathUtil.clamp(setpoint, LOWER_LIMIT_RAD, UPPER_LIMIT_RAD);
     double clampedSetpointWithMargin =
-        MathUtil.clamp(setpoint, lowerLimitRad + marginRad, upperLimitRad - marginRad);
+        MathUtil.clamp(setpoint, LOWER_LIMIT_RAD + MARGIN_RAD, UPPER_LIMIT_RAD - MARGIN_RAD);
     oversaturation = setpoint - clampedSetpoint;
     oversaturationLessMargin = setpoint - clampedSetpointWithMargin;
     double feedforwardVolts =
-        RobotConstants.nominalVoltage
+        RobotConstants.NOMINAL_VOLTAGE
             * angularVelocity.in(RadiansPerSecond)
-            / maxAngularVelocity.in(RadiansPerSecond);
+            / MAX_ANGULAR_VELOCITY.in(RadiansPerSecond);
     controller.setSetpoint(
         clampedSetpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
   }

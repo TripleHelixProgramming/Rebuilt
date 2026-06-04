@@ -40,13 +40,13 @@ public class KickerIOSpark implements KickerIO {
     config
         .inverted(false)
         .idleMode(IdleMode.kBrake)
-        .smartCurrentLimit(NEOVortexConstants.defaultSupplyCurrentLimit)
-        .voltageCompensation(RobotConstants.nominalVoltage);
+        .smartCurrentLimit(NEOVortexConstants.DEFAULT_SUPPLY_CURRENT_LIMIT)
+        .voltageCompensation(RobotConstants.NOMINAL_VOLTAGE);
 
     config
         .encoder
-        .positionConversionFactor(encoderPositionFactor)
-        .velocityConversionFactor(encoderVelocityFactor)
+        .positionConversionFactor(ENCODER_POSITION_FACTOR)
+        .velocityConversionFactor(ENCODER_VELOCITY_FACTOR)
         .uvwAverageDepth(2)
         .uvwMeasurementPeriod(8);
 
@@ -79,9 +79,9 @@ public class KickerIOSpark implements KickerIO {
   @Override
   public void setVelocity(LinearVelocity tangentialVelocity) {
     double feedforwardVolts =
-        RobotConstants.nominalVoltage
+        RobotConstants.NOMINAL_VOLTAGE
             * tangentialVelocity.in(MetersPerSecond)
-            / maxTangentialVelocity.in(MetersPerSecond);
+            / MAX_TANGENTIAL_VELOCITY.in(MetersPerSecond);
     controller.setSetpoint(
         tangentialVelocity.in(MetersPerSecond) / radius.in(Meters),
         ControlType.kVelocity,

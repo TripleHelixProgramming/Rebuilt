@@ -56,8 +56,8 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
     config = new TalonFXConfiguration();
     config.MotorOutput.withInverted(InvertedValue.CounterClockwise_Positive)
         .withNeutralMode(NeutralModeValue.Brake);
-    config.Slot0 = velocityVoltageGains;
-    config.Slot1 = velocityTorqueCurrentGains;
+    config.Slot0 = VELOCITY_VOLTAGE_GAINS;
+    config.Slot1 = VELOCITY_TORQUE_CURRENT_GAINS;
     tryUntilOk(5, () -> flywheelLeaderTalon.getConfigurator().apply(config, 0.25));
     tryUntilOk(5, () -> flywheelFollowerTalon.getConfigurator().apply(config, 0.25));
 
@@ -67,8 +67,8 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
 
     flywheelSim =
         new DCMotorSim(
-            LinearSystemId.createDCMotorSystem(gearbox, FLYWHEEL_MOI_KG_M2, motorReduction),
-            gearbox);
+            LinearSystemId.createDCMotorSystem(GEARBOX, FLYWHEEL_MOI_KG_M2, MOTOR_REDUCTION),
+            GEARBOX);
 
     flywheelVelocity = flywheelLeaderTalon.getVelocity();
     flywheelAppliedVolts = flywheelLeaderTalon.getMotorVoltage();
@@ -95,14 +95,14 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
     flywheelSim.setInput(flywheelMotorSim.getMotorVoltage());
     flywheelSim.update(Robot.defaultPeriodSecs);
     flywheelMotorSim.setRawRotorPosition(
-        flywheelSim.getAngularPositionRotations() * motorReduction);
-    flywheelMotorSim.setRotorVelocity(flywheelSim.getAngularVelocity().times(motorReduction));
+        flywheelSim.getAngularPositionRotations() * MOTOR_REDUCTION);
+    flywheelMotorSim.setRotorVelocity(flywheelSim.getAngularVelocity().times(MOTOR_REDUCTION));
 
     inputs.appliedVolts = flywheelAppliedVolts.getValueAsDouble();
     inputs.currentAmps = flywheelCurrent.getValueAsDouble();
     inputs.velocityMetersPerSec =
-        (flywheelVelocity.getValue().in(RadiansPerSecond) * wheelRadius.in(Meters))
-            / motorReduction;
+        (flywheelVelocity.getValue().in(RadiansPerSecond) * WHEEL_RADIUS.in(Meters))
+            / MOTOR_REDUCTION;
   }
 
   @Override
@@ -114,7 +114,7 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
   public void setVelocity(LinearVelocity tangentialVelocity) {
     var angularVelocity =
         RadiansPerSecond.of(
-            tangentialVelocity.in(MetersPerSecond) * motorReduction / wheelRadius.in(Meters));
+            tangentialVelocity.in(MetersPerSecond) * MOTOR_REDUCTION / WHEEL_RADIUS.in(Meters));
     flywheelLeaderTalon.setControl(velocityTorqueCurrentRequest.withVelocity(angularVelocity));
   }
 }

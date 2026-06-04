@@ -43,27 +43,27 @@ public class Module {
 
     // Set turn zero from preferences
     Rotation2d turnZeroFromCancoder = inputs.turnZero;
-    Preferences.initDouble(zeroRotationKey + name, turnZeroFromCancoder.getRadians());
+    Preferences.initDouble(ZERO_ROTATION_KEY + name, turnZeroFromCancoder.getRadians());
     Rotation2d turnZeroFromPreferences =
         new Rotation2d(
-            Preferences.getDouble(zeroRotationKey + name, turnZeroFromCancoder.getRadians()));
+            Preferences.getDouble(ZERO_ROTATION_KEY + name, turnZeroFromCancoder.getRadians()));
     io.setTurnZero(turnZeroFromPreferences);
     Logger.recordOutput(
         "Drive/Module" + name + "/TurnZeroRad", turnZeroFromPreferences.getRadians());
   }
 
   public void periodic() {
-    long t0 = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
+    long t0 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
     io.updateInputs(inputs);
-    long t1 = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
+    long t1 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
     Logger.processInputs("Drive/Module" + name, inputs);
-    long t2 = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
+    long t2 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Calculate positions for odometry
     int sampleCount = inputs.odometryTimestamps.length; // All signals are sampled together
     odometryPositions = new SwerveModulePosition[sampleCount];
     for (int i = 0; i < sampleCount; i++) {
-      double positionMeters = inputs.odometryDrivePositionsRad[i] * wheelRadiusMeters;
+      double positionMeters = inputs.odometryDrivePositionsRad[i] * WHEEL_RADIUS_METERS;
       Rotation2d angle = inputs.odometryTurnPositions[i];
       odometryPositions[i] = new SwerveModulePosition(positionMeters, angle);
     }
@@ -73,10 +73,10 @@ public class Module {
     turnDisconnectedAlert.set(!inputs.turnConnected);
     Logger.recordOutput("Faults/Module" + name + "/DriveDisconnected", !inputs.driveConnected);
     Logger.recordOutput("Faults/Module" + name + "/TurnDisconnected", !inputs.turnConnected);
-    long t3 = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
+    long t3 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Profiling output
-    if (FeatureFlags.profilingEnabled) {
+    if (FeatureFlags.PROFILING_ENABLED) {
       long totalMs = (t3 - t0) / 1_000_000;
       if (totalMs > 2) {
         System.out.println(
@@ -100,7 +100,7 @@ public class Module {
     state.cosineScale(inputs.turnPosition);
 
     // Apply setpoints
-    io.setDriveVelocity(state.speedMetersPerSecond / wheelRadiusMeters);
+    io.setDriveVelocity(state.speedMetersPerSecond / WHEEL_RADIUS_METERS);
     io.setTurnPosition(state.angle);
   }
 
@@ -123,12 +123,12 @@ public class Module {
 
   /** Returns the current drive position of the module in meters. */
   public double getPositionMeters() {
-    return inputs.drivePositionRad * wheelRadiusMeters;
+    return inputs.drivePositionRad * WHEEL_RADIUS_METERS;
   }
 
   /** Returns the current drive velocity of the module in meters per second. */
   public double getVelocityMetersPerSec() {
-    return inputs.driveVelocityRadPerSec * wheelRadiusMeters;
+    return inputs.driveVelocityRadPerSec * WHEEL_RADIUS_METERS;
   }
 
   /** Returns the module position (turn angle and drive position). */
@@ -170,7 +170,7 @@ public class Module {
   public void setTurnZero() {
     Rotation2d newTurnZero = inputs.turnZero.minus(inputs.turnPosition);
     io.setTurnZero(newTurnZero);
-    Preferences.setDouble(zeroRotationKey + name, newTurnZero.getRadians());
+    Preferences.setDouble(ZERO_ROTATION_KEY + name, newTurnZero.getRadians());
     Logger.recordOutput("Drive/Module" + name + "/TurnZeroRad", newTurnZero.getRadians());
   }
 }

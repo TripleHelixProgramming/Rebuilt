@@ -31,9 +31,9 @@ public class RollerIOSimSpark implements RollerIO {
   private static final double KD = 0.0;
   private static final LinearVelocity MAX_TANGENTIAL_VELOCITY =
       MetersPerSecond.of(
-          NEOVortexConstants.freeSpeed.in(RadiansPerSecond)
+          NEOVortexConstants.FREE_SPEED.in(RadiansPerSecond)
               * rollerRadius.in(Meters)
-              / motorReduction);
+              / MOTOR_REDUCTION);
   private static final DCMotor GEARBOX = DCMotor.getNeoVortex(numMotors);
 
   private final DCMotorSim rollerSim;
@@ -50,13 +50,13 @@ public class RollerIOSimSpark implements RollerIO {
     config
         .inverted(rollerConfig.inverted)
         .idleMode(IdleMode.kBrake)
-        .smartCurrentLimit(NEOVortexConstants.defaultSupplyCurrentLimit)
-        .voltageCompensation(RobotConstants.nominalVoltage);
+        .smartCurrentLimit(NEOVortexConstants.DEFAULT_SUPPLY_CURRENT_LIMIT)
+        .voltageCompensation(RobotConstants.NOMINAL_VOLTAGE);
 
     config
         .encoder
-        .positionConversionFactor(encoderPositionFactor)
-        .velocityConversionFactor(encoderVelocityFactor);
+        .positionConversionFactor(ENCODER_POSITION_FACTOR)
+        .velocityConversionFactor(ENCODER_VELOCITY_FACTOR);
 
     config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(KP, 0.0, KD);
 
@@ -65,7 +65,8 @@ public class RollerIOSimSpark implements RollerIO {
 
     rollerSim =
         new DCMotorSim(
-            LinearSystemId.createDCMotorSystem(GEARBOX, KICKER_MOI_KG_M2, motorReduction), GEARBOX);
+            LinearSystemId.createDCMotorSystem(GEARBOX, KICKER_MOI_KG_M2, MOTOR_REDUCTION),
+            GEARBOX);
   }
 
   @Override
@@ -85,13 +86,13 @@ public class RollerIOSimSpark implements RollerIO {
 
   @Override
   public void setOpenLoop(Voltage volts) {
-    flexSim.setAppliedOutput(volts.in(Volts) / RobotConstants.nominalVoltage);
+    flexSim.setAppliedOutput(volts.in(Volts) / RobotConstants.NOMINAL_VOLTAGE);
   }
 
   @Override
   public void setVelocity(LinearVelocity tangentialVelocity) {
     double feedforwardVolts =
-        RobotConstants.nominalVoltage
+        RobotConstants.NOMINAL_VOLTAGE
             * tangentialVelocity.in(MetersPerSecond)
             / MAX_TANGENTIAL_VELOCITY.in(MetersPerSecond);
     controller.setSetpoint(

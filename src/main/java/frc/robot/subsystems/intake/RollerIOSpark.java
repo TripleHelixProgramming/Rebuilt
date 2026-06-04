@@ -28,9 +28,9 @@ public class RollerIOSpark implements RollerIO {
   private static final double KD = 0.0;
   private static final LinearVelocity MAX_TANGENTIAL_VELOCITY =
       MetersPerSecond.of(
-          NEOVortexConstants.freeSpeed.in(RadiansPerSecond)
+          NEOVortexConstants.FREE_SPEED.in(RadiansPerSecond)
               * rollerRadius.in(Meters)
-              / motorReduction);
+              / MOTOR_REDUCTION);
 
   private final SparkFlex flex;
   private final RelativeEncoder encoder;
@@ -46,13 +46,13 @@ public class RollerIOSpark implements RollerIO {
     config
         .inverted(rollerConfig.inverted)
         .idleMode(IdleMode.kBrake)
-        .smartCurrentLimit(NEOVortexConstants.defaultSupplyCurrentLimit)
-        .voltageCompensation(RobotConstants.nominalVoltage);
+        .smartCurrentLimit(NEOVortexConstants.DEFAULT_SUPPLY_CURRENT_LIMIT)
+        .voltageCompensation(RobotConstants.NOMINAL_VOLTAGE);
 
     config
         .encoder
-        .positionConversionFactor(encoderPositionFactor)
-        .velocityConversionFactor(encoderVelocityFactor)
+        .positionConversionFactor(ENCODER_POSITION_FACTOR)
+        .velocityConversionFactor(ENCODER_VELOCITY_FACTOR)
         .uvwAverageDepth(2)
         .uvwMeasurementPeriod(8);
 
@@ -84,7 +84,7 @@ public class RollerIOSpark implements RollerIO {
   @Override
   public void setVelocity(LinearVelocity tangentialVelocity) {
     double feedforwardVolts =
-        RobotConstants.nominalVoltage
+        RobotConstants.NOMINAL_VOLTAGE
             * tangentialVelocity.in(MetersPerSecond)
             / MAX_TANGENTIAL_VELOCITY.in(MetersPerSecond);
     controller.setSetpoint(

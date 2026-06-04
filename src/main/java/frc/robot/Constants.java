@@ -41,38 +41,38 @@ public final class Constants {
 
   public static final class FeatureFlags {
     /** Enable to print loop timing when total exceeds 20ms. */
-    public static final boolean profilingEnabled = false;
+    public static final boolean PROFILING_ENABLED = false;
 
     /** Set to false to disable the hopper subsystem entirely. */
-    public static final boolean hopperEnabled = false;
+    public static final boolean HOPPER_ENABLED = false;
   }
 
   public final class RobotConstants {
-    public static final double nominalVoltage = 12.0;
+    public static final double NOMINAL_VOLTAGE = 12.0;
   }
 
   public static final class MotorConstants {
     public static final class NEOConstants {
-      public static final AngularVelocity freeSpeed = RPM.of(5676);
-      public static final int defaultSupplyCurrentLimit = 60;
-      public static final int defaultStatorCurrentLimit = 100;
+      public static final AngularVelocity FREE_SPEED = RPM.of(5676);
+      public static final int DEFAULT_SUPPLY_CURRENT_LIMIT = 60;
+      public static final int DEFAULT_STATOR_CURRENT_LIMIT = 100;
     }
 
     public static final class NEO550Constants {
-      public static final AngularVelocity freeSpeed = RPM.of(11000);
-      public static final int defaultSupplyCurrentLimit = 10;
+      public static final AngularVelocity FREE_SPEED = RPM.of(11000);
+      public static final int DEFAULT_SUPPLY_CURRENT_LIMIT = 10;
     }
 
     public static final class NEOVortexConstants {
-      public static final AngularVelocity freeSpeed = RPM.of(6784);
-      public static final int defaultSupplyCurrentLimit = 60;
-      public static final int defaultStatorCurrentLimit = 100;
+      public static final AngularVelocity FREE_SPEED = RPM.of(6784);
+      public static final int DEFAULT_SUPPLY_CURRENT_LIMIT = 60;
+      public static final int DEFAULT_STATOR_CURRENT_LIMIT = 100;
     }
 
     public static final class KrakenX60Constants {
-      public static final AngularVelocity freeSpeed = RPM.of(6000);
-      public static final int defaultSupplyCurrentLimit = 60;
-      public static final int defaultStatorCurrentLimit = 100;
+      public static final AngularVelocity FREE_SPEED = RPM.of(6000);
+      public static final int DEFAULT_SUPPLY_CURRENT_LIMIT = 60;
+      public static final int DEFAULT_STATOR_CURRENT_LIMIT = 100;
     }
   }
 

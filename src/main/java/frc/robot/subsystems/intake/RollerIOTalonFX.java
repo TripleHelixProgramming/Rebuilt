@@ -42,7 +42,7 @@ public class RollerIOTalonFX implements RollerIO {
   private final NeutralOut brake = new NeutralOut();
 
   // private final TrapezoidProfile profile =
-  //     new TrapezoidProfile(new TrapezoidProfile.Constraints(maxAcceleration, maxJerk));
+  //     new TrapezoidProfile(new TrapezoidProfile.Constraints(MAX_ACCELERATION, MAX_JERK));
   // Inputs from intake motor
   private final StatusSignal<AngularVelocity> velocity;
   private final StatusSignal<Voltage> appliedVolts;
@@ -51,12 +51,12 @@ public class RollerIOTalonFX implements RollerIO {
   public RollerIOTalonFX(RollerConfig rollerConfig) {
     motor = new TalonFX(rollerConfig.port, rollerConfig.bus);
     config = new TalonFXConfiguration();
-    config.TorqueCurrent.PeakForwardTorqueCurrent = KrakenX60Constants.defaultStatorCurrentLimit;
+    config.TorqueCurrent.PeakForwardTorqueCurrent = KrakenX60Constants.DEFAULT_STATOR_CURRENT_LIMIT;
     config.TorqueCurrent.PeakReverseTorqueCurrent =
-        -KrakenX60Constants.defaultStatorCurrentLimit;
-    config.CurrentLimits.StatorCurrentLimit = KrakenX60Constants.defaultStatorCurrentLimit;
+        -KrakenX60Constants.DEFAULT_STATOR_CURRENT_LIMIT;
+    config.CurrentLimits.StatorCurrentLimit = KrakenX60Constants.DEFAULT_STATOR_CURRENT_LIMIT;
     config.CurrentLimits.StatorCurrentLimitEnable = true;
-    config.CurrentLimits.SupplyCurrentLimit = KrakenX60Constants.defaultSupplyCurrentLimit;
+    config.CurrentLimits.SupplyCurrentLimit = KrakenX60Constants.DEFAULT_SUPPLY_CURRENT_LIMIT;
     config.CurrentLimits.SupplyCurrentLimitEnable = true;
     config.MotorOutput.Inverted =
         rollerConfig.inverted
@@ -86,7 +86,7 @@ public class RollerIOTalonFX implements RollerIO {
     inputs.appliedVolts = appliedVolts.getValueAsDouble();
     inputs.currentAmps = supplyCurrent.getValueAsDouble();
     inputs.velocityMetersPerSec =
-        velocity.getValue().in(RadiansPerSecond) * rollerRadius.in(Meters) / motorReduction;
+        velocity.getValue().in(RadiansPerSecond) * rollerRadius.in(Meters) / MOTOR_REDUCTION;
   }
 
   @Override
@@ -102,7 +102,7 @@ public class RollerIOTalonFX implements RollerIO {
   public void setVelocity(LinearVelocity tangentialVelocity) {
     AngularVelocity angularVelocity =
         RadiansPerSecond.of(
-            tangentialVelocity.in(MetersPerSecond) * motorReduction / rollerRadius.in(Meters));
+            tangentialVelocity.in(MetersPerSecond) * MOTOR_REDUCTION / rollerRadius.in(Meters));
 
     // TrapezoidProfile.State goal =
     //     new TrapezoidProfile.State(angularVelocity.in(RotationsPerSecond), 0);

@@ -43,13 +43,13 @@ public class SpindexerIOSimSpark implements SpindexerIO {
     config
         .inverted(false)
         .idleMode(IdleMode.kBrake)
-        .smartCurrentLimit(NEOVortexConstants.defaultSupplyCurrentLimit)
-        .voltageCompensation(RobotConstants.nominalVoltage);
+        .smartCurrentLimit(NEOVortexConstants.DEFAULT_SUPPLY_CURRENT_LIMIT)
+        .voltageCompensation(RobotConstants.NOMINAL_VOLTAGE);
 
     config
         .encoder
-        .positionConversionFactor(encoderPositionFactor)
-        .velocityConversionFactor(encoderVelocityFactor);
+        .positionConversionFactor(ENCODER_POSITION_FACTOR)
+        .velocityConversionFactor(ENCODER_VELOCITY_FACTOR);
 
     config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kP, 0.0, kD);
 
@@ -58,7 +58,7 @@ public class SpindexerIOSimSpark implements SpindexerIO {
 
     spindexerSim =
         new DCMotorSim(
-            LinearSystemId.createDCMotorSystem(GEARBOX, SPINDEXER_MOI_KG_M2, motorReduction),
+            LinearSystemId.createDCMotorSystem(GEARBOX, SPINDEXER_MOI_KG_M2, MOTOR_REDUCTION),
             GEARBOX);
   }
 
@@ -80,15 +80,15 @@ public class SpindexerIOSimSpark implements SpindexerIO {
 
   @Override
   public void setOpenLoop(Voltage volts) {
-    flexSim.setAppliedOutput(volts.in(Volts) / RobotConstants.nominalVoltage);
+    flexSim.setAppliedOutput(volts.in(Volts) / RobotConstants.NOMINAL_VOLTAGE);
   }
 
   @Override
   public void setVelocity(LinearVelocity tangentialVelocity) {
     double feedforwardVolts =
-        RobotConstants.nominalVoltage
+        RobotConstants.NOMINAL_VOLTAGE
             * tangentialVelocity.in(MetersPerSecond)
-            / maxTangentialVelocity.in(MetersPerSecond);
+            / MAX_TANGENTIAL_VELOCITY.in(MetersPerSecond);
     controller.setSetpoint(
         tangentialVelocity.in(MetersPerSecond) / radius.in(Meters),
         ControlType.kVelocity,
