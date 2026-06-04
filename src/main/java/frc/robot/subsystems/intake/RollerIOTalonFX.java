@@ -25,12 +25,12 @@ import frc.robot.Constants.MotorConstants.KrakenX60Constants;
 import frc.robot.subsystems.intake.IntakeConstants.RollerConfig;
 
 public class RollerIOTalonFX implements RollerIO {
-  private static final double kP = 0.11;
-  private static final double kD = 0.0;
-  private static final Slot0Configs velocityVoltageGains =
-      new Slot0Configs().withKP(kP).withKI(0.0).withKD(kD).withKS(0.1).withKV(0.12);
-  private static final Slot1Configs velocityTorqueCurrentGains =
-      new Slot1Configs().withKP(kP).withKI(0.0).withKD(kD).withKS(2.5);
+  private static final double KP = 0.11;
+  private static final double KD = 0.0;
+  private static final Slot0Configs VELOCITY_VOLTAGE_GAINS =
+      new Slot0Configs().withKP(KP).withKI(0.0).withKD(KD).withKS(0.1).withKV(0.12);
+  private static final Slot1Configs VELOCITY_TORQUE_CURRENT_GAINS =
+      new Slot1Configs().withKP(KP).withKI(0.0).withKD(KD).withKS(2.5);
 
   private final TalonFX motor;
   private final TalonFXConfiguration config;
@@ -51,19 +51,20 @@ public class RollerIOTalonFX implements RollerIO {
   public RollerIOTalonFX(RollerConfig rollerConfig) {
     motor = new TalonFX(rollerConfig.port, rollerConfig.bus);
     config = new TalonFXConfiguration();
-    config.TorqueCurrent.PeakForwardTorqueCurrent = KrakenX60Constants.kDefaultStatorCurrentLimit;
-    config.TorqueCurrent.PeakReverseTorqueCurrent = -KrakenX60Constants.kDefaultStatorCurrentLimit;
-    config.CurrentLimits.StatorCurrentLimit = KrakenX60Constants.kDefaultStatorCurrentLimit;
+    config.TorqueCurrent.PeakForwardTorqueCurrent = KrakenX60Constants.defaultStatorCurrentLimit;
+    config.TorqueCurrent.PeakReverseTorqueCurrent =
+        -KrakenX60Constants.defaultStatorCurrentLimit;
+    config.CurrentLimits.StatorCurrentLimit = KrakenX60Constants.defaultStatorCurrentLimit;
     config.CurrentLimits.StatorCurrentLimitEnable = true;
-    config.CurrentLimits.SupplyCurrentLimit = KrakenX60Constants.kDefaultSupplyCurrentLimit;
+    config.CurrentLimits.SupplyCurrentLimit = KrakenX60Constants.defaultSupplyCurrentLimit;
     config.CurrentLimits.SupplyCurrentLimitEnable = true;
     config.MotorOutput.Inverted =
         rollerConfig.inverted
             ? InvertedValue.Clockwise_Positive
             : InvertedValue.CounterClockwise_Positive;
     config.MotorOutput.withNeutralMode(NeutralModeValue.Brake);
-    config.Slot0 = velocityVoltageGains;
-    config.Slot1 = velocityTorqueCurrentGains;
+    config.Slot0 = VELOCITY_VOLTAGE_GAINS;
+    config.Slot1 = VELOCITY_TORQUE_CURRENT_GAINS;
     tryUntilOk(5, () -> motor.getConfigurator().apply(config, 0.25)); // -1 tryUntilOkay
 
     velocity = motor.getVelocity();

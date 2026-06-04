@@ -157,6 +157,7 @@ gradle-app.setting
 .project
 .settings/
 bin/
+.vscode/
 
 # IntelliJ
 *.iml

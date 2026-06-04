@@ -85,21 +85,18 @@ public final class LauncherConstants {
     public static final double marginRad = Units.degreesToRadians(5);
 
     // Position controller
-    public static final double kPReal = 0.5;
+    public static final double kP = 0.5;
+    public static final double kD = 0.05;
     public static final Angle kAllowableError = Degrees.of(0.25);
 
     // Motor controller
     public static final double motorReduction = 9.0 * 72.0 / 12.0;
     public static final AngularVelocity maxAngularVelocity =
-        NEO550Constants.kFreeSpeed.div(motorReduction);
+        NEO550Constants.freeSpeed.div(motorReduction);
     public static final double encoderPositionFactor = (2 * Math.PI) / motorReduction; // Radians
     public static final double encoderVelocityFactor =
         (2 * Math.PI) / (60.0 * motorReduction); // Rad/sec
 
-    // Simulation
-    public static final DCMotor gearbox = DCMotor.getNeo550(1);
-    public static final double kPSim = 0.5;
-    public static final double kDSim = 0.05;
   }
 
   public static final class FlywheelConstants {
@@ -118,14 +115,13 @@ public final class LauncherConstants {
     // Motor controller
     public static final double motorReduction = 1.0;
     public static final AngularVelocity maxAngularVelocity =
-        KrakenX60Constants.kFreeSpeed.div(motorReduction);
+        KrakenX60Constants.freeSpeed.div(motorReduction);
     public static final Slot0Configs velocityVoltageGains =
         new Slot0Configs().withKP(0.11).withKI(0.0).withKD(0.0).withKS(0.1).withKV(0.12);
     public static final Slot1Configs velocityTorqueCurrentGains =
         new Slot1Configs().withKP(12).withKI(0.0).withKD(0.0).withKS(2.5);
 
     // Simulation
-    public static final double kPSim = 0.1;
     public static final DCMotor gearbox = DCMotor.getKrakenX60(2);
   }
 
@@ -148,7 +144,7 @@ public final class LauncherConstants {
     // Motor controller
     public static final double motorReduction = 5.0 * 256.0 / 16.0;
     public static final AngularVelocity maxAngularVelocity =
-        NEO550Constants.kFreeSpeed.div(motorReduction);
+        NEO550Constants.freeSpeed.div(motorReduction);
     public static final double encoderPositionFactor = 2 * Math.PI / motorReduction; // Radians
     public static final double encoderVelocityFactor =
         (2 * Math.PI) / (60.0 * motorReduction); // Rad/sec

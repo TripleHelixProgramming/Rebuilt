@@ -57,9 +57,9 @@ import org.littletonrobotics.junction.Logger;
 
 public class Drive extends SubsystemBase {
   static final double ODOMETRY_FREQUENCY =
-      new CANBus(DrivetrainConstants.CANBusName).isNetworkFD() ? 250.0 : 100.0;
+      new CANBus(drivetrainConstants.CANBusName).isNetworkFD() ? 250.0 : 100.0;
 
-  static final Lock odometryLock = new ReentrantLock();
+  protected static final Lock ODOMETRY_LOCK = new ReentrantLock();
   private final GyroIO gyroIO;
   private final GyroIOInputsAutoLogged gyroInputs = new GyroIOInputsAutoLogged();
   private final Module[] modules = new Module[4]; // FL, FR, BL, BR
@@ -107,10 +107,10 @@ public class Drive extends SubsystemBase {
       ModuleIO blModuleIO,
       ModuleIO brModuleIO) {
     this.gyroIO = gyroIO;
-    modules[0] = new Module(flModuleIO, 0);
-    modules[1] = new Module(frModuleIO, 1);
-    modules[2] = new Module(blModuleIO, 2);
-    modules[3] = new Module(brModuleIO, 3);
+    modules[0] = new Module(flModuleIO, "FrontLeft");
+    modules[1] = new Module(frModuleIO, "FrontRight");
+    modules[2] = new Module(blModuleIO, "BackLeft");
+    modules[3] = new Module(brModuleIO, "BackRight");
 
     // Usage reporting for swerve template
     HAL.report(tResourceType.kResourceType_RobotDrive, tInstances.kRobotDriveSwerve_AdvantageKit);
@@ -156,19 +156,19 @@ public class Drive extends SubsystemBase {
 
   @Override
   public void periodic() {
-    long startNanos = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long startNanos = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
 
-    odometryLock.lock(); // Prevents odometry updates while reading data
-    long t1 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
+    ODOMETRY_LOCK.lock(); // Prevents odometry updates while reading data
+    long t1 = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
     gyroIO.updateInputs(gyroInputs);
-    long t2 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t2 = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
     Logger.processInputs("Drive/Gyro", gyroInputs);
-    long t3 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t3 = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
     for (var module : modules) {
       module.periodic();
     }
-    long t4 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
-    odometryLock.unlock();
+    long t4 = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
+    ODOMETRY_LOCK.unlock();
 
     // Stop moving when disabled
     if (DriverStation.isDisabled()) {
@@ -182,7 +182,7 @@ public class Drive extends SubsystemBase {
       Logger.recordOutput("SwerveStates/Setpoints", emptyModuleStates);
       Logger.recordOutput("SwerveStates/SetpointsOptimized", emptyModuleStates);
     }
-    long t5 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t5 = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
 
     // Update odometry
     double[] sampleTimestamps =
@@ -216,7 +216,7 @@ public class Drive extends SubsystemBase {
 
       chassisSpeeds = kinematics.toChassisSpeeds(getModuleStates());
     }
-    long t6 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t6 = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
 
     // Update gyro alert
     boolean gyroDisconnected = !gyroInputs.connected && Constants.currentMode != Mode.SIM;
@@ -224,7 +224,7 @@ public class Drive extends SubsystemBase {
     Logger.recordOutput("Faults/Drive/GyroDisconnected", gyroDisconnected);
 
     // Profiling output
-    if (FeatureFlags.PROFILING_ENABLED) {
+    if (FeatureFlags.profilingEnabled) {
       long totalMs = (t6 - startNanos) / 1_000_000;
       if (totalMs > 5) {
         System.out.println(

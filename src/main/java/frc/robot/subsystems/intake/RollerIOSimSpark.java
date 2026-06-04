@@ -29,12 +29,12 @@ public class RollerIOSimSpark implements RollerIO {
   private static final double KICKER_MOI_KG_M2 = 0.00052;
   private static final double KP = 0.11;
   private static final double KD = 0.0;
-  private static final LinearVelocity maxTangentialVelocity =
+  private static final LinearVelocity MAX_TANGENTIAL_VELOCITY =
       MetersPerSecond.of(
-          NEOVortexConstants.kFreeSpeed.in(RadiansPerSecond)
+          NEOVortexConstants.freeSpeed.in(RadiansPerSecond)
               * rollerRadius.in(Meters)
               / motorReduction);
-  private static final DCMotor gearbox = DCMotor.getNeoVortex(numMotors);
+  private static final DCMotor GEARBOX = DCMotor.getNeoVortex(numMotors);
 
   private final DCMotorSim rollerSim;
 
@@ -50,8 +50,8 @@ public class RollerIOSimSpark implements RollerIO {
     config
         .inverted(rollerConfig.inverted)
         .idleMode(IdleMode.kBrake)
-        .smartCurrentLimit(NEOVortexConstants.kDefaultSupplyCurrentLimit)
-        .voltageCompensation(RobotConstants.kNominalVoltage);
+        .smartCurrentLimit(NEOVortexConstants.defaultSupplyCurrentLimit)
+        .voltageCompensation(RobotConstants.nominalVoltage);
 
     config
         .encoder
@@ -61,11 +61,11 @@ public class RollerIOSimSpark implements RollerIO {
     config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(KP, 0.0, KD);
 
     flex.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-    flexSim = new SparkFlexSim(flex, gearbox);
+    flexSim = new SparkFlexSim(flex, GEARBOX);
 
     rollerSim =
         new DCMotorSim(
-            LinearSystemId.createDCMotorSystem(gearbox, KICKER_MOI_KG_M2, motorReduction), gearbox);
+            LinearSystemId.createDCMotorSystem(GEARBOX, KICKER_MOI_KG_M2, motorReduction), GEARBOX);
   }
 
   @Override
@@ -85,15 +85,15 @@ public class RollerIOSimSpark implements RollerIO {
 
   @Override
   public void setOpenLoop(Voltage volts) {
-    flexSim.setAppliedOutput(volts.in(Volts) / RobotConstants.kNominalVoltage);
+    flexSim.setAppliedOutput(volts.in(Volts) / RobotConstants.nominalVoltage);
   }
 
   @Override
   public void setVelocity(LinearVelocity tangentialVelocity) {
     double feedforwardVolts =
-        RobotConstants.kNominalVoltage
+        RobotConstants.nominalVoltage
             * tangentialVelocity.in(MetersPerSecond)
-            / maxTangentialVelocity.in(MetersPerSecond);
+            / MAX_TANGENTIAL_VELOCITY.in(MetersPerSecond);
     controller.setSetpoint(
         tangentialVelocity.in(MetersPerSecond) / rollerRadius.in(Meters),
         ControlType.kVelocity,

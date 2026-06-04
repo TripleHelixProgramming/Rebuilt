@@ -76,16 +76,18 @@ public class DriveConstants {
   public static final LinearVelocity drivetrainSpeedLimit =
       MetersPerSecond.of(
           0.9
-              * (wheelRadius.in(Meters) * 2.0 * Math.PI)
-              * KrakenX60Constants.kFreeSpeed.in(RotationsPerSecond)
+              * (wheelRadiusMeters * 2.0 * Math.PI)
+              * KrakenX60Constants.freeSpeed.in(RotationsPerSecond)
               / driveMotorReduction);
 
   // Chassis movement limits
   private static final LinearVelocity driverSpeedLimit = MetersPerSecond.of(5);
   public static final LinearVelocity maxChassisVelocity =
       MetersPerSecond.of(
-          Math.min(drivetrainSpeedLimit.in(MetersPerSecond), driverSpeedLimit.in(MetersPerSecond)));
-  public static final LinearAcceleration maxChassisAcceleration = MetersPerSecondPerSecond.of(3.0);
+          Math.min(
+              drivetrainSpeedLimit.in(MetersPerSecond), driverSpeedLimit.in(MetersPerSecond)));
+  public static final LinearAcceleration maxChassisAcceleration =
+      MetersPerSecondPerSecond.of(3.0);
 
   public static final AngularVelocity maxChassisAngularVelocity =
       RadiansPerSecond.of(maxChassisVelocity.in(MetersPerSecond) / driveBaseRadius.in(Meters));
@@ -102,8 +104,8 @@ public class DriveConstants {
   // Turn motor configuration
   public static final boolean turnInverted = false;
   public static final double turnMotorReduction = (32.0 / 15.0) * (60.0 / 10.0); // SDS MK4
-  // Every 1 rotation of the azimuth results in kCoupleRatio drive motor turns;
-  private static final double kCoupleRatio = (50.0 / 14.0); // SDS MK4 L2
+  // Every 1 rotation of the azimuth results in coupleRatio drive motor turns
+  private static final double coupleRatio = (50.0 / 14.0); // SDS MK4 L2
   public static final DCMotor turnGearbox = DCMotor.getKrakenX60(1);
 
   // Absolute turn encoder configuration
@@ -111,18 +113,18 @@ public class DriveConstants {
 
   // PathPlanner configuration
   public static final Mass robotMass = Pounds.of(150);
-  public static final MomentOfInertia robotMOI = KilogramSquareMeters.of(6);
-  public static final double wheelCOF = 1.2;
+  public static final MomentOfInertia robotMoi = KilogramSquareMeters.of(6);
+  public static final double wheelCof = 1.2;
   public static final RobotConfig ppConfig =
       new RobotConfig(
           robotMass.in(Kilograms),
-          robotMOI.in(KilogramSquareMeters),
+          robotMoi.in(KilogramSquareMeters),
           new ModuleConfig(
-              wheelRadius.in(Meters),
+              wheelRadiusMeters,
               drivetrainSpeedLimit.in(MetersPerSecond),
-              wheelCOF,
+              wheelCof,
               driveGearbox.withReduction(driveMotorReduction),
-              KrakenX60Constants.kDefaultSupplyCurrentLimit,
+              KrakenX60Constants.defaultSupplyCurrentLimit,
               1),
           moduleTranslations);
 
@@ -144,45 +146,45 @@ public class DriveConstants {
 
   // The closed-loop output type to use for the steer motors;
   // This affects the PID/FF gains for the steer motors
-  private static final ClosedLoopOutputType kSteerClosedLoopOutput =
+  private static final ClosedLoopOutputType steerClosedLoopOutput =
       ClosedLoopOutputType.TorqueCurrentFOC;
   // The closed-loop output type to use for the drive motors;
   // This affects the PID/FF gains for the drive motors
-  private static final ClosedLoopOutputType kDriveClosedLoopOutput =
+  private static final ClosedLoopOutputType driveClosedLoopOutput =
       ClosedLoopOutputType.TorqueCurrentFOC;
 
   // The type of motor used for the drive motor
-  private static final DriveMotorArrangement kDriveMotorType =
+  private static final DriveMotorArrangement driveMotorType =
       DriveMotorArrangement.TalonFX_Integrated;
-  // The type of motor used for the drive motor
-  private static final SteerMotorArrangement kSteerMotorType =
+  // The type of motor used for the steer motor
+  private static final SteerMotorArrangement steerMotorType =
       SteerMotorArrangement.TalonFX_Integrated;
 
-  // The remote sensor feedback type to use for the steer motors;
-  private static final SteerFeedbackType kSteerFeedbackType = SteerFeedbackType.FusedCANcoder;
+  // The remote sensor feedback type to use for the steer motors
+  private static final SteerFeedbackType steerFeedbackType = SteerFeedbackType.FusedCANcoder;
 
   // TorqueCurrent peak at which the wheels start to slip; used for slip detection in
   // TorqueCurrentFOC control mode. This needs to be tuned to your individual robot.
-  static final int kSlipCurrent = 120;
+  static final int slipCurrent = 120;
 
   // Hardware stator current limit for drive motors
-  static final int kDriveStatorCurrentLimit = KrakenX60Constants.kDefaultStatorCurrentLimit;
+  static final int driveStatorCurrentLimit = KrakenX60Constants.defaultStatorCurrentLimit;
 
   // Stator current limit for azimuth (steer) motors; lower than drive to reduce brownout risk
   // since steering requires minimal torque compared to driving.
-  static final int kSteerStatorCurrentLimit = 60;
+  static final int steerStatorCurrentLimit = 60;
 
   private static final TalonFXConfiguration driveInitialConfigs =
       new TalonFXConfiguration()
           .withTorqueCurrent(
               new TorqueCurrentConfigs()
-                  .withPeakForwardTorqueCurrent(kSlipCurrent)
-                  .withPeakReverseTorqueCurrent(-kSlipCurrent))
+                  .withPeakForwardTorqueCurrent(slipCurrent)
+                  .withPeakReverseTorqueCurrent(-slipCurrent))
           .withCurrentLimits(
               new CurrentLimitsConfigs()
-                  .withStatorCurrentLimit(kDriveStatorCurrentLimit)
+                  .withStatorCurrentLimit(driveStatorCurrentLimit)
                   .withStatorCurrentLimitEnable(true)
-                  .withSupplyCurrentLimit(KrakenX60Constants.kDefaultSupplyCurrentLimit)
+                  .withSupplyCurrentLimit(KrakenX60Constants.defaultSupplyCurrentLimit)
                   .withSupplyCurrentLimitEnable(true));
 
   // Azimuth does not require much torque; keep stator limit low to reduce brownout risk
@@ -191,99 +193,99 @@ public class DriveConstants {
       new TalonFXConfiguration()
           .withCurrentLimits(
               new CurrentLimitsConfigs()
-                  .withStatorCurrentLimit(kSteerStatorCurrentLimit)
+                  .withStatorCurrentLimit(steerStatorCurrentLimit)
                   .withStatorCurrentLimitEnable(true)
-                  .withSupplyCurrentLimit(KrakenX60Constants.kDefaultSupplyCurrentLimit)
+                  .withSupplyCurrentLimit(KrakenX60Constants.defaultSupplyCurrentLimit)
                   .withSupplyCurrentLimitEnable(true));
 
-  private static final boolean kInvertLeftSide = false;
-  private static final boolean kInvertRightSide = false;
+  private static final boolean invertLeftSide = false;
+  private static final boolean invertRightSide = false;
 
   // These are only used for simulation
-  private static final MomentOfInertia kSteerInertia = KilogramSquareMeters.of(0.004);
-  private static final MomentOfInertia kDriveInertia = KilogramSquareMeters.of(0.025);
+  private static final MomentOfInertia steerInertia = KilogramSquareMeters.of(0.004);
+  private static final MomentOfInertia driveInertia = KilogramSquareMeters.of(0.025);
   // Simulated voltage necessary to overcome friction
-  private static final Voltage kSteerFrictionVoltage = Volts.of(0.2);
-  private static final Voltage kDriveFrictionVoltage = Volts.of(0.2);
+  private static final Voltage steerFrictionVoltage = Volts.of(0.2);
+  private static final Voltage driveFrictionVoltage = Volts.of(0.2);
 
-  public static final SwerveDrivetrainConstants DrivetrainConstants =
+  public static final SwerveDrivetrainConstants drivetrainConstants =
       new SwerveDrivetrainConstants().withCANBusName(CANHD.bus.getName());
 
   private static final SwerveModuleConstantsFactory<
           TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
-      ConstantCreator =
+      constantCreator =
           new SwerveModuleConstantsFactory<
                   TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>()
               .withDriveMotorGearRatio(driveMotorReduction)
               .withSteerMotorGearRatio(turnMotorReduction)
-              .withCouplingGearRatio(kCoupleRatio)
+              .withCouplingGearRatio(coupleRatio)
               .withWheelRadius(wheelRadius)
               .withSteerMotorGains(steerGains)
               .withDriveMotorGains(driveGains)
-              .withSteerMotorClosedLoopOutput(kSteerClosedLoopOutput)
-              .withDriveMotorClosedLoopOutput(kDriveClosedLoopOutput)
-              .withSlipCurrent(Amps.of(kSlipCurrent))
+              .withSteerMotorClosedLoopOutput(steerClosedLoopOutput)
+              .withDriveMotorClosedLoopOutput(driveClosedLoopOutput)
+              .withSlipCurrent(Amps.of(slipCurrent))
               .withSpeedAt12Volts(drivetrainSpeedLimit)
-              .withDriveMotorType(kDriveMotorType)
-              .withSteerMotorType(kSteerMotorType)
-              .withFeedbackSource(kSteerFeedbackType)
+              .withDriveMotorType(driveMotorType)
+              .withSteerMotorType(steerMotorType)
+              .withFeedbackSource(steerFeedbackType)
               .withDriveMotorInitialConfigs(driveInitialConfigs)
               .withSteerMotorInitialConfigs(turnInitialConfigs)
-              .withSteerInertia(kSteerInertia)
-              .withDriveInertia(kDriveInertia)
-              .withSteerFrictionVoltage(kSteerFrictionVoltage)
-              .withDriveFrictionVoltage(kDriveFrictionVoltage);
+              .withSteerInertia(steerInertia)
+              .withDriveInertia(driveInertia)
+              .withSteerFrictionVoltage(steerFrictionVoltage)
+              .withDriveFrictionVoltage(driveFrictionVoltage);
 
   public static final SwerveModuleConstants<
           TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
-      FrontLeft =
-          ConstantCreator.createModuleConstants(
+      frontLeft =
+          constantCreator.createModuleConstants(
               CANHD.frontLeftTurn,
               CANHD.frontLeftDrive,
               CANHD.frontLeftTurnAbsEncoder,
               Rotations.of(0),
               wheelBase.div(2.0),
               trackWidth.div(2.0),
-              kInvertLeftSide,
+              invertLeftSide,
               turnInverted,
               turnEncoderInverted);
   public static final SwerveModuleConstants<
           TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
-      FrontRight =
-          ConstantCreator.createModuleConstants(
+      frontRight =
+          constantCreator.createModuleConstants(
               CANHD.frontRightTurn,
               CANHD.frontRightDrive,
               CANHD.frontRightTurnAbsEncoder,
               Rotations.of(0),
               wheelBase.div(2.0),
               trackWidth.div(-2.0),
-              kInvertRightSide,
+              invertRightSide,
               turnInverted,
               turnEncoderInverted);
   public static final SwerveModuleConstants<
           TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
-      BackLeft =
-          ConstantCreator.createModuleConstants(
+      backLeft =
+          constantCreator.createModuleConstants(
               CANHD.backLeftTurn,
               CANHD.backLeftDrive,
               CANHD.backLeftTurnAbsEncoder,
               Rotations.of(0),
               wheelBase.div(-2.0),
               trackWidth.div(2.0),
-              kInvertLeftSide,
+              invertLeftSide,
               turnInverted,
               turnEncoderInverted);
   public static final SwerveModuleConstants<
           TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
-      BackRight =
-          ConstantCreator.createModuleConstants(
+      backRight =
+          constantCreator.createModuleConstants(
               CANHD.backRightTurn,
               CANHD.backRightDrive,
               CANHD.backRightTurnAbsEncoder,
               Rotations.of(0),
               wheelBase.div(-2.0),
               trackWidth.div(-2.0),
-              kInvertRightSide,
+              invertRightSide,
               turnInverted,
               turnEncoderInverted);
 
@@ -293,7 +295,7 @@ public class DriveConstants {
    */
   //   public static CommandSwerveDrivetrain createDrivetrain() {
   //     return new CommandSwerveDrivetrain(
-  //         DrivetrainConstants, FrontLeft, FrontRight, BackLeft, BackRight);
+  //         drivetrainConstants, frontLeft, frontRight, backLeft, backRight);
   //   }
 
   /** Swerve Drive class utilizing CTR Electronics' Phoenix 6 API with the selected device types. */

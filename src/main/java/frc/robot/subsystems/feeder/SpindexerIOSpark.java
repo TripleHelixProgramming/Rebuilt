@@ -40,8 +40,8 @@ public class SpindexerIOSpark implements SpindexerIO {
     config
         .inverted(false)
         .idleMode(IdleMode.kBrake)
-        .smartCurrentLimit(NEOVortexConstants.kDefaultSupplyCurrentLimit)
-        .voltageCompensation(RobotConstants.kNominalVoltage);
+        .smartCurrentLimit(NEOVortexConstants.defaultSupplyCurrentLimit)
+        .voltageCompensation(RobotConstants.nominalVoltage);
 
     config
         .encoder
@@ -50,7 +50,7 @@ public class SpindexerIOSpark implements SpindexerIO {
         .uvwAverageDepth(2)
         .uvwMeasurementPeriod(8);
 
-    config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kPSim, 0.0, kDSim);
+    config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kP, 0.0, kD);
 
     tryUntilOk(
         flex,
@@ -79,7 +79,7 @@ public class SpindexerIOSpark implements SpindexerIO {
   @Override
   public void setVelocity(LinearVelocity tangentialVelocity) {
     double feedforwardVolts =
-        RobotConstants.kNominalVoltage
+        RobotConstants.nominalVoltage
             * tangentialVelocity.in(MetersPerSecond)
             / maxTangentialVelocity.in(MetersPerSecond);
     controller.setSetpoint(

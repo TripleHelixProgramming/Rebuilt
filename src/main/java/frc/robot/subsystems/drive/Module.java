@@ -27,40 +27,37 @@ import org.littletonrobotics.junction.Logger;
 public class Module {
   private final ModuleIO io;
   private final ModuleIOInputsAutoLogged inputs = new ModuleIOInputsAutoLogged();
-  private final int index;
+  private final String name;
 
   private final Alert driveDisconnectedAlert;
   private final Alert turnDisconnectedAlert;
   private SwerveModulePosition[] odometryPositions = new SwerveModulePosition[] {};
 
-  public Module(ModuleIO io, int index) {
+  public Module(ModuleIO io, String name) {
     this.io = io;
-    this.index = index;
+    this.name = name;
     driveDisconnectedAlert =
-        new Alert(
-            "Disconnected drive motor on module " + Integer.toString(index) + ".",
-            AlertType.kError);
+        new Alert("Disconnected drive motor on module " + name + ".", AlertType.kError);
     turnDisconnectedAlert =
-        new Alert(
-            "Disconnected turn motor on module " + Integer.toString(index) + ".", AlertType.kError);
+        new Alert("Disconnected turn motor on module " + name + ".", AlertType.kError);
 
     // Set turn zero from preferences
     Rotation2d turnZeroFromCancoder = inputs.turnZero;
-    Preferences.initDouble(zeroRotationKey + index, turnZeroFromCancoder.getRadians());
+    Preferences.initDouble(zeroRotationKey + name, turnZeroFromCancoder.getRadians());
     Rotation2d turnZeroFromPreferences =
         new Rotation2d(
-            Preferences.getDouble(zeroRotationKey + index, turnZeroFromCancoder.getRadians()));
+            Preferences.getDouble(zeroRotationKey + name, turnZeroFromCancoder.getRadians()));
     io.setTurnZero(turnZeroFromPreferences);
     Logger.recordOutput(
-        "Drive/Module" + index + "/TurnZeroRad", turnZeroFromPreferences.getRadians());
+        "Drive/Module" + name + "/TurnZeroRad", turnZeroFromPreferences.getRadians());
   }
 
   public void periodic() {
-    long t0 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t0 = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
     io.updateInputs(inputs);
-    long t1 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
-    Logger.processInputs("Drive/Module" + Integer.toString(index), inputs);
-    long t2 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t1 = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
+    Logger.processInputs("Drive/Module" + name, inputs);
+    long t2 = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
 
     // Calculate positions for odometry
     int sampleCount = inputs.odometryTimestamps.length; // All signals are sampled together
@@ -74,17 +71,17 @@ public class Module {
     // Update alerts
     driveDisconnectedAlert.set(!inputs.driveConnected);
     turnDisconnectedAlert.set(!inputs.turnConnected);
-    Logger.recordOutput("Faults/Module" + index + "/DriveDisconnected", !inputs.driveConnected);
-    Logger.recordOutput("Faults/Module" + index + "/TurnDisconnected", !inputs.turnConnected);
-    long t3 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
+    Logger.recordOutput("Faults/Module" + name + "/DriveDisconnected", !inputs.driveConnected);
+    Logger.recordOutput("Faults/Module" + name + "/TurnDisconnected", !inputs.turnConnected);
+    long t3 = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
 
     // Profiling output
-    if (FeatureFlags.PROFILING_ENABLED) {
+    if (FeatureFlags.profilingEnabled) {
       long totalMs = (t3 - t0) / 1_000_000;
       if (totalMs > 2) {
         System.out.println(
             "[Module"
-                + index
+                + name
                 + "] updateInputs="
                 + (t1 - t0) / 1_000_000
                 + "ms log="
@@ -173,7 +170,7 @@ public class Module {
   public void setTurnZero() {
     Rotation2d newTurnZero = inputs.turnZero.minus(inputs.turnPosition);
     io.setTurnZero(newTurnZero);
-    Preferences.setDouble(zeroRotationKey + index, newTurnZero.getRadians());
-    Logger.recordOutput("Drive/Module" + index + "/TurnZeroRad", newTurnZero.getRadians());
+    Preferences.setDouble(zeroRotationKey + name, newTurnZero.getRadians());
+    Logger.recordOutput("Drive/Module" + name + "/TurnZeroRad", newTurnZero.getRadians());
   }
 }

@@ -44,7 +44,7 @@ public class HoodIOSimWPI implements HoodIO {
     // Update simulation state
     hoodSim.setInputVoltage(
         MathUtil.clamp(
-            appliedVolts, -RobotConstants.kNominalVoltage, RobotConstants.kNominalVoltage));
+            appliedVolts, -RobotConstants.nominalVoltage, RobotConstants.nominalVoltage));
     hoodSim.update(Robot.defaultPeriodSecs);
 
     // Update turn inputs
@@ -70,7 +70,7 @@ public class HoodIOSimWPI implements HoodIO {
     closedLoop = true;
     double setpoint = MathUtil.clamp(rotation.getRadians(), minPosRad, maxPosRad);
     this.feedforwardVolts =
-        RobotConstants.kNominalVoltage
+        RobotConstants.nominalVoltage
             * angularVelocity.in(RadiansPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
     positionController.setSetpoint(setpoint);

@@ -56,11 +56,12 @@ public class FlywheelIOTalonFX implements FlywheelIO {
         .withNeutralMode(NeutralModeValue.Brake);
     config.Slot0 = velocityVoltageGains;
     config.Slot1 = velocityTorqueCurrentGains;
-    config.TorqueCurrent.PeakForwardTorqueCurrent = KrakenX60Constants.kDefaultStatorCurrentLimit;
-    config.TorqueCurrent.PeakReverseTorqueCurrent = -KrakenX60Constants.kDefaultStatorCurrentLimit;
-    config.CurrentLimits.StatorCurrentLimit = KrakenX60Constants.kDefaultStatorCurrentLimit;
+    config.TorqueCurrent.PeakForwardTorqueCurrent = KrakenX60Constants.defaultStatorCurrentLimit;
+    config.TorqueCurrent.PeakReverseTorqueCurrent =
+        -KrakenX60Constants.defaultStatorCurrentLimit;
+    config.CurrentLimits.StatorCurrentLimit = KrakenX60Constants.defaultStatorCurrentLimit;
     config.CurrentLimits.StatorCurrentLimitEnable = true;
-    config.CurrentLimits.SupplyCurrentLimit = KrakenX60Constants.kDefaultSupplyCurrentLimit;
+    config.CurrentLimits.SupplyCurrentLimit = KrakenX60Constants.defaultSupplyCurrentLimit;
     config.CurrentLimits.SupplyCurrentLimitEnable = true;
     tryUntilOk(5, () -> flywheelLeaderTalon.getConfigurator().apply(config, 0.25));
     tryUntilOk(5, () -> flywheelFollowerTalon.getConfigurator().apply(config, 0.25));

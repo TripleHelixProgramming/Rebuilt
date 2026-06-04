@@ -36,6 +36,7 @@ import frc.lib.ControllerSelector.OperatorConfig;
 import frc.lib.LoggedCompressor;
 import frc.lib.LoggedPowerDistribution;
 import frc.lib.ZorroController.Axis;
+import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.DIOPorts;
 import frc.robot.Constants.FeatureFlags;
 import frc.robot.auto.B_LeftTrenchAuto;
@@ -126,7 +127,7 @@ public class Robot extends LoggedRobot {
   public static final AutoSelector autoSelector =
       new AutoSelector(DIOPorts.autonomousModeSelector, allianceSelector::getAllianceColor);
   public final LoggedPowerDistribution powerDistribution =
-      new LoggedPowerDistribution(1, ModuleType.kRev, "PDH");
+      new LoggedPowerDistribution(CAN2.pd, ModuleType.kRev, "PD");
 
   private final java.util.Set<String> activeCommands = new java.util.LinkedHashSet<>();
 
@@ -176,10 +177,10 @@ public class Robot extends LoggedRobot {
         drive =
             new Drive(
                 new GyroIOBoron(),
-                new ModuleIOTalonFX(DriveConstants.FrontLeft),
-                new ModuleIOTalonFX(DriveConstants.FrontRight),
-                new ModuleIOTalonFX(DriveConstants.BackLeft),
-                new ModuleIOTalonFX(DriveConstants.BackRight));
+                new ModuleIOTalonFX(DriveConstants.frontLeft),
+                new ModuleIOTalonFX(DriveConstants.frontRight),
+                new ModuleIOTalonFX(DriveConstants.backLeft),
+                new ModuleIOTalonFX(DriveConstants.backRight));
         vision =
             new Vision(
                 drive::addVisionMeasurement,
@@ -195,7 +196,7 @@ public class Robot extends LoggedRobot {
                 new TurretIOSpark(),
                 new FlywheelIOTalonFX(),
                 new HoodIOSpark());
-        if (FeatureFlags.kHopperEnabled) hopper = new Hopper(new HopperIOReal());
+        if (FeatureFlags.hopperEnabled) hopper = new Hopper(new HopperIOReal());
         intake =
             new Intake(
                 new RollerIOSpark(RollerConstants.upperRollerConfig),
@@ -217,10 +218,10 @@ public class Robot extends LoggedRobot {
         drive =
             new Drive(
                 new GyroIO() {},
-                new ModuleIOSimWPI(DriveConstants.FrontLeft),
-                new ModuleIOSimWPI(DriveConstants.FrontRight),
-                new ModuleIOSimWPI(DriveConstants.BackLeft),
-                new ModuleIOSimWPI(DriveConstants.BackRight));
+                new ModuleIOSimWPI(DriveConstants.frontLeft),
+                new ModuleIOSimWPI(DriveConstants.frontRight),
+                new ModuleIOSimWPI(DriveConstants.backLeft),
+                new ModuleIOSimWPI(DriveConstants.backRight));
         vision =
             new Vision(
                 drive::addVisionMeasurement,
@@ -241,7 +242,7 @@ public class Robot extends LoggedRobot {
                 new FlywheelIOSimTalonFX(),
                 new HoodIOSimSpark());
         feeder = new Feeder(new SpindexerIOSimSpark(), new KickerIOSimSpark());
-        if (FeatureFlags.kHopperEnabled) hopper = new Hopper(new HopperIOSim());
+        if (FeatureFlags.hopperEnabled) hopper = new Hopper(new HopperIOSim());
         var intakeArmIOSim = new IntakeArmIOSim();
         intake =
             new Intake(
@@ -283,7 +284,7 @@ public class Robot extends LoggedRobot {
                 new TurretIO() {},
                 new FlywheelIO() {},
                 new HoodIO() {});
-        if (FeatureFlags.kHopperEnabled) hopper = new Hopper(new HopperIO() {});
+        if (FeatureFlags.hopperEnabled) hopper = new Hopper(new HopperIO() {});
         intake = new Intake(new RollerIO() {}, new RollerIO() {}, new IntakeArmIO() {});
         feeder = new Feeder(new SpindexerIO() {}, new KickerIO() {});
         break;
@@ -302,7 +303,7 @@ public class Robot extends LoggedRobot {
 
     // Wire the hopper/intake interlocks. Done here (after both subsystems exist) to avoid a
     // circular dependency between the two subsystems.
-    if (FeatureFlags.kHopperEnabled) {
+    if (FeatureFlags.hopperEnabled) {
       intake.setDeployInterlock(
           hopper::isDeployed,
           () -> hopper.getDeployCommand().withTimeout(IntakeConstants.kInterlockSettleSeconds));
@@ -342,7 +343,7 @@ public class Robot extends LoggedRobot {
   /** This function is called periodically during all modes. */
   @Override
   public void robotPeriodic() {
-    long loopStart = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long loopStart = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
 
     // Runs the Scheduler. This is responsible for polling buttons, adding
     // newly-scheduled commands, running already-scheduled commands, removing
@@ -350,7 +351,7 @@ public class Robot extends LoggedRobot {
     // This must be called from the robot's periodic block in order for anything in
     // the Command-based framework to work.
     CommandScheduler.getInstance().run();
-    long t1 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t1 = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
 
     logCANBus("CAN2", Constants.CANBusPorts.CAN2.bus);
     logCANBus("CANHD", Constants.CANBusPorts.CANHD.bus);
@@ -361,16 +362,16 @@ public class Robot extends LoggedRobot {
 
     Logger.recordOutput("USB/FreeSpaceMB", getUSBStorageFreeSpace() / 1024 / 1024);
     GameState.logValues();
-    long t2 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t2 = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
 
     // Publish kernel log events to NetworkTables (only runs on real robot)
     if (RobotBase.isReal()) {
       KernelLogMonitor.getInstance().publishToLogger();
     }
-    long t3 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
+    long t3 = FeatureFlags.profilingEnabled ? System.nanoTime() : 0;
 
     // Profiling output
-    if (FeatureFlags.PROFILING_ENABLED) {
+    if (FeatureFlags.profilingEnabled) {
       long schedulerMs = (t1 - loopStart) / 1_000_000;
       long gameStateMs = (t2 - t1) / 1_000_000;
       long kernelMonitorMs = (t3 - t2) / 1_000_000;
@@ -548,7 +549,7 @@ public class Robot extends LoggedRobot {
     // Toggle hopper: deploy if stowed, stow if deployed (retracting intake first if needed).
     // runOnce has no subsystem requirements so it always executes; the scheduled command
     // requires hopper and will interrupt whatever is currently running on that subsystem.
-    if (FeatureFlags.kHopperEnabled)
+    if (FeatureFlags.hopperEnabled)
       zorroDriver
           .DIn()
           .onTrue(

@@ -29,13 +29,13 @@ import frc.robot.Robot;
 import frc.robot.subsystems.intake.IntakeConstants.RollerConfig;
 
 public class RollerIOSimTalonFX implements RollerIO {
-  private static final double kP = 0.11;
-  private static final double kD = 0.0;
-  private static final Slot0Configs velocityVoltageGains =
-      new Slot0Configs().withKP(kP).withKI(0.0).withKD(kD).withKS(0.1).withKV(0.12);
-  private static final Slot1Configs velocityTorqueCurrentGains =
-      new Slot1Configs().withKP(kP).withKI(0.0).withKD(kD).withKS(2.5);
-  private static final DCMotor gearbox = DCMotor.getKrakenX60(numMotors);
+  private static final double KP = 0.11;
+  private static final double KD = 0.0;
+  private static final Slot0Configs VELOCITY_VOLTAGE_GAINS =
+      new Slot0Configs().withKP(KP).withKI(0.0).withKD(KD).withKS(0.1).withKV(0.12);
+  private static final Slot1Configs VELOCITY_TORQUE_CURRENT_GAINS =
+      new Slot1Configs().withKP(KP).withKI(0.0).withKD(KD).withKS(2.5);
+  private static final DCMotor GEARBOX = DCMotor.getKrakenX60(numMotors);
 
   private final DCMotorSim rollerSim;
 
@@ -63,13 +63,13 @@ public class RollerIOSimTalonFX implements RollerIO {
             ? InvertedValue.Clockwise_Positive
             : InvertedValue.CounterClockwise_Positive;
     config.MotorOutput.withNeutralMode(NeutralModeValue.Brake);
-    config.Slot0 = velocityVoltageGains;
-    config.Slot1 = velocityTorqueCurrentGains;
+    config.Slot0 = VELOCITY_VOLTAGE_GAINS;
+    config.Slot1 = VELOCITY_TORQUE_CURRENT_GAINS;
     tryUntilOk(5, () -> motor.getConfigurator().apply(config, 0.25));
 
     rollerSim =
         new DCMotorSim(
-            LinearSystemId.createDCMotorSystem(gearbox, 0.0005, motorReduction), gearbox);
+            LinearSystemId.createDCMotorSystem(GEARBOX, 0.0005, motorReduction), GEARBOX);
 
     velocity = motor.getVelocity();
     acceleration = motor.getAcceleration();

@@ -41,38 +41,38 @@ public final class Constants {
 
   public static final class FeatureFlags {
     /** Enable to print loop timing when total exceeds 20ms. */
-    public static final boolean PROFILING_ENABLED = false;
+    public static final boolean profilingEnabled = false;
 
     /** Set to false to disable the hopper subsystem entirely. */
-    public static final boolean kHopperEnabled = false;
+    public static final boolean hopperEnabled = false;
   }
 
   public final class RobotConstants {
-    public static final double kNominalVoltage = 12.0;
+    public static final double nominalVoltage = 12.0;
   }
 
   public static final class MotorConstants {
     public static final class NEOConstants {
-      public static final AngularVelocity kFreeSpeed = RPM.of(5676);
-      public static final int kDefaultSupplyCurrentLimit = 60;
-      public static final int kDefaultStatorCurrentLimit = 100;
+      public static final AngularVelocity freeSpeed = RPM.of(5676);
+      public static final int defaultSupplyCurrentLimit = 60;
+      public static final int defaultStatorCurrentLimit = 100;
     }
 
     public static final class NEO550Constants {
-      public static final AngularVelocity kFreeSpeed = RPM.of(11000);
-      public static final int kDefaultSupplyCurrentLimit = 10;
+      public static final AngularVelocity freeSpeed = RPM.of(11000);
+      public static final int defaultSupplyCurrentLimit = 10;
     }
 
     public static final class NEOVortexConstants {
-      public static final AngularVelocity kFreeSpeed = RPM.of(6784);
-      public static final int kDefaultSupplyCurrentLimit = 60;
-      public static final int kDefaultStatorCurrentLimit = 100;
+      public static final AngularVelocity freeSpeed = RPM.of(6784);
+      public static final int defaultSupplyCurrentLimit = 60;
+      public static final int defaultStatorCurrentLimit = 100;
     }
 
     public static final class KrakenX60Constants {
-      public static final AngularVelocity kFreeSpeed = RPM.of(6000);
-      public static final int kDefaultSupplyCurrentLimit = 60;
-      public static final int kDefaultStatorCurrentLimit = 100;
+      public static final AngularVelocity freeSpeed = RPM.of(6000);
+      public static final int defaultSupplyCurrentLimit = 60;
+      public static final int defaultStatorCurrentLimit = 100;
     }
   }
 
@@ -85,15 +85,13 @@ public final class Constants {
     public static final int turretAbsEncoder = 4;
   }
 
-  public static final class OIPorts {
-    public static final int defaultDriver = 0;
-    public static final int defaultOperator = 1;
-  }
-
   public static final class CANBusPorts {
 
     public static final class CAN2 {
       public static final CANBus bus = CANBus.roboRIO();
+
+      // Power distribution
+      public static final int pd = 1;
 
       // Drivetrain
       public static final int gyro = 0;

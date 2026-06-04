@@ -26,9 +26,9 @@ import frc.robot.util.SparkOdometryThread.SparkInputs;
 public class RollerIOSpark implements RollerIO {
   private static final double KP = 0.001;
   private static final double KD = 0.0;
-  private static final LinearVelocity maxTangentialVelocity =
+  private static final LinearVelocity MAX_TANGENTIAL_VELOCITY =
       MetersPerSecond.of(
-          NEOVortexConstants.kFreeSpeed.in(RadiansPerSecond)
+          NEOVortexConstants.freeSpeed.in(RadiansPerSecond)
               * rollerRadius.in(Meters)
               / motorReduction);
 
@@ -46,8 +46,8 @@ public class RollerIOSpark implements RollerIO {
     config
         .inverted(rollerConfig.inverted)
         .idleMode(IdleMode.kBrake)
-        .smartCurrentLimit(NEOVortexConstants.kDefaultSupplyCurrentLimit)
-        .voltageCompensation(RobotConstants.kNominalVoltage);
+        .smartCurrentLimit(NEOVortexConstants.defaultSupplyCurrentLimit)
+        .voltageCompensation(RobotConstants.nominalVoltage);
 
     config
         .encoder
@@ -84,9 +84,9 @@ public class RollerIOSpark implements RollerIO {
   @Override
   public void setVelocity(LinearVelocity tangentialVelocity) {
     double feedforwardVolts =
-        RobotConstants.kNominalVoltage
+        RobotConstants.nominalVoltage
             * tangentialVelocity.in(MetersPerSecond)
-            / maxTangentialVelocity.in(MetersPerSecond);
+            / MAX_TANGENTIAL_VELOCITY.in(MetersPerSecond);
     controller.setSetpoint(
         tangentialVelocity.in(MetersPerSecond) / rollerRadius.in(Meters),
         ControlType.kVelocity,

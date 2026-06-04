@@ -47,8 +47,8 @@ public class HoodIOSpark implements HoodIO {
     hoodConfig
         .inverted(true)
         .idleMode(IdleMode.kBrake)
-        .smartCurrentLimit(NEO550Constants.kDefaultSupplyCurrentLimit)
-        .voltageCompensation(RobotConstants.kNominalVoltage);
+        .smartCurrentLimit(NEO550Constants.defaultSupplyCurrentLimit)
+        .voltageCompensation(RobotConstants.nominalVoltage);
 
     hoodConfig
         .encoder
@@ -101,7 +101,7 @@ public class HoodIOSpark implements HoodIO {
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
     double setpoint = MathUtil.clamp(rotation.getRadians(), minPosRad, maxPosRad);
     double feedforwardVolts =
-        RobotConstants.kNominalVoltage
+        RobotConstants.nominalVoltage
             * angularVelocity.in(RadiansPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
     hoodController.setSetpoint(
@@ -112,7 +112,7 @@ public class HoodIOSpark implements HoodIO {
   public void setVelocity(AngularVelocity angularVelocity) {
     double setpoint = angularVelocity.in(RadiansPerSecond);
     double feedforwardVolts =
-        RobotConstants.kNominalVoltage
+        RobotConstants.nominalVoltage
             * angularVelocity.in(RadiansPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
     hoodController.setSetpoint(

@@ -13,10 +13,12 @@ import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
 
 public class FlywheelIOSimWPI implements FlywheelIO {
+  private static final double KP_SIM = 0.1;
+
   private final DCMotorSim flywheelSim;
 
   private boolean closedLoop = false;
-  private PIDController velocityController = new PIDController(kPSim, 0.0, 0.0);
+  private PIDController velocityController = new PIDController(KP_SIM, 0.0, 0.0);
   private double appliedVolts = 0.0;
   private double feedforwardVolts = 0.0;
 
@@ -39,7 +41,7 @@ public class FlywheelIOSimWPI implements FlywheelIO {
     // Update simulation state
     flywheelSim.setInputVoltage(
         MathUtil.clamp(
-            appliedVolts, -RobotConstants.kNominalVoltage, RobotConstants.kNominalVoltage));
+            appliedVolts, -RobotConstants.nominalVoltage, RobotConstants.nominalVoltage));
     flywheelSim.update(Robot.defaultPeriodSecs);
 
     // Update turn inputs
@@ -60,7 +62,7 @@ public class FlywheelIOSimWPI implements FlywheelIO {
   public void setVelocity(LinearVelocity tangentialVelocity) {
     closedLoop = true;
     this.feedforwardVolts =
-        RobotConstants.kNominalVoltage
+        RobotConstants.nominalVoltage
             * tangentialVelocity.in(MetersPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
     velocityController.setSetpoint(tangentialVelocity.in(MetersPerSecond));
