@@ -185,10 +185,10 @@ public class Robot extends LoggedRobot {
             new Vision(
                 drive::addVisionMeasurement,
                 drive::getFieldRelativeHeading,
-                new VisionIOPhotonVision(CAMERA_FRONT_RIGHT_NAME, ROBOT_TO_FRONT_RIGHT_CAMERA),
-                new VisionIOPhotonVision(CAMERA_FRONT_LEFT_NAME, ROBOT_TO_FRONT_LEFT_CAMERA),
-                new VisionIOPhotonVision(CAMERA_BACK_RIGHT_NAME, ROBOT_TO_BACK_RIGHT_CAMERA),
-                new VisionIOPhotonVision(CAMERA_BACK_LEFT_NAME, ROBOT_TO_BACK_LEFT_CAMERA));
+                new VisionIOPhotonVision(FRONT_RIGHT_CAMERA),
+                new VisionIOPhotonVision(FRONT_LEFT_CAMERA),
+                new VisionIOPhotonVision(BACK_RIGHT_CAMERA),
+                new VisionIOPhotonVision(BACK_LEFT_CAMERA));
         launcher =
             new Launcher(
                 drive::getPose,
@@ -226,14 +226,10 @@ public class Robot extends LoggedRobot {
             new Vision(
                 drive::addVisionMeasurement,
                 drive::getFieldRelativeHeading,
-                new VisionIOPhotonVisionSim(
-                    CAMERA_FRONT_RIGHT_NAME, ROBOT_TO_FRONT_RIGHT_CAMERA, drive::getPose),
-                new VisionIOPhotonVisionSim(
-                    CAMERA_FRONT_LEFT_NAME, ROBOT_TO_FRONT_LEFT_CAMERA, drive::getPose),
-                new VisionIOPhotonVisionSim(
-                    CAMERA_BACK_RIGHT_NAME, ROBOT_TO_BACK_RIGHT_CAMERA, drive::getPose),
-                new VisionIOPhotonVisionSim(
-                    CAMERA_BACK_LEFT_NAME, ROBOT_TO_BACK_LEFT_CAMERA, drive::getPose));
+                new VisionIOPhotonVisionSim(FRONT_RIGHT_CAMERA, drive::getPose),
+                new VisionIOPhotonVisionSim(FRONT_LEFT_CAMERA, drive::getPose),
+                new VisionIOPhotonVisionSim(BACK_RIGHT_CAMERA, drive::getPose),
+                new VisionIOPhotonVisionSim(BACK_LEFT_CAMERA, drive::getPose));
         launcher =
             new Launcher(
                 drive::getPose,

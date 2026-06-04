@@ -25,41 +25,46 @@ public class VisionConstants {
   public static Boolean USE_CUSTOM_APRIL_TAG_LAYOUT = false;
   public static AprilTagFields DEFAULT_APRIL_TAG_FIELD_LAYOUT = AprilTagFields.k2026RebuiltAndymark;
 
-  // Camera names, must match names configured on coprocessor
-  public static String CAMERA_FRONT_RIGHT_NAME = "OV2311_TH_2026_FR";
-  public static String CAMERA_FRONT_LEFT_NAME = "OV2311_TH_2026_FL";
-  public static String CAMERA_BACK_RIGHT_NAME = "OV2311_TH_2026_RR";
-  public static String CAMERA_BACK_LEFT_NAME = "OV2311_TH_2026_RL";
+  /** Pairs a camera's coprocessor name with its robot-to-camera transform. */
+  public record CameraConfig(String name, Transform3d robotToCamera) {}
 
-  // Robot to camera transforms
-  public static Transform3d ROBOT_TO_FRONT_RIGHT_CAMERA =
-      new Transform3d(
-          Inches.of(-10.572),
-          Inches.of(-12.337),
-          Inches.of(16.688),
-          // pitch 20 degrees up, yaw 55 degrees right
-          new Rotation3d(new Quaternion(0.8735, -0.0802, -0.1540, -0.4547)));
-  public static Transform3d ROBOT_TO_FRONT_LEFT_CAMERA =
-      new Transform3d(
-          Inches.of(-10.572),
-          Inches.of(12.337),
-          Inches.of(16.688),
-          // pitch 20 degrees up, yaw 55 degrees left
-          new Rotation3d(new Quaternion(0.8735, 0.0802, -0.1540, 0.4547)));
-  public static Transform3d ROBOT_TO_BACK_RIGHT_CAMERA =
-      new Transform3d(
-          Inches.of(-13.1623),
-          Inches.of(-12.1623),
-          Inches.of(20.26674),
-          // pitch 15 degrees up, yaw 135 degrees right
-          new Rotation3d(new Quaternion(-0.3794, 0.1206, 0.0500, 0.9160)));
-  public static Transform3d ROBOT_TO_BACK_LEFT_CAMERA =
-      new Transform3d(
-          Inches.of(-13.1623),
-          Inches.of(12.1623),
-          Inches.of(20.26674),
-          // pitch 15 degrees up, yaw 135 degrees left
-          new Rotation3d(new Quaternion(0.3794, 0.1206, -0.0500, 0.9160)));
+  // Camera configurations (name must match name configured on coprocessor)
+  public static CameraConfig FRONT_RIGHT_CAMERA =
+      new CameraConfig(
+          "OV2311_TH_2026_FR",
+          new Transform3d(
+              Inches.of(-10.572),
+              Inches.of(-12.337),
+              Inches.of(16.688),
+              // pitch 20 degrees up, yaw 55 degrees right
+              new Rotation3d(new Quaternion(0.8735, -0.0802, -0.1540, -0.4547))));
+  public static CameraConfig FRONT_LEFT_CAMERA =
+      new CameraConfig(
+          "OV2311_TH_2026_FL",
+          new Transform3d(
+              Inches.of(-10.572),
+              Inches.of(12.337),
+              Inches.of(16.688),
+              // pitch 20 degrees up, yaw 55 degrees left
+              new Rotation3d(new Quaternion(0.8735, 0.0802, -0.1540, 0.4547))));
+  public static CameraConfig BACK_RIGHT_CAMERA =
+      new CameraConfig(
+          "OV2311_TH_2026_RR",
+          new Transform3d(
+              Inches.of(-13.1623),
+              Inches.of(-12.1623),
+              Inches.of(20.26674),
+              // pitch 15 degrees up, yaw 135 degrees right
+              new Rotation3d(new Quaternion(-0.3794, 0.1206, 0.0500, 0.9160))));
+  public static CameraConfig BACK_LEFT_CAMERA =
+      new CameraConfig(
+          "OV2311_TH_2026_RL",
+          new Transform3d(
+              Inches.of(-13.1623),
+              Inches.of(12.1623),
+              Inches.of(20.26674),
+              // pitch 15 degrees up, yaw 135 degrees left
+              new Rotation3d(new Quaternion(0.3794, 0.1206, -0.0500, 0.9160))));
 
   public static Distance MIN_ROBOT_WIDTH = Inches.of(36.875);
 
