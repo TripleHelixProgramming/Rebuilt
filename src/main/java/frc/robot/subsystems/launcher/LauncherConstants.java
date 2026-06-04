@@ -13,8 +13,6 @@ import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
 import frc.robot.Constants;
-import frc.robot.Constants.MotorConstants.KrakenX60Constants;
-import frc.robot.Constants.MotorConstants.NEO550Constants;
 
 public final class LauncherConstants {
 
@@ -91,8 +89,9 @@ public final class LauncherConstants {
 
     // Motor controller
     public static final double MOTOR_REDUCTION = 9.0 * 72.0 / 12.0;
+    public static final DCMotor GEARBOX = DCMotor.getNeo550(1);
     public static final AngularVelocity MAX_ANGULAR_VELOCITY =
-        NEO550Constants.FREE_SPEED.div(MOTOR_REDUCTION);
+        RadiansPerSecond.of(GEARBOX.freeSpeedRadPerSec / MOTOR_REDUCTION);
     public static final double ENCODER_POSITION_FACTOR = (2 * Math.PI) / MOTOR_REDUCTION; // Radians
     public static final double ENCODER_VELOCITY_FACTOR =
         (2 * Math.PI) / (60.0 * MOTOR_REDUCTION); // Rad/sec
@@ -113,15 +112,13 @@ public final class LauncherConstants {
 
     // Motor controller
     public static final double MOTOR_REDUCTION = 1.0;
+    public static final DCMotor GEARBOX = DCMotor.getKrakenX60(2);
     public static final AngularVelocity MAX_ANGULAR_VELOCITY =
-        KrakenX60Constants.FREE_SPEED.div(MOTOR_REDUCTION);
+        RadiansPerSecond.of(GEARBOX.freeSpeedRadPerSec / MOTOR_REDUCTION);
     public static final Slot0Configs VELOCITY_VOLTAGE_GAINS =
         new Slot0Configs().withKP(0.11).withKI(0.0).withKD(0.0).withKS(0.1).withKV(0.12);
     public static final Slot1Configs VELOCITY_TORQUE_CURRENT_GAINS =
         new Slot1Configs().withKP(12).withKI(0.0).withKD(0.0).withKS(2.5);
-
-    // Simulation
-    public static final DCMotor GEARBOX = DCMotor.getKrakenX60(2);
   }
 
   public static final class HoodConstants {
@@ -142,13 +139,11 @@ public final class LauncherConstants {
 
     // Motor controller
     public static final double MOTOR_REDUCTION = 5.0 * 256.0 / 16.0;
+    public static final DCMotor GEARBOX = DCMotor.getNeo550(1);
     public static final AngularVelocity MAX_ANGULAR_VELOCITY =
-        NEO550Constants.FREE_SPEED.div(MOTOR_REDUCTION);
+        RadiansPerSecond.of(GEARBOX.freeSpeedRadPerSec / MOTOR_REDUCTION);
     public static final double ENCODER_POSITION_FACTOR = 2 * Math.PI / MOTOR_REDUCTION; // Radians
     public static final double ENCODER_VELOCITY_FACTOR =
         (2 * Math.PI) / (60.0 * MOTOR_REDUCTION); // Rad/sec
-
-    // Simulation
-    public static final DCMotor GEARBOX = DCMotor.getNeo550(1);
   }
 }

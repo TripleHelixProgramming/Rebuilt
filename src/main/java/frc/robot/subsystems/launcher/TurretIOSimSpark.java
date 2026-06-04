@@ -16,7 +16,6 @@ import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Voltage;
@@ -29,7 +28,6 @@ import frc.robot.Robot;
 
 public class TurretIOSimSpark implements TurretIO {
   private static final double TURRET_MOI_KG_M2 = 0.237;
-  private static final DCMotor GEARBOX = DCMotor.getNeo550(1);
 
   private final DCMotorSim turnSim;
 
@@ -49,7 +47,7 @@ public class TurretIOSimSpark implements TurretIO {
     turnConfig
         .inverted(false)
         .idleMode(IdleMode.kBrake)
-        .smartCurrentLimit(NEO550Constants.DEFAULT_SUPPLY_CURRENT_LIMIT)
+        .smartCurrentLimit(NEO550Constants.DEFAULT_STATOR_CURRENT_LIMIT)
         .voltageCompensation(RobotConstants.NOMINAL_VOLTAGE);
 
     turnConfig

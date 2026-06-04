@@ -14,7 +14,6 @@ import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkFlexConfig;
-import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
@@ -27,7 +26,6 @@ import frc.robot.Robot;
 
 public class SpindexerIOSimSpark implements SpindexerIO {
   private static final double SPINDEXER_MOI_KG_M2 = 0.00207;
-  private static final DCMotor GEARBOX = DCMotor.getNeoVortex(1);
 
   private final DCMotorSim spindexerSim;
 
@@ -43,7 +41,7 @@ public class SpindexerIOSimSpark implements SpindexerIO {
     config
         .inverted(false)
         .idleMode(IdleMode.kBrake)
-        .smartCurrentLimit(NEOVortexConstants.DEFAULT_SUPPLY_CURRENT_LIMIT)
+        .smartCurrentLimit(NEOVortexConstants.DEFAULT_STATOR_CURRENT_LIMIT)
         .voltageCompensation(RobotConstants.NOMINAL_VOLTAGE);
 
     config

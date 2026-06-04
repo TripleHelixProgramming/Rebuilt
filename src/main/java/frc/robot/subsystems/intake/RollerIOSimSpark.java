@@ -2,6 +2,7 @@ package frc.robot.subsystems.intake;
 
 import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.intake.IntakeConstants.RollerConstants.*;
+import static frc.robot.subsystems.intake.IntakeConstants.RollerConstants.SparkConfig.*;
 
 import com.revrobotics.PersistMode;
 import com.revrobotics.ResetMode;
@@ -14,7 +15,6 @@ import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkFlexConfig;
-import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
@@ -23,14 +23,9 @@ import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import frc.robot.Constants.MotorConstants.NEOVortexConstants;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
-import frc.robot.subsystems.intake.IntakeConstants.RollerConfig;
 
 public class RollerIOSimSpark implements RollerIO {
   private static final double KICKER_MOI_KG_M2 = 0.00052;
-  private static final LinearVelocity MAX_TANGENTIAL_VELOCITY =
-      MetersPerSecond.of(
-          NEOVortexConstants.FREE_SPEED.in(RadiansPerSecond) * RADIUS.in(Meters) / MOTOR_REDUCTION);
-  private static final DCMotor GEARBOX = DCMotor.getNeoVortex(1);
 
   private final DCMotorSim rollerSim;
 
@@ -39,14 +34,14 @@ public class RollerIOSimSpark implements RollerIO {
   private final SparkFlexSim flexSim;
 
   public RollerIOSimSpark(RollerConfig rollerConfig) {
-    flex = new SparkFlex(rollerConfig.port, MotorType.kBrushless);
+    flex = new SparkFlex(rollerConfig.port(), MotorType.kBrushless);
     controller = flex.getClosedLoopController();
 
     var config = new SparkFlexConfig();
     config
-        .inverted(rollerConfig.inverted)
+        .inverted(rollerConfig.inverted())
         .idleMode(IdleMode.kBrake)
-        .smartCurrentLimit(NEOVortexConstants.DEFAULT_SUPPLY_CURRENT_LIMIT)
+        .smartCurrentLimit(NEOVortexConstants.DEFAULT_STATOR_CURRENT_LIMIT)
         .voltageCompensation(RobotConstants.NOMINAL_VOLTAGE);
 
     config

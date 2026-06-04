@@ -72,12 +72,13 @@ public class DriveConstants {
   public static final double WHEEL_RADIUS_METERS = WHEEL_RADIUS.in(Meters);
   public static final double DRIVE_MOTOR_REDUCTION =
       (50.0 / 14.0) * (17.0 / 27.0) * (45.0 / 15.0); // SDS MK4 L2
-  public static final DCMotor DRIVE_GEARBOX = DCMotor.getKrakenX60(1);
+  public static final DCMotor DRIVE_GEARBOX = DCMotor.getKrakenX60Foc(1);
   public static final LinearVelocity DRIVETRAIN_SPEED_LIMIT =
       MetersPerSecond.of(
           0.9
               * (WHEEL_RADIUS_METERS * 2.0 * Math.PI)
-              * KrakenX60Constants.FREE_SPEED.in(RotationsPerSecond)
+              * DRIVE_GEARBOX.freeSpeedRadPerSec
+              / (2.0 * Math.PI)
               / DRIVE_MOTOR_REDUCTION);
 
   // Chassis movement limits
@@ -106,7 +107,7 @@ public class DriveConstants {
   public static final double TURN_MOTOR_REDUCTION = (32.0 / 15.0) * (60.0 / 10.0); // SDS MK4
   // Every 1 rotation of the azimuth results in COUPLE_RATIO drive motor turns
   private static final double COUPLE_RATIO = (50.0 / 14.0); // SDS MK4 L2
-  public static final DCMotor TURN_GEARBOX = DCMotor.getKrakenX60(1);
+  public static final DCMotor TURN_GEARBOX = DCMotor.getKrakenX60Foc(1);
 
   // Absolute turn encoder configuration
   public static final boolean TURN_ENCODER_INVERTED = false;

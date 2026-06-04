@@ -302,10 +302,10 @@ public class Robot extends LoggedRobot {
     if (FeatureFlags.HOPPER_ENABLED) {
       intake.setDeployInterlock(
           hopper::isDeployed,
-          () -> hopper.getDeployCommand().withTimeout(IntakeConstants.kInterlockSettleSeconds));
+          () -> hopper.getDeployCommand().withTimeout(IntakeConstants.INTERLOCK_SETTLE_SECONDS));
       hopper.setRetractInterlock(
           intake::isStowed,
-          () -> intake.getStopCommand().withTimeout(IntakeConstants.kInterlockSettleSeconds));
+          () -> intake.getStopCommand().withTimeout(IntakeConstants.INTERLOCK_SETTLE_SECONDS));
     }
 
     configureControlPanelBindings();

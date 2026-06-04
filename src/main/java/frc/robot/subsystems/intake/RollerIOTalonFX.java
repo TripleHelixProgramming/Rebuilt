@@ -2,6 +2,7 @@ package frc.robot.subsystems.intake;
 
 import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.intake.IntakeConstants.RollerConstants.*;
+import static frc.robot.subsystems.intake.IntakeConstants.RollerConstants.TalonConfig.*;
 import static frc.robot.util.PhoenixUtil.tryUntilOk;
 
 import com.ctre.phoenix6.BaseStatusSignal;
@@ -20,7 +21,6 @@ import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.Constants.MotorConstants.KrakenX60Constants;
-import frc.robot.subsystems.intake.IntakeConstants.RollerConfig;
 
 public class RollerIOTalonFX implements RollerIO {
   private final TalonFX motor;
@@ -40,7 +40,7 @@ public class RollerIOTalonFX implements RollerIO {
   private final StatusSignal<Current> supplyCurrent;
 
   public RollerIOTalonFX(RollerConfig rollerConfig) {
-    motor = new TalonFX(rollerConfig.port, rollerConfig.bus);
+    motor = new TalonFX(rollerConfig.port(), rollerConfig.bus());
     config = new TalonFXConfiguration();
     config.TorqueCurrent.PeakForwardTorqueCurrent = KrakenX60Constants.DEFAULT_STATOR_CURRENT_LIMIT;
     config.TorqueCurrent.PeakReverseTorqueCurrent =
@@ -50,7 +50,7 @@ public class RollerIOTalonFX implements RollerIO {
     config.CurrentLimits.SupplyCurrentLimit = KrakenX60Constants.DEFAULT_SUPPLY_CURRENT_LIMIT;
     config.CurrentLimits.SupplyCurrentLimitEnable = true;
     config.MotorOutput.Inverted =
-        rollerConfig.inverted
+        rollerConfig.inverted()
             ? InvertedValue.Clockwise_Positive
             : InvertedValue.CounterClockwise_Positive;
     config.MotorOutput.withNeutralMode(NeutralModeValue.Brake);

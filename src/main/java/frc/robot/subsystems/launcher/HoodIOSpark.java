@@ -47,7 +47,7 @@ public class HoodIOSpark implements HoodIO {
     hoodConfig
         .inverted(true)
         .idleMode(IdleMode.kBrake)
-        .smartCurrentLimit(NEO550Constants.DEFAULT_SUPPLY_CURRENT_LIMIT)
+        .smartCurrentLimit(NEO550Constants.DEFAULT_STATOR_CURRENT_LIMIT)
         .voltageCompensation(RobotConstants.NOMINAL_VOLTAGE);
 
     hoodConfig

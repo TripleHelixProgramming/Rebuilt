@@ -61,7 +61,7 @@ public class TurretIOSpark implements TurretIO {
     turnConfig
         .inverted(true)
         .idleMode(IdleMode.kBrake)
-        .smartCurrentLimit(NEO550Constants.DEFAULT_SUPPLY_CURRENT_LIMIT)
+        .smartCurrentLimit(NEO550Constants.DEFAULT_STATOR_CURRENT_LIMIT)
         .voltageCompensation(RobotConstants.NOMINAL_VOLTAGE);
 
     turnConfig

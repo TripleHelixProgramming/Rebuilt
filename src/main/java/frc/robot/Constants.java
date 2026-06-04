@@ -13,10 +13,7 @@
 
 package frc.robot;
 
-import static edu.wpi.first.units.Units.*;
-
 import com.ctre.phoenix6.CANBus;
-import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.RobotBase;
 
 /**
@@ -53,24 +50,21 @@ public final class Constants {
 
   public static final class MotorConstants {
     public static final class NEOConstants {
-      public static final AngularVelocity FREE_SPEED = RPM.of(5676);
-      public static final int DEFAULT_SUPPLY_CURRENT_LIMIT = 60;
-      public static final int DEFAULT_STATOR_CURRENT_LIMIT = 100;
+      public static final int DEFAULT_SUPPLY_CURRENT_LIMIT = 40;
+      public static final int DEFAULT_STATOR_CURRENT_LIMIT = 60;
     }
 
     public static final class NEO550Constants {
-      public static final AngularVelocity FREE_SPEED = RPM.of(11000);
-      public static final int DEFAULT_SUPPLY_CURRENT_LIMIT = 10;
+      public static final int DEFAULT_SUPPLY_CURRENT_LIMIT = 5;
+      public static final int DEFAULT_STATOR_CURRENT_LIMIT = 10;
     }
 
     public static final class NEOVortexConstants {
-      public static final AngularVelocity FREE_SPEED = RPM.of(6784);
       public static final int DEFAULT_SUPPLY_CURRENT_LIMIT = 60;
       public static final int DEFAULT_STATOR_CURRENT_LIMIT = 100;
     }
 
     public static final class KrakenX60Constants {
-      public static final AngularVelocity FREE_SPEED = RPM.of(6000);
       public static final int DEFAULT_SUPPLY_CURRENT_LIMIT = 60;
       public static final int DEFAULT_STATOR_CURRENT_LIMIT = 100;
     }

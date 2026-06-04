@@ -3,11 +3,10 @@ package frc.robot.subsystems.feeder;
 import static edu.wpi.first.units.Units.Inches;
 import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.MetersPerSecond;
-import static edu.wpi.first.units.Units.RadiansPerSecond;
 
+import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearVelocity;
-import frc.robot.Constants.MotorConstants.NEOVortexConstants;
 
 public final class FeederConstants {
   public static final class SpindexerConstants {
@@ -16,11 +15,9 @@ public final class FeederConstants {
 
     // Motor
     public static final double MOTOR_REDUCTION = 1.0;
+    public static final DCMotor GEARBOX = DCMotor.getNeoVortex(1);
     public static final LinearVelocity MAX_TANGENTIAL_VELOCITY =
-        MetersPerSecond.of(
-            NEOVortexConstants.FREE_SPEED.in(RadiansPerSecond)
-                * RADIUS.in(Meters)
-                / MOTOR_REDUCTION);
+        MetersPerSecond.of(GEARBOX.freeSpeedRadPerSec * RADIUS.in(Meters) / MOTOR_REDUCTION);
 
     // Encoder
     public static final double ENCODER_POSITION_FACTOR = 2.0 * Math.PI / MOTOR_REDUCTION; // Meters
@@ -38,11 +35,9 @@ public final class FeederConstants {
 
     // Motor
     public static final double MOTOR_REDUCTION = 5.0;
+    public static final DCMotor GEARBOX = DCMotor.getNeoVortex(1);
     public static final LinearVelocity MAX_TANGENTIAL_VELOCITY =
-        MetersPerSecond.of(
-            NEOVortexConstants.FREE_SPEED.in(RadiansPerSecond)
-                * RADIUS.in(Meters)
-                / MOTOR_REDUCTION);
+        MetersPerSecond.of(GEARBOX.freeSpeedRadPerSec * RADIUS.in(Meters) / MOTOR_REDUCTION);
 
     // Encoder
     public static final double ENCODER_POSITION_FACTOR = 2.0 * Math.PI / MOTOR_REDUCTION; // Meters
