@@ -95,6 +95,9 @@ public class Drive extends SubsystemBase {
       };
   private ChassisSpeeds chassisSpeeds;
 
+  // PathPlanner trajectory logging (stored each loop for AKit compatibility)
+  private Pose2d[] lastTrajectory = new Pose2d[0];
+
   // PID controllers for following Choreo trajectories
   private final PIDController xController = new PIDController(8.01, 0.0, 0.0);
   private final PIDController yController = new PIDController(8.01, 0.0, 0.0);
@@ -132,12 +135,7 @@ public class Drive extends SubsystemBase {
     Pathfinding.setPathfinder(new LocalADStarAK());
     PathPlannerLogging.setLogActivePathCallback(
         (activePath) -> {
-          Logger.recordOutput(
-              "Odometry/Trajectory", activePath.toArray(new Pose2d[activePath.size()]));
-        });
-    PathPlannerLogging.setLogTargetPoseCallback(
-        (targetPose) -> {
-          Logger.recordOutput("Odometry/TrajectorySetpoint", targetPose);
+          if (!activePath.isEmpty()) lastTrajectory = activePath.toArray(new Pose2d[0]);
         });
 
     // Configure SysId
@@ -222,6 +220,9 @@ public class Drive extends SubsystemBase {
     boolean gyroDisconnected = !gyroInputs.connected && Constants.currentMode != Mode.SIM;
     gyroDisconnectedAlert.set(gyroDisconnected);
     Logger.recordOutput("Faults/Drive/GyroDisconnected", gyroDisconnected);
+
+    // Log PathPlanner trajectory (stored by callback, recorded here for AKit compatibility)
+    Logger.recordOutput("Odometry/Trajectory", lastTrajectory);
 
     // Profiling output
     if (FeatureFlags.PROFILING_ENABLED) {
