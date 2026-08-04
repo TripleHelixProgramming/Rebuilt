@@ -38,13 +38,17 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.networktables.BooleanPublisher;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.RobotState;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants;
 import frc.robot.Constants.FeatureFlags;
@@ -66,6 +70,7 @@ public class Drive extends SubsystemBase {
   private final SysIdRoutine sysId;
   private final Alert gyroDisconnectedAlert =
       new Alert("Disconnected gyro, using kinematics as fallback.", AlertType.kError);
+  private final BooleanPublisher alignEncodersPub;
 
   private SwerveDriveKinematics kinematics = new SwerveDriveKinematics(MODULE_TRANSLATIONS);
   private Rotation2d rawGyroRotation = Rotation2d.kZero;
@@ -150,6 +155,14 @@ public class Drive extends SubsystemBase {
                 (voltage) -> runCharacterization(voltage.in(Volts)), null, this));
 
     headingController.enableContinuousInput(-Math.PI, Math.PI);
+
+    var alignEncodersTopic =
+        NetworkTableInstance.getDefault().getTable("Triggers").getBooleanTopic("Align Encoders");
+    var alignEncodersSub = alignEncodersTopic.subscribe(false);
+    alignEncodersPub = alignEncodersTopic.publish();
+    alignEncodersPub.set(false);
+    new Trigger(alignEncodersSub::get)
+        .onTrue(Commands.runOnce(this::zeroAbsoluteEncoders, this).ignoringDisable(true));
   }
 
   @Override
@@ -445,5 +458,6 @@ public class Drive extends SubsystemBase {
     for (var module : modules) {
       module.setTurnZero();
     }
+    alignEncodersPub.set(false);
   }
 }
