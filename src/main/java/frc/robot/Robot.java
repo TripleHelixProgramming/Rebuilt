@@ -10,13 +10,13 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.PneumaticsModuleType;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.event.EventLoop;
 import edu.wpi.first.wpilibj.simulation.BatterySim;
 import edu.wpi.first.wpilibj.simulation.REVPHSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.CommandGenericHID;
@@ -315,13 +315,6 @@ public class Robot extends LoggedRobot {
     CommandScheduler.getInstance().onCommandFinish(cmd -> activeCommands.remove(cmd.getName()));
     CommandScheduler.getInstance().onCommandInterrupt(cmd -> activeCommands.remove(cmd.getName()));
 
-    new Trigger(
-            NetworkTableInstance.getDefault()
-                    .getTable("Triggers")
-                    .getBooleanTopic("Align Encoders")
-                    .subscribe(false)
-                ::get)
-        .onTrue(new InstantCommand(drive::zeroAbsoluteEncoders).ignoringDisable(true));
     Field.plotRegions();
 
     feeder.setDefaultCommand(Commands.startEnd(feeder::stop, () -> {}, feeder).withName("Stop"));
@@ -347,6 +340,9 @@ public class Robot extends LoggedRobot {
     // This must be called from the robot's periodic block in order for anything in
     // the Command-based framework to work.
     CommandScheduler.getInstance().run();
+    // Controller button bindings live on their own EventLoop (see ControllerSelector) so that
+    // re-scanning for controller changes never clears Triggers registered elsewhere.
+    ControllerSelector.getInstance().getBindingLoop().poll();
     long t1 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     logCANBus("CAN2", Constants.CANBusPorts.CAN2.BUS);
@@ -503,7 +499,7 @@ public class Robot extends LoggedRobot {
         new DriverConfig(ControllerType.KEYBOARD, this::bindKeyboardDriver, Constants.Mode.SIM));
   }
 
-  public DriverController bindZorroDriver(int port) {
+  public DriverController bindZorroDriver(int port, EventLoop loop) {
     var zorroDriver = new CommandZorroController(port);
 
     var controller =
@@ -538,7 +534,7 @@ public class Robot extends LoggedRobot {
 
     // Reset gyro to 0° when button G is pressed
     zorroDriver
-        .GIn()
+        .GIn(loop)
         .onTrue(
             Commands.runOnce(() -> DriveCommands.resetDriverForward(drive)).ignoringDisable(true));
 
@@ -547,7 +543,7 @@ public class Robot extends LoggedRobot {
     // requires hopper and will interrupt whatever is currently running on that subsystem.
     if (FeatureFlags.HOPPER_ENABLED)
       zorroDriver
-          .DIn()
+          .DIn(loop)
           .onTrue(
               Commands.runOnce(
                   () ->
@@ -555,10 +551,11 @@ public class Robot extends LoggedRobot {
                           .schedule()));
 
     // Desaturate turret and advance feeder
-    zorroDriver.AIn().whileTrue(createDesaturateAndShootCommand(controller));
+    zorroDriver.AIn(loop).whileTrue(createDesaturateAndShootCommand(controller));
 
     // Launcher
-    Trigger launcherEnabled = zorroDriver.axisGreaterThan(Axis.kLeftDial.value, 0.5).debounce(0.1);
+    Trigger launcherEnabled =
+        zorroDriver.axisGreaterThan(Axis.kLeftDial.value, 0.5, loop).debounce(0.1);
     launcherEnabled
         .or(() -> DriverStation.isFMSAttached())
         .whileTrue(
@@ -572,12 +569,12 @@ public class Robot extends LoggedRobot {
                         .withName("Aim at hub")));
 
     // Intake
-    zorroDriver.HIn().whileTrue(intake.getDeployCommand());
+    zorroDriver.HIn(loop).whileTrue(intake.getDeployCommand());
 
     return controller;
   }
 
-  public DriverController bindXboxDriver(int port) {
+  public DriverController bindXboxDriver(int port, EventLoop loop) {
     var xboxDriver = new CommandXboxController(port);
 
     var controller =
@@ -612,7 +609,7 @@ public class Robot extends LoggedRobot {
 
     // Reset gyro to 0° when B button is pressed
     xboxDriver
-        .b()
+        .b(loop)
         .onTrue(
             Commands.runOnce(() -> DriveCommands.resetDriverForward(drive)).ignoringDisable(true));
 
@@ -682,15 +679,15 @@ public class Robot extends LoggedRobot {
     // xboxDriver.x().onTrue(Commands.runOnce(drive::stopWithX, drive));
 
     // Desaturate turret and advance feeder
-    xboxDriver.a().whileTrue(createDesaturateAndShootCommand(controller));
+    xboxDriver.a(loop).whileTrue(createDesaturateAndShootCommand(controller));
 
     // Intake
-    xboxDriver.rightBumper().whileTrue(intake.getDeployCommand());
+    xboxDriver.rightBumper(loop).whileTrue(intake.getDeployCommand());
 
     return controller;
   }
 
-  public DriverController bindKeyboardDriver(int port) {
+  public DriverController bindKeyboardDriver(int port, EventLoop loop) {
     var keyboard = new CommandGenericHID(port);
 
     // WPILib sim keyboard axis layout:
@@ -729,30 +726,30 @@ public class Robot extends LoggedRobot {
 
     // Reset heading to 0° when Z (button 1) is pressed
     keyboard
-        .button(1)
+        .button(1, loop)
         .onTrue(
             Commands.runOnce(() -> DriveCommands.resetDriverForward(drive)).ignoringDisable(true));
 
     return controller;
   }
 
-  public void bindXboxOperator(int port, DriverController driver) {
+  public void bindXboxOperator(int port, DriverController driver, EventLoop loop) {
     var xboxOperator = new CommandXboxController(port);
 
     // Intake
-    xboxOperator.b().whileTrue(intake.getDeployCommand());
-    // xboxOperator.b().and(() -> hopper.isDeployed()).whileTrue(intake.getDeployCommand());
+    xboxOperator.b(loop).whileTrue(intake.getDeployCommand());
+    // xboxOperator.b(loop).and(() -> hopper.isDeployed()).whileTrue(intake.getDeployCommand());
 
-    xboxOperator.y().whileTrue(intake.getReverseCommand());
-    // xboxOperator.y().and(() -> hopper.isDeployed()).whileTrue(intake.getReverseCommand());
+    xboxOperator.y(loop).whileTrue(intake.getReverseCommand());
+    // xboxOperator.y(loop).and(() -> hopper.isDeployed()).whileTrue(intake.getReverseCommand());
 
     // Feeder
-    xboxOperator.a().whileTrue(feeder.getSpinForwardCommand());
+    xboxOperator.a(loop).whileTrue(feeder.getSpinForwardCommand());
 
-    xboxOperator.x().whileTrue(feeder.getReverseCommand());
+    xboxOperator.x(loop).whileTrue(feeder.getReverseCommand());
 
     // Desaturate turret and advance feeder
-    xboxOperator.rightBumper().whileTrue(createDesaturateAndShootCommand(driver));
+    xboxOperator.rightBumper(loop).whileTrue(createDesaturateAndShootCommand(driver));
   }
 
   public void configureAutoOptions() {
