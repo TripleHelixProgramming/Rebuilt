@@ -6,6 +6,7 @@ import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static edu.wpi.first.units.Units.Volts;
 import static frc.robot.subsystems.intake.IntakeConstants.ArmConstants.*;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.State;
 import edu.wpi.first.wpilibj.Alert;
@@ -34,6 +35,7 @@ public class Intake extends SubsystemBase {
   private final Alert lowerRollerDisconnectedAlert;
   private final Alert leftArmDisconnectedAlert;
   private final Alert rightArmDisconnectedAlert;
+  private final Alert armSeedOutOfRangeAlert;
 
   // Both arms independently follow the same profiled setpoint; commands only ever move the goal.
   private final TrapezoidProfile armProfile =
@@ -65,6 +67,11 @@ public class Intake extends SubsystemBase {
     lowerRollerDisconnectedAlert = new Alert("Disconnected lower intake roller", AlertType.kError);
     leftArmDisconnectedAlert = new Alert("Disconnected intake arm", AlertType.kError);
     rightArmDisconnectedAlert = new Alert("Disconnected intake arm", AlertType.kError);
+    armSeedOutOfRangeAlert =
+        new Alert(
+            "Intake arm absolute encoder seed is outside the soft limit range — check"
+                + " absEncoderOffset",
+            AlertType.kWarning);
   }
 
   @Override
@@ -92,9 +99,13 @@ public class Intake extends SubsystemBase {
     Logger.recordOutput("Faults/Intake/RightArmDisconnected", !rightArmInputs.connected);
 
     // Seed both relative encoders, and the motion profile, from the left arm's absolute encoder
-    // once it reports connected. Runs once at boot.
+    // once it reports connected. Runs once at boot. The reading is clamped into the soft limit
+    // range so a miscalibrated absEncoderOffset can't seed a position the arm can never leave;
+    // armSeedOutOfRangeAlert flags when that clamp actually did something.
     if (!armSeeded && leftArmInputs.connected) {
-      double seedPositionRad = leftArmInputs.absolutePosition.getRadians();
+      double rawSeedPositionRad = leftArmInputs.absolutePosition.getRadians();
+      double seedPositionRad = MathUtil.clamp(rawSeedPositionRad, minPosRad, maxPosRad);
+      armSeedOutOfRangeAlert.set(seedPositionRad != rawSeedPositionRad);
       leftArmIO.resetEncoder(Radians.of(seedPositionRad));
       rightArmIO.resetEncoder(Radians.of(seedPositionRad));
       armGoal = new State(seedPositionRad, 0.0);
@@ -104,12 +115,16 @@ public class Intake extends SubsystemBase {
 
     // Advance the arm motion profile and drive both arms to the resulting setpoint. Commands
     // never set arm position directly — they only move armGoal, and this is the sole place
-    // setPosition() is called.
-    armSetpoint = armProfile.calculate(Robot.defaultPeriodSecs, armSetpoint, armGoal);
-    leftArmIO.setPosition(
-        Radians.of(armSetpoint.position), RadiansPerSecond.of(armSetpoint.velocity));
-    rightArmIO.setPosition(
-        Radians.of(armSetpoint.position), RadiansPerSecond.of(armSetpoint.velocity));
+    // setPosition() is called. Nothing drives the arm until it's seeded: both Sparks hold their
+    // last commanded state (brake mode, no output) rather than closing a position loop against
+    // the unseeded, false-zero relative encoder.
+    if (armSeeded) {
+      armSetpoint = armProfile.calculate(Robot.defaultPeriodSecs, armSetpoint, armGoal);
+      leftArmIO.setPosition(
+          Radians.of(armSetpoint.position), RadiansPerSecond.of(armSetpoint.velocity));
+      rightArmIO.setPosition(
+          Radians.of(armSetpoint.position), RadiansPerSecond.of(armSetpoint.velocity));
+    }
 
     // Profiling output
     if (Constants.FeatureFlags.PROFILING_ENABLED) {
