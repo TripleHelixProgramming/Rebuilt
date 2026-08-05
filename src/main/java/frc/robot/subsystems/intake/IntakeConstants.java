@@ -77,6 +77,10 @@ public class IntakeConstants {
     public static final double STOWED_TOLERANCE_RAD =
         Degrees.of(5.0).in(Radians); // assumed, tune on robot
 
+    // Gravity feedforward. Position 0 is horizontal, so torque from gravity — and thus the
+    // holding voltage — scales with cos(position) and drops to 0 at vertical (±90°).
+    public static final double kG = 0.0; // volts — not yet measured, has no effect until tuned
+
     // Target positions. Motors and encoders are mounted inverted, so the raw range is flipped:
     // stowed reads as the top of the range and deployed reads as the bottom.
     public static final double STOWED_POS_RAD = maxPosRad;

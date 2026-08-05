@@ -93,8 +93,9 @@ public class IntakeArmIOSimSpark implements IntakeArmIO {
   public void setPosition(Angle rotation, AngularVelocity velocity) {
     double feedforward =
         RobotConstants.NOMINAL_VOLTAGE
-            * velocity.in(RadiansPerSecond)
-            / maxAngularVelocity.in(RadiansPerSecond);
+                * velocity.in(RadiansPerSecond)
+                / maxAngularVelocity.in(RadiansPerSecond)
+            + kG * Math.cos(rotation.magnitude());
     controller.setSetpoint(
         rotation.magnitude(), ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforward);
   }
