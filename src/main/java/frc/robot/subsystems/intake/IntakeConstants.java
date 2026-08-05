@@ -84,6 +84,11 @@ public class IntakeConstants {
     // Sim physics. SingleJointedArmSim models the arm as a uniform rod pivoting at one end,
     // giving it the same cos(position) gravity torque that kG compensates for on the real arm.
     public static final double MOMENT_OF_INERTIA_KG_M2 = 0.004; // assumed, tune on robot
+
+    // SingleJointedArmSim hardcodes the center of mass at ARM_LENGTH_METERS / 2, so if the
+    // real mass is concentrated (e.g. at the roller end) rather than spread evenly like a
+    // uniform rod, set this to 2x the measured pivot-to-mass-concentration distance so the
+    // sim's assumed center of mass lands at the real one.
     public static final double ARM_LENGTH_METERS =
         0.4; // ~16in — assumed placeholder, tune on robot
 
