@@ -128,9 +128,12 @@ public class TurretIOSpark implements TurretIO {
 
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
+    double center = (LOWER_LIMIT_RAD + UPPER_LIMIT_RAD) / 2.0;
     double setpoint =
         MathUtil.inputModulus(
-            rotation.getRadians() - MECHANISM_OFFSET.getRadians(), 0.0, 2 * Math.PI);
+            rotation.getRadians() - MECHANISM_OFFSET.getRadians(),
+            center - Math.PI,
+            center + Math.PI);
     double clampedSetpoint = MathUtil.clamp(setpoint, LOWER_LIMIT_RAD, UPPER_LIMIT_RAD);
     double clampedSetpointWithMargin =
         MathUtil.clamp(setpoint, LOWER_LIMIT_RAD + MARGIN_RAD, UPPER_LIMIT_RAD - MARGIN_RAD);
