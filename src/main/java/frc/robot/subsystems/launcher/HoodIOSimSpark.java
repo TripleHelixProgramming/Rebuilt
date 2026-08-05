@@ -37,7 +37,7 @@ public class HoodIOSimSpark implements HoodIO {
   private final SparkMaxConfig hoodConfig;
 
   public HoodIOSimSpark() {
-    max = new SparkMax(CAN2.hood, MotorType.kBrushless);
+    max = new SparkMax(CAN2.HOOD, MotorType.kBrushless);
     controller = max.getClosedLoopController();
 
     hoodConfig = new SparkMaxConfig();
@@ -45,13 +45,13 @@ public class HoodIOSimSpark implements HoodIO {
     hoodConfig
         .inverted(false)
         .idleMode(IdleMode.kBrake)
-        .smartCurrentLimit(NEO550Constants.kDefaultSupplyCurrentLimit)
-        .voltageCompensation(RobotConstants.kNominalVoltage);
+        .smartCurrentLimit(NEO550Constants.DEFAULT_STATOR_CURRENT_LIMIT)
+        .voltageCompensation(RobotConstants.NOMINAL_VOLTAGE);
 
     hoodConfig
         .encoder
-        .positionConversionFactor(encoderPositionFactor)
-        .velocityConversionFactor(encoderVelocityFactor);
+        .positionConversionFactor(ENCODER_POSITION_FACTOR)
+        .velocityConversionFactor(ENCODER_VELOCITY_FACTOR);
 
     hoodConfig
         .closedLoop
@@ -61,9 +61,9 @@ public class HoodIOSimSpark implements HoodIO {
 
     hoodConfig
         .softLimit
-        .forwardSoftLimit(maxPosRad)
+        .forwardSoftLimit(MAX_POS_RAD)
         .forwardSoftLimitEnabled(true)
-        .reverseSoftLimit(minPosRad)
+        .reverseSoftLimit(MIN_POS_RAD)
         .reverseSoftLimitEnabled(true);
 
     hoodConfig
@@ -77,13 +77,14 @@ public class HoodIOSimSpark implements HoodIO {
         .outputCurrentPeriodMs(20);
 
     max.configure(hoodConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-    maxSim = new SparkMaxSim(max, gearbox);
+    maxSim = new SparkMaxSim(max, GEARBOX);
 
     hoodSim =
-        new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
+        new DCMotorSim(
+            LinearSystemId.createDCMotorSystem(GEARBOX, 0.004, MOTOR_REDUCTION), GEARBOX);
 
-    hoodSim.setState(minPosRad, 0);
-    maxSim.setPosition(minPosRad);
+    hoodSim.setState(MIN_POS_RAD, 0);
+    maxSim.setPosition(MIN_POS_RAD);
   }
 
   @Override
@@ -93,9 +94,9 @@ public class HoodIOSimSpark implements HoodIO {
     hoodSim.setInput(maxSim.getAppliedOutput() * busVoltage);
     hoodSim.update(Robot.defaultPeriodSecs);
 
-    if (maxSim.getPosition() > maxPosRad) {
-      hoodSim.setState(maxPosRad, 0);
-      maxSim.setPosition(maxPosRad);
+    if (maxSim.getPosition() > MAX_POS_RAD) {
+      hoodSim.setState(MAX_POS_RAD, 0);
+      maxSim.setPosition(MAX_POS_RAD);
     }
 
     maxSim.iterate(hoodSim.getAngularVelocityRadPerSec(), busVoltage, Robot.defaultPeriodSecs);
@@ -110,16 +111,16 @@ public class HoodIOSimSpark implements HoodIO {
 
   @Override
   public void setOpenLoop(Voltage volts) {
-    maxSim.setAppliedOutput(volts.in(Volts) / RobotConstants.kNominalVoltage);
+    maxSim.setAppliedOutput(volts.in(Volts) / RobotConstants.NOMINAL_VOLTAGE);
   }
 
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
-    double setpoint = MathUtil.clamp(rotation.getRadians(), minPosRad, maxPosRad);
+    double setpoint = MathUtil.clamp(rotation.getRadians(), MIN_POS_RAD, MAX_POS_RAD);
     double feedforwardVolts =
-        RobotConstants.kNominalVoltage
+        RobotConstants.NOMINAL_VOLTAGE
             * angularVelocity.in(RadiansPerSecond)
-            / maxAngularVelocity.in(RadiansPerSecond);
+            / MAX_ANGULAR_VELOCITY.in(RadiansPerSecond);
     controller.setSetpoint(
         setpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
   }
@@ -128,9 +129,9 @@ public class HoodIOSimSpark implements HoodIO {
   public void setVelocity(AngularVelocity angularVelocity) {
     double setpoint = angularVelocity.in(RadiansPerSecond);
     double feedforwardVolts =
-        RobotConstants.kNominalVoltage
+        RobotConstants.NOMINAL_VOLTAGE
             * angularVelocity.in(RadiansPerSecond)
-            / maxAngularVelocity.in(RadiansPerSecond);
+            / MAX_ANGULAR_VELOCITY.in(RadiansPerSecond);
     controller.setSetpoint(
         setpoint, ControlType.kVelocity, ClosedLoopSlot.kSlot0, feedforwardVolts);
   }
@@ -143,6 +144,6 @@ public class HoodIOSimSpark implements HoodIO {
 
   @Override
   public void resetEncoder() {
-    maxSim.setPosition(maxPosRad);
+    maxSim.setPosition(MAX_POS_RAD);
   }
 }

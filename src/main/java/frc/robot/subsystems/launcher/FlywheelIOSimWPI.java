@@ -13,16 +13,19 @@ import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
 
 public class FlywheelIOSimWPI implements FlywheelIO {
+  private static final double KP_SIM = 0.1;
+
   private final DCMotorSim flywheelSim;
 
   private boolean closedLoop = false;
-  private PIDController velocityController = new PIDController(kPSim, 0.0, 0.0);
+  private PIDController velocityController = new PIDController(KP_SIM, 0.0, 0.0);
   private double appliedVolts = 0.0;
   private double feedforwardVolts = 0.0;
 
   public FlywheelIOSimWPI() {
     flywheelSim =
-        new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
+        new DCMotorSim(
+            LinearSystemId.createDCMotorSystem(GEARBOX, 0.004, MOTOR_REDUCTION), GEARBOX);
   }
 
   @Override
@@ -39,13 +42,13 @@ public class FlywheelIOSimWPI implements FlywheelIO {
     // Update simulation state
     flywheelSim.setInputVoltage(
         MathUtil.clamp(
-            appliedVolts, -RobotConstants.kNominalVoltage, RobotConstants.kNominalVoltage));
+            appliedVolts, -RobotConstants.NOMINAL_VOLTAGE, RobotConstants.NOMINAL_VOLTAGE));
     flywheelSim.update(Robot.defaultPeriodSecs);
 
     // Update turn inputs
     inputs.connected = true;
     inputs.velocityMetersPerSec =
-        flywheelSim.getAngularVelocityRadPerSec() * wheelRadius.in(Meters);
+        flywheelSim.getAngularVelocityRadPerSec() * WHEEL_RADIUS.in(Meters);
     inputs.appliedVolts = appliedVolts;
     inputs.currentAmps = Math.abs(flywheelSim.getCurrentDrawAmps());
   }
@@ -60,9 +63,9 @@ public class FlywheelIOSimWPI implements FlywheelIO {
   public void setVelocity(LinearVelocity tangentialVelocity) {
     closedLoop = true;
     this.feedforwardVolts =
-        RobotConstants.kNominalVoltage
+        RobotConstants.NOMINAL_VOLTAGE
             * tangentialVelocity.in(MetersPerSecond)
-            / maxAngularVelocity.in(RadiansPerSecond);
+            / MAX_ANGULAR_VELOCITY.in(RadiansPerSecond);
     velocityController.setSetpoint(tangentialVelocity.in(MetersPerSecond));
   }
 }

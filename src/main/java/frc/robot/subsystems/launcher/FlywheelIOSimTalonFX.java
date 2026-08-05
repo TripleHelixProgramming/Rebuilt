@@ -25,6 +25,7 @@ import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import frc.robot.Constants.CANBusPorts.CAN2;
+import frc.robot.Constants.MotorConstants.KrakenX60Constants;
 import frc.robot.Robot;
 
 public class FlywheelIOSimTalonFX implements FlywheelIO {
@@ -50,14 +51,21 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
   private final StatusSignal<Current> flywheelCurrent;
 
   public FlywheelIOSimTalonFX() {
-    flywheelLeaderTalon = new TalonFX(CAN2.flywheelLeader, CAN2.bus);
-    flywheelFollowerTalon = new TalonFX(CAN2.flywheelFollower, CAN2.bus);
+    flywheelLeaderTalon = new TalonFX(CAN2.FLYWHEEL_LEADER, CAN2.BUS);
+    flywheelFollowerTalon = new TalonFX(CAN2.FLYWHEEL_FOLLOWER, CAN2.BUS);
     // Configuration
     config = new TalonFXConfiguration();
     config.MotorOutput.withInverted(InvertedValue.CounterClockwise_Positive)
         .withNeutralMode(NeutralModeValue.Brake);
-    config.Slot0 = velocityVoltageGains;
-    config.Slot1 = velocityTorqueCurrentGains;
+    config.Slot0 = VELOCITY_VOLTAGE_GAINS;
+    config.Slot1 = VELOCITY_TORQUE_CURRENT_GAINS;
+    config.TorqueCurrent.PeakForwardTorqueCurrent = KrakenX60Constants.DEFAULT_STATOR_CURRENT_LIMIT;
+    config.TorqueCurrent.PeakReverseTorqueCurrent =
+        -KrakenX60Constants.DEFAULT_STATOR_CURRENT_LIMIT;
+    config.CurrentLimits.StatorCurrentLimit = KrakenX60Constants.DEFAULT_STATOR_CURRENT_LIMIT;
+    config.CurrentLimits.StatorCurrentLimitEnable = true;
+    config.CurrentLimits.SupplyCurrentLimit = KrakenX60Constants.DEFAULT_SUPPLY_CURRENT_LIMIT;
+    config.CurrentLimits.SupplyCurrentLimitEnable = true;
     tryUntilOk(5, () -> flywheelLeaderTalon.getConfigurator().apply(config, 0.25));
     tryUntilOk(5, () -> flywheelFollowerTalon.getConfigurator().apply(config, 0.25));
 
@@ -67,8 +75,8 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
 
     flywheelSim =
         new DCMotorSim(
-            LinearSystemId.createDCMotorSystem(gearbox, FLYWHEEL_MOI_KG_M2, motorReduction),
-            gearbox);
+            LinearSystemId.createDCMotorSystem(GEARBOX, FLYWHEEL_MOI_KG_M2, MOTOR_REDUCTION),
+            GEARBOX);
 
     flywheelVelocity = flywheelLeaderTalon.getVelocity();
     flywheelAppliedVolts = flywheelLeaderTalon.getMotorVoltage();
@@ -78,7 +86,7 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
         50.0, flywheelVelocity, flywheelAppliedVolts, flywheelCurrent);
 
     flywheelFollowerTalon.setControl(
-        new Follower(CAN2.flywheelLeader, MotorAlignmentValue.Opposed));
+        new Follower(CAN2.FLYWHEEL_LEADER, MotorAlignmentValue.Opposed));
   }
 
   @Override
@@ -95,14 +103,14 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
     flywheelSim.setInput(flywheelMotorSim.getMotorVoltage());
     flywheelSim.update(Robot.defaultPeriodSecs);
     flywheelMotorSim.setRawRotorPosition(
-        flywheelSim.getAngularPositionRotations() * motorReduction);
-    flywheelMotorSim.setRotorVelocity(flywheelSim.getAngularVelocity().times(motorReduction));
+        flywheelSim.getAngularPositionRotations() * MOTOR_REDUCTION);
+    flywheelMotorSim.setRotorVelocity(flywheelSim.getAngularVelocity().times(MOTOR_REDUCTION));
 
     inputs.appliedVolts = flywheelAppliedVolts.getValueAsDouble();
     inputs.currentAmps = flywheelCurrent.getValueAsDouble();
     inputs.velocityMetersPerSec =
-        (flywheelVelocity.getValue().in(RadiansPerSecond) * wheelRadius.in(Meters))
-            / motorReduction;
+        (flywheelVelocity.getValue().in(RadiansPerSecond) * WHEEL_RADIUS.in(Meters))
+            / MOTOR_REDUCTION;
   }
 
   @Override
@@ -114,7 +122,7 @@ public class FlywheelIOSimTalonFX implements FlywheelIO {
   public void setVelocity(LinearVelocity tangentialVelocity) {
     var angularVelocity =
         RadiansPerSecond.of(
-            tangentialVelocity.in(MetersPerSecond) * motorReduction / wheelRadius.in(Meters));
+            tangentialVelocity.in(MetersPerSecond) * MOTOR_REDUCTION / WHEEL_RADIUS.in(Meters));
     flywheelLeaderTalon.setControl(velocityTorqueCurrentRequest.withVelocity(angularVelocity));
   }
 }

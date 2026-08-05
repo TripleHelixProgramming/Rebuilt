@@ -34,30 +34,30 @@ public class SpindexerIOSimSpark implements SpindexerIO {
   private final SparkFlexSim flexSim;
 
   public SpindexerIOSimSpark() {
-    flex = new SparkFlex(CAN2.spindexer, MotorType.kBrushless);
+    flex = new SparkFlex(CAN2.SPINDEXER, MotorType.kBrushless);
     controller = flex.getClosedLoopController();
 
     var config = new SparkFlexConfig();
     config
         .inverted(false)
         .idleMode(IdleMode.kBrake)
-        .smartCurrentLimit(NEOVortexConstants.kDefaultSupplyCurrentLimit)
-        .voltageCompensation(RobotConstants.kNominalVoltage);
+        .smartCurrentLimit(NEOVortexConstants.DEFAULT_STATOR_CURRENT_LIMIT)
+        .voltageCompensation(RobotConstants.NOMINAL_VOLTAGE);
 
     config
         .encoder
-        .positionConversionFactor(encoderPositionFactor)
-        .velocityConversionFactor(encoderVelocityFactor);
+        .positionConversionFactor(ENCODER_POSITION_FACTOR)
+        .velocityConversionFactor(ENCODER_VELOCITY_FACTOR);
 
-    config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kPSim, 0.0, 0.0);
+    config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kP, 0.0, kD);
 
     flex.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-    flexSim = new SparkFlexSim(flex, gearbox);
+    flexSim = new SparkFlexSim(flex, GEARBOX);
 
     spindexerSim =
         new DCMotorSim(
-            LinearSystemId.createDCMotorSystem(gearbox, SPINDEXER_MOI_KG_M2, motorReduction),
-            gearbox);
+            LinearSystemId.createDCMotorSystem(GEARBOX, SPINDEXER_MOI_KG_M2, MOTOR_REDUCTION),
+            GEARBOX);
   }
 
   @Override
@@ -71,24 +71,24 @@ public class SpindexerIOSimSpark implements SpindexerIO {
 
     // Update inputs
     inputs.connected = true;
-    inputs.velocityMetersPerSec = flexSim.getVelocity() * radius.in(Meters);
+    inputs.velocityMetersPerSec = flexSim.getVelocity() * RADIUS.in(Meters);
     inputs.appliedVolts = flexSim.getAppliedOutput() * flexSim.getBusVoltage();
     inputs.currentAmps = Math.abs(flexSim.getMotorCurrent());
   }
 
   @Override
   public void setOpenLoop(Voltage volts) {
-    flexSim.setAppliedOutput(volts.in(Volts) / RobotConstants.kNominalVoltage);
+    flexSim.setAppliedOutput(volts.in(Volts) / RobotConstants.NOMINAL_VOLTAGE);
   }
 
   @Override
   public void setVelocity(LinearVelocity tangentialVelocity) {
     double feedforwardVolts =
-        RobotConstants.kNominalVoltage
+        RobotConstants.NOMINAL_VOLTAGE
             * tangentialVelocity.in(MetersPerSecond)
-            / maxTangentialVelocity.in(MetersPerSecond);
+            / MAX_TANGENTIAL_VELOCITY.in(MetersPerSecond);
     controller.setSetpoint(
-        tangentialVelocity.in(MetersPerSecond) / radius.in(Meters),
+        tangentialVelocity.in(MetersPerSecond) / RADIUS.in(Meters),
         ControlType.kVelocity,
         ClosedLoopSlot.kSlot0,
         feedforwardVolts);

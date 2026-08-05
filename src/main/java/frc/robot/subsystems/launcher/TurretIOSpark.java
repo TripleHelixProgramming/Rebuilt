@@ -47,39 +47,39 @@ public class TurretIOSpark implements TurretIO {
   private double oversaturationLessMargin = 0.0;
 
   public TurretIOSpark() {
-    turnSpark = new SparkMax(CAN2.turret, MotorType.kBrushless);
+    turnSpark = new SparkMax(CAN2.TURRET, MotorType.kBrushless);
     controller = turnSpark.getClosedLoopController();
     turnSparkEncoder = turnSpark.getEncoder();
     absoluteEncoder =
         new DutyCycleEncoder(
-            new DigitalInput(DIOPorts.turretAbsEncoder),
+            new DigitalInput(DIOPorts.TURRET_ABS_ENCODER),
             2 * Math.PI,
-            absEncoderOffset.getRadians() + mechanismOffset.getRadians());
+            ABS_ENCODER_OFFSET.getRadians());
 
     var turnConfig = new SparkMaxConfig();
 
     turnConfig
         .inverted(true)
         .idleMode(IdleMode.kBrake)
-        .smartCurrentLimit(NEO550Constants.kDefaultSupplyCurrentLimit)
-        .voltageCompensation(RobotConstants.kNominalVoltage);
+        .smartCurrentLimit(NEO550Constants.DEFAULT_STATOR_CURRENT_LIMIT)
+        .voltageCompensation(RobotConstants.NOMINAL_VOLTAGE);
 
     turnConfig
         .encoder
-        .positionConversionFactor(encoderPositionFactor)
-        .velocityConversionFactor(encoderVelocityFactor);
+        .positionConversionFactor(ENCODER_POSITION_FACTOR)
+        .velocityConversionFactor(ENCODER_VELOCITY_FACTOR);
 
     turnConfig
         .softLimit
-        .forwardSoftLimit(upperLimitRad)
+        .forwardSoftLimit(UPPER_LIMIT_RAD)
         .forwardSoftLimitEnabled(true)
-        .reverseSoftLimit(lowerLimitRad)
+        .reverseSoftLimit(LOWER_LIMIT_RAD)
         .reverseSoftLimitEnabled(true);
 
     turnConfig
         .closedLoop
         .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-        .pid(kPReal, 0.0, 0.0)
+        .pid(kP, 0.0, kD)
         .allowedClosedLoopError(kAllowableError.in(Radians), ClosedLoopSlot.kSlot0);
 
     turnConfig.signals.appliedOutputPeriodMs(20).busVoltagePeriodMs(20).outputCurrentPeriodMs(20);
@@ -98,12 +98,14 @@ public class TurretIOSpark implements TurretIO {
   @Override
   public void updateInputs(TurretIOInputs inputs) {
     if (!relativeEncoderSeeded && inputs.absoluteEncoderConnected) {
-      turnSparkEncoder.setPosition(absoluteEncoder.get());
+      double seedPosition =
+          MathUtil.inputModulus(absoluteEncoder.get(), CENTER_RAD - Math.PI, CENTER_RAD + Math.PI);
+      turnSparkEncoder.setPosition(seedPosition);
       relativeEncoderSeeded = true;
     }
 
     // Read from cached values (non-blocking) - updated by SparkOdometryThread
-    inputs.relativePosition = new Rotation2d(sparkInputs.getPosition()).plus(mechanismOffset);
+    inputs.relativePosition = new Rotation2d(sparkInputs.getPosition());
     inputs.velocityRadPerSec = sparkInputs.getVelocity();
     inputs.appliedVolts = sparkInputs.getAppliedVolts();
     inputs.currentAmps = sparkInputs.getOutputCurrent();
@@ -129,17 +131,16 @@ public class TurretIOSpark implements TurretIO {
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
     double setpoint =
-        MathUtil.inputModulus(
-            rotation.getRadians() - mechanismOffset.getRadians(), 0.0, 2 * Math.PI);
-    double clampedSetpoint = MathUtil.clamp(setpoint, lowerLimitRad, upperLimitRad);
+        MathUtil.inputModulus(rotation.getRadians(), CENTER_RAD - Math.PI, CENTER_RAD + Math.PI);
+    double clampedSetpoint = MathUtil.clamp(setpoint, LOWER_LIMIT_RAD, UPPER_LIMIT_RAD);
     double clampedSetpointWithMargin =
-        MathUtil.clamp(setpoint, lowerLimitRad + marginRad, upperLimitRad - marginRad);
+        MathUtil.clamp(setpoint, LOWER_LIMIT_RAD + MARGIN_RAD, UPPER_LIMIT_RAD - MARGIN_RAD);
     oversaturation = setpoint - clampedSetpoint;
     oversaturationLessMargin = setpoint - clampedSetpointWithMargin;
     double feedforwardVolts =
-        RobotConstants.kNominalVoltage
+        RobotConstants.NOMINAL_VOLTAGE
             * angularVelocity.in(RadiansPerSecond)
-            / maxAngularVelocity.in(RadiansPerSecond);
+            / MAX_ANGULAR_VELOCITY.in(RadiansPerSecond);
     controller.setSetpoint(
         clampedSetpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
   }

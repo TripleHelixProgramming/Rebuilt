@@ -38,7 +38,7 @@ public class HoodIOSpark implements HoodIO {
   private final Debouncer connectedDebounce = new Debouncer(0.5, Debouncer.DebounceType.kFalling);
 
   public HoodIOSpark() {
-    hoodSpark = new SparkMax(CAN2.hood, MotorType.kBrushless);
+    hoodSpark = new SparkMax(CAN2.HOOD, MotorType.kBrushless);
     encoderSpark = hoodSpark.getEncoder();
     hoodController = hoodSpark.getClosedLoopController();
 
@@ -47,13 +47,13 @@ public class HoodIOSpark implements HoodIO {
     hoodConfig
         .inverted(true)
         .idleMode(IdleMode.kBrake)
-        .smartCurrentLimit(NEO550Constants.kDefaultSupplyCurrentLimit)
-        .voltageCompensation(RobotConstants.kNominalVoltage);
+        .smartCurrentLimit(NEO550Constants.DEFAULT_STATOR_CURRENT_LIMIT)
+        .voltageCompensation(RobotConstants.NOMINAL_VOLTAGE);
 
     hoodConfig
         .encoder
-        .positionConversionFactor(encoderPositionFactor)
-        .velocityConversionFactor(encoderVelocityFactor);
+        .positionConversionFactor(ENCODER_POSITION_FACTOR)
+        .velocityConversionFactor(ENCODER_VELOCITY_FACTOR);
 
     hoodConfig
         .closedLoop
@@ -64,9 +64,9 @@ public class HoodIOSpark implements HoodIO {
 
     hoodConfig
         .softLimit
-        .forwardSoftLimit(maxPosRad)
+        .forwardSoftLimit(MAX_POS_RAD)
         .forwardSoftLimitEnabled(true)
-        .reverseSoftLimit(minPosRad)
+        .reverseSoftLimit(MIN_POS_RAD)
         .reverseSoftLimitEnabled(true);
 
     hoodConfig.signals.appliedOutputPeriodMs(20).busVoltagePeriodMs(20).outputCurrentPeriodMs(20);
@@ -99,11 +99,11 @@ public class HoodIOSpark implements HoodIO {
 
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
-    double setpoint = MathUtil.clamp(rotation.getRadians(), minPosRad, maxPosRad);
+    double setpoint = MathUtil.clamp(rotation.getRadians(), MIN_POS_RAD, MAX_POS_RAD);
     double feedforwardVolts =
-        RobotConstants.kNominalVoltage
+        RobotConstants.NOMINAL_VOLTAGE
             * angularVelocity.in(RadiansPerSecond)
-            / maxAngularVelocity.in(RadiansPerSecond);
+            / MAX_ANGULAR_VELOCITY.in(RadiansPerSecond);
     hoodController.setSetpoint(
         setpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
   }
@@ -112,9 +112,9 @@ public class HoodIOSpark implements HoodIO {
   public void setVelocity(AngularVelocity angularVelocity) {
     double setpoint = angularVelocity.in(RadiansPerSecond);
     double feedforwardVolts =
-        RobotConstants.kNominalVoltage
+        RobotConstants.NOMINAL_VOLTAGE
             * angularVelocity.in(RadiansPerSecond)
-            / maxAngularVelocity.in(RadiansPerSecond);
+            / MAX_ANGULAR_VELOCITY.in(RadiansPerSecond);
     hoodController.setSetpoint(
         setpoint, ControlType.kVelocity, ClosedLoopSlot.kSlot1, feedforwardVolts);
   }
@@ -133,6 +133,6 @@ public class HoodIOSpark implements HoodIO {
 
   @Override
   public void resetEncoder() {
-    encoderSpark.setPosition(maxPosRad);
+    encoderSpark.setPosition(MAX_POS_RAD);
   }
 }

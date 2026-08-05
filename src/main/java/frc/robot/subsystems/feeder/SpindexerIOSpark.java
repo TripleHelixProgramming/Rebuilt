@@ -32,7 +32,7 @@ public class SpindexerIOSpark implements SpindexerIO {
   private final SparkInputs sparkInputs;
 
   public SpindexerIOSpark() {
-    flex = new SparkFlex(CAN2.spindexer, MotorType.kBrushless);
+    flex = new SparkFlex(CAN2.SPINDEXER, MotorType.kBrushless);
     encoder = flex.getEncoder();
     controller = flex.getClosedLoopController();
 
@@ -40,17 +40,17 @@ public class SpindexerIOSpark implements SpindexerIO {
     config
         .inverted(false)
         .idleMode(IdleMode.kBrake)
-        .smartCurrentLimit(NEOVortexConstants.kDefaultSupplyCurrentLimit)
-        .voltageCompensation(RobotConstants.kNominalVoltage);
+        .smartCurrentLimit(NEOVortexConstants.DEFAULT_STATOR_CURRENT_LIMIT)
+        .voltageCompensation(RobotConstants.NOMINAL_VOLTAGE);
 
     config
         .encoder
-        .positionConversionFactor(encoderPositionFactor)
-        .velocityConversionFactor(encoderVelocityFactor)
+        .positionConversionFactor(ENCODER_POSITION_FACTOR)
+        .velocityConversionFactor(ENCODER_VELOCITY_FACTOR)
         .uvwAverageDepth(2)
         .uvwMeasurementPeriod(8);
 
-    config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kPSim, 0.0, kDSim);
+    config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kP, 0.0, kD);
 
     tryUntilOk(
         flex,
@@ -65,7 +65,7 @@ public class SpindexerIOSpark implements SpindexerIO {
   public void updateInputs(SpindexerIOInputs inputs) {
 
     inputs.connected = sparkInputs.isConnected();
-    inputs.velocityMetersPerSec = sparkInputs.getVelocity() * radius.in(Meters);
+    inputs.velocityMetersPerSec = sparkInputs.getVelocity() * RADIUS.in(Meters);
     inputs.appliedVolts = sparkInputs.getAppliedVolts();
     inputs.currentAmps = sparkInputs.getOutputCurrent();
   }
@@ -79,11 +79,11 @@ public class SpindexerIOSpark implements SpindexerIO {
   @Override
   public void setVelocity(LinearVelocity tangentialVelocity) {
     double feedforwardVolts =
-        RobotConstants.kNominalVoltage
+        RobotConstants.NOMINAL_VOLTAGE
             * tangentialVelocity.in(MetersPerSecond)
-            / maxTangentialVelocity.in(MetersPerSecond);
+            / MAX_TANGENTIAL_VELOCITY.in(MetersPerSecond);
     controller.setSetpoint(
-        tangentialVelocity.in(MetersPerSecond) / radius.in(Meters),
+        tangentialVelocity.in(MetersPerSecond) / RADIUS.in(Meters),
         ControlType.kVelocity,
         ClosedLoopSlot.kSlot0,
         feedforwardVolts);

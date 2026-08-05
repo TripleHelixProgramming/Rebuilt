@@ -29,7 +29,7 @@ public class GyroIOBoron implements GyroIO {
   private final Queue<Double> yawPositionQueue;
 
   public GyroIOBoron() {
-    canandgyro = new Canandgyro(CAN2.gyro);
+    canandgyro = new Canandgyro(CAN2.GYRO);
     gyroInputs = CanandgyroThread.getInstance().registerCanandgyro(canandgyro);
     yawTimestampQueue = PhoenixOdometryThread.getInstance().makeTimestampQueue();
     yawPositionQueue = PhoenixOdometryThread.getInstance().registerSignal(canandgyro::getYaw);

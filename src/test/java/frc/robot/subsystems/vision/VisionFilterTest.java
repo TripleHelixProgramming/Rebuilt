@@ -137,7 +137,7 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Ambiguity at tolerance threshold")
     void ambiguityAtThreshold() {
-      double tolerance = VisionConstants.ambiguityTolerance; // 0.15
+      double tolerance = VisionConstants.AMBIGUITY_TOLERANCE; // 0.15
       var ctx =
           new TestContext().observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, tolerance, 3.0));
       double result = Test.unambiguous.test(ctx);
@@ -402,7 +402,7 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Moderate distance at tolerance")
     void moderateDistance() {
-      double tolerance = VisionConstants.tagDistanceToleranceMeters; // 4.0
+      double tolerance = VisionConstants.TAG_DISTANCE_TOLERANCE_METERS; // 4.0
       var ctx =
           new TestContext().observation(makeObservation(8, 4, 0, 0, 0, 0, 0.0, 1, 0.01, tolerance));
       double result = Test.distanceToTags.test(ctx);
@@ -424,7 +424,7 @@ class VisionFilterTest {
               .lastAcceptedTimestamp(0.0);
       double result = Test.velocityConsistency.test(ctx);
       assertEquals(
-          VisionConstants.velocityUncertainScore,
+          VisionConstants.VELOCITY_UNCERTAIN_SCORE,
           result,
           0.001,
           "No history should return uncertain score, not a perfect pass");
@@ -480,7 +480,7 @@ class VisionFilterTest {
               .lastAcceptedTimestamp(0.0);
       double result = Test.velocityConsistency.test(ctx);
       assertEquals(
-          VisionConstants.velocityUncertainScore,
+          VisionConstants.VELOCITY_UNCERTAIN_SCORE,
           result,
           0.001,
           "Stale timestamp should return uncertain score, not a perfect pass");
@@ -625,7 +625,7 @@ class VisionFilterTest {
               + testedBad.score());
       // The bad pose should score below minScore threshold
       assertTrue(
-          testedBad.score() < VisionConstants.minScore,
+          testedBad.score() < VisionConstants.MIN_SCORE,
           "Bad PnP with 45 degree yaw error should score below minScore, got " + testedBad.score());
     }
   }
@@ -939,7 +939,7 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Edge of time window: exactly at threshold fuses")
     void edgeOfTimeWindowFuses() {
-      double threshold = VisionConstants.correlationTimeWindowSeconds;
+      double threshold = VisionConstants.CORRELATION_TIME_WINDOW_SECONDS;
       var observations = new ArrayList<TestedObservation>();
       observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
       observations.add(makeTestedObs(8.05, 4.05, threshold, 1, 0.5)); // Exactly at threshold
@@ -954,7 +954,7 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Edge of position threshold: exactly at threshold not fused")
     void edgeOfPositionThresholdNotFused() {
-      double threshold = VisionConstants.correlationPoseThresholdMeters;
+      double threshold = VisionConstants.CORRELATION_POSE_THRESHOLD_METERS;
       var observations = new ArrayList<TestedObservation>();
       observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
       // Exactly at threshold distance
@@ -969,7 +969,7 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Just under position threshold fuses")
     void justUnderPositionThresholdFuses() {
-      double threshold = VisionConstants.correlationPoseThresholdMeters;
+      double threshold = VisionConstants.CORRELATION_POSE_THRESHOLD_METERS;
       var observations = new ArrayList<TestedObservation>();
       observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
       observations.add(makeTestedObs(8.0 + threshold - 0.01, 4.0, 0.01, 1, 0.5));
@@ -982,7 +982,7 @@ class VisionFilterTest {
     @org.junit.jupiter.api.Test
     @DisplayName("Transitive clustering: A-B and B-C agree, all fuse")
     void transitiveClusteringFuses() {
-      double dist = VisionConstants.correlationPoseThresholdMeters - 0.01;
+      double dist = VisionConstants.CORRELATION_POSE_THRESHOLD_METERS - 0.01;
       var observations = new ArrayList<TestedObservation>();
       // A at origin
       observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
@@ -1205,7 +1205,7 @@ class VisionFilterTest {
       // still score well above minScore — a good observation needs to be accepted even
       // when it's the first one from a camera.
       assertTrue(
-          tested.score() > VisionConstants.minScore,
+          tested.score() > VisionConstants.MIN_SCORE,
           "Perfect observation should score above minScore, got " + tested.score());
       assertTrue(
           tested.score() > 0.6, "Perfect observation should score > 0.6, got " + tested.score());

@@ -13,10 +13,7 @@
 
 package frc.robot;
 
-import static edu.wpi.first.units.Units.*;
-
 import com.ctre.phoenix6.CANBus;
-import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.RobotBase;
 
 /**
@@ -44,107 +41,102 @@ public final class Constants {
     public static final boolean PROFILING_ENABLED = false;
 
     /** Set to false to disable the hopper subsystem entirely. */
-    public static final boolean kHopperEnabled = false;
+    public static final boolean HOPPER_ENABLED = false;
   }
 
   public final class RobotConstants {
-    public static final double kNominalVoltage = 12.0;
+    public static final double NOMINAL_VOLTAGE = 12.0;
   }
 
   public static final class MotorConstants {
     public static final class NEOConstants {
-      public static final AngularVelocity kFreeSpeed = RPM.of(5676);
-      public static final int kDefaultSupplyCurrentLimit = 60;
-      public static final int kDefaultStatorCurrentLimit = 100;
+      public static final int DEFAULT_SUPPLY_CURRENT_LIMIT = 40;
+      public static final int DEFAULT_STATOR_CURRENT_LIMIT = 60;
     }
 
     public static final class NEO550Constants {
-      public static final AngularVelocity kFreeSpeed = RPM.of(11000);
-      public static final int kDefaultSupplyCurrentLimit = 10;
+      public static final int DEFAULT_SUPPLY_CURRENT_LIMIT = 5;
+      public static final int DEFAULT_STATOR_CURRENT_LIMIT = 10;
     }
 
     public static final class NEOVortexConstants {
-      public static final AngularVelocity kFreeSpeed = RPM.of(6784);
-      public static final int kDefaultSupplyCurrentLimit = 60;
-      public static final int kDefaultStatorCurrentLimit = 100;
+      public static final int DEFAULT_SUPPLY_CURRENT_LIMIT = 60;
+      public static final int DEFAULT_STATOR_CURRENT_LIMIT = 100;
     }
 
     public static final class KrakenX60Constants {
-      public static final AngularVelocity kFreeSpeed = RPM.of(6000);
-      public static final int kDefaultSupplyCurrentLimit = 60;
-      public static final int kDefaultStatorCurrentLimit = 100;
+      public static final int DEFAULT_SUPPLY_CURRENT_LIMIT = 60;
+      public static final int DEFAULT_STATOR_CURRENT_LIMIT = 100;
     }
   }
 
   public static final class DIOPorts {
     // max length is 8
-    public static final int[] autonomousModeSelector = {0, 1, 2};
+    public static final int[] AUTONOMOUS_MODE_SELECTOR = {0, 1, 2};
 
-    public static final int allianceColorSelector = 3;
+    public static final int ALLIANCE_COLOR_SELECTOR = 3;
 
-    public static final int turretAbsEncoder = 4;
-  }
-
-  public static final class OIPorts {
-    public static final int defaultDriver = 0;
-    public static final int defaultOperator = 1;
+    public static final int TURRET_ABS_ENCODER = 4;
   }
 
   public static final class CANBusPorts {
 
     public static final class CAN2 {
-      public static final CANBus bus = CANBus.roboRIO();
+      public static final CANBus BUS = CANBus.roboRIO();
+
+      // Power distribution
+      public static final int PD = 1;
 
       // Drivetrain
-      public static final int gyro = 0;
+      public static final int GYRO = 0;
 
       // Launcher
-      public static final int turret = 12;
-      public static final int hood = 13;
-      public static final int flywheelLeader = 14;
-      public static final int flywheelFollower = 15;
+      public static final int TURRET = 12;
+      public static final int HOOD = 13;
+      public static final int FLYWHEEL_LEADER = 14;
+      public static final int FLYWHEEL_FOLLOWER = 15;
 
       // Feeder
-      public static final int spindexer = 16;
-      public static final int kicker = 17;
+      public static final int SPINDEXER = 16;
+      public static final int KICKER = 17;
 
       // Intake
-      public static final int intakeRollerLower = 22;
-      public static final int intakeRollerUpper = 23;
-      public static final int intakeArmRight = 27;
-      public static final int intakeArmLeft = 26;
+      public static final int INTAKE_ROLLER_LOWER = 22;
+      public static final int INTAKE_ROLLER_UPPER = 23;
+      public static final int INTAKE_ARM_RIGHT = 27;
+      public static final int INTAKE_ARM_LEFT = 26;
     }
 
     public static final class CANHD {
       // CAN bus that the devices are located on;
       // All swerve devices must share the same CAN bus
-      public static final CANBus bus = new CANBus("canivore");
+      public static final CANBus BUS = new CANBus("canivore");
 
       // Drivetrain
-      public static final int backLeftDrive = 10;
-      public static final int backRightDrive = 18;
-      public static final int frontRightDrive = 20;
-      public static final int frontLeftDrive = 28;
+      public static final int BACK_LEFT_DRIVE = 10;
+      public static final int BACK_RIGHT_DRIVE = 18;
+      public static final int FRONT_RIGHT_DRIVE = 20;
+      public static final int FRONT_LEFT_DRIVE = 28;
 
-      public static final int backLeftTurn = 11;
-      public static final int backRightTurn = 19;
-      public static final int frontRightTurn = 21;
-      public static final int frontLeftTurn = 29;
+      public static final int BACK_LEFT_TURN = 11;
+      public static final int BACK_RIGHT_TURN = 19;
+      public static final int FRONT_RIGHT_TURN = 21;
+      public static final int FRONT_LEFT_TURN = 29;
 
-      public static final int backRightTurnAbsEncoder = 31;
-      public static final int frontRightTurnAbsEncoder = 33;
-      public static final int frontLeftTurnAbsEncoder = 43;
-      public static final int backLeftTurnAbsEncoder = 45;
+      public static final int BACK_RIGHT_TURN_ABS_ENC = 31;
+      public static final int FRONT_RIGHT_TURN_ABS_ENC = 33;
+      public static final int FRONT_LEFT_TURN_ABS_ENC = 43;
+      public static final int BACK_LEFT_TURN_ABS_ENC = 45;
     }
   }
 
   public static final class PneumaticChannels {
     // hopper
-    public static final int hopperForward = 14;
-    public static final int hopperReverse = 15;
+    public static final int HOPPER_FWD = 14;
+    public static final int HOPPER_REV = 15;
 
     // intake arm
-    public static final int intakeArmForward = 0;
-    public static final int intakeArmReverse = 1;
+    public static final int INTAKE_ARM_FWD = 0;
+    public static final int INTAKE_ARM_REV = 1;
   }
 }

@@ -38,13 +38,17 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.networktables.BooleanPublisher;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.RobotState;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants;
 import frc.robot.Constants.FeatureFlags;
@@ -57,17 +61,18 @@ import org.littletonrobotics.junction.Logger;
 
 public class Drive extends SubsystemBase {
   static final double ODOMETRY_FREQUENCY =
-      new CANBus(DrivetrainConstants.CANBusName).isNetworkFD() ? 250.0 : 100.0;
+      new CANBus(DRIVETRAIN_CONSTANTS.CANBusName).isNetworkFD() ? 250.0 : 100.0;
 
-  static final Lock odometryLock = new ReentrantLock();
+  protected static final Lock ODOMETRY_LOCK = new ReentrantLock();
   private final GyroIO gyroIO;
   private final GyroIOInputsAutoLogged gyroInputs = new GyroIOInputsAutoLogged();
   private final Module[] modules = new Module[4]; // FL, FR, BL, BR
   private final SysIdRoutine sysId;
   private final Alert gyroDisconnectedAlert =
       new Alert("Disconnected gyro, using kinematics as fallback.", AlertType.kError);
+  private final BooleanPublisher alignEncodersPub;
 
-  private SwerveDriveKinematics kinematics = new SwerveDriveKinematics(moduleTranslations);
+  private SwerveDriveKinematics kinematics = new SwerveDriveKinematics(MODULE_TRANSLATIONS);
   private Rotation2d rawGyroRotation = Rotation2d.kZero;
   private SwerveModulePosition[] lastModulePositions = // For delta tracking
       new SwerveModulePosition[] {
@@ -95,6 +100,9 @@ public class Drive extends SubsystemBase {
       };
   private ChassisSpeeds chassisSpeeds;
 
+  // PathPlanner trajectory logging (stored each loop for AKit compatibility)
+  private Pose2d[] lastTrajectory = new Pose2d[0];
+
   // PID controllers for following Choreo trajectories
   private final PIDController xController = new PIDController(8.01, 0.0, 0.0);
   private final PIDController yController = new PIDController(8.01, 0.0, 0.0);
@@ -107,10 +115,10 @@ public class Drive extends SubsystemBase {
       ModuleIO blModuleIO,
       ModuleIO brModuleIO) {
     this.gyroIO = gyroIO;
-    modules[0] = new Module(flModuleIO, 0);
-    modules[1] = new Module(frModuleIO, 1);
-    modules[2] = new Module(blModuleIO, 2);
-    modules[3] = new Module(brModuleIO, 3);
+    modules[0] = new Module(flModuleIO, "FrontLeft");
+    modules[1] = new Module(frModuleIO, "FrontRight");
+    modules[2] = new Module(blModuleIO, "BackLeft");
+    modules[3] = new Module(brModuleIO, "BackRight");
 
     // Usage reporting for swerve template
     HAL.report(tResourceType.kResourceType_RobotDrive, tInstances.kRobotDriveSwerve_AdvantageKit);
@@ -126,18 +134,13 @@ public class Drive extends SubsystemBase {
         this::runVelocity,
         new PPHolonomicDriveController(
             new PIDConstants(5.0, 0.0, 0.0), new PIDConstants(5.0, 0.0, 0.0)),
-        ppConfig,
+        PP_CONFIG,
         () -> DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red,
         this);
     Pathfinding.setPathfinder(new LocalADStarAK());
     PathPlannerLogging.setLogActivePathCallback(
         (activePath) -> {
-          Logger.recordOutput(
-              "Odometry/Trajectory", activePath.toArray(new Pose2d[activePath.size()]));
-        });
-    PathPlannerLogging.setLogTargetPoseCallback(
-        (targetPose) -> {
-          Logger.recordOutput("Odometry/TrajectorySetpoint", targetPose);
+          if (!activePath.isEmpty()) lastTrajectory = activePath.toArray(new Pose2d[0]);
         });
 
     // Configure SysId
@@ -152,13 +155,21 @@ public class Drive extends SubsystemBase {
                 (voltage) -> runCharacterization(voltage.in(Volts)), null, this));
 
     headingController.enableContinuousInput(-Math.PI, Math.PI);
+
+    var alignEncodersTopic =
+        NetworkTableInstance.getDefault().getTable("Triggers").getBooleanTopic("Align Encoders");
+    var alignEncodersSub = alignEncodersTopic.subscribe(false);
+    alignEncodersPub = alignEncodersTopic.publish();
+    alignEncodersPub.set(false);
+    new Trigger(alignEncodersSub::get)
+        .onTrue(Commands.runOnce(this::zeroAbsoluteEncoders, this).ignoringDisable(true));
   }
 
   @Override
   public void periodic() {
     long startNanos = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
-    odometryLock.lock(); // Prevents odometry updates while reading data
+    ODOMETRY_LOCK.lock(); // Prevents odometry updates while reading data
     long t1 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
     gyroIO.updateInputs(gyroInputs);
     long t2 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
@@ -168,7 +179,7 @@ public class Drive extends SubsystemBase {
       module.periodic();
     }
     long t4 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
-    odometryLock.unlock();
+    ODOMETRY_LOCK.unlock();
 
     // Stop moving when disabled
     if (DriverStation.isDisabled()) {
@@ -223,6 +234,9 @@ public class Drive extends SubsystemBase {
     gyroDisconnectedAlert.set(gyroDisconnected);
     Logger.recordOutput("Faults/Drive/GyroDisconnected", gyroDisconnected);
 
+    // Log PathPlanner trajectory (stored by callback, recorded here for AKit compatibility)
+    Logger.recordOutput("Odometry/Trajectory", lastTrajectory);
+
     // Profiling output
     if (FeatureFlags.PROFILING_ENABLED) {
       long totalMs = (t6 - startNanos) / 1_000_000;
@@ -262,7 +276,7 @@ public class Drive extends SubsystemBase {
     Logger.recordOutput("SwerveStates/Setpoints", states);
 
     // 2: Desaturate (apply wheel limits FIRST)
-    SwerveDriveKinematics.desaturateWheelSpeeds(states, drivetrainSpeedLimit.in(MetersPerSecond));
+    SwerveDriveKinematics.desaturateWheelSpeeds(states, DRIVETRAIN_SPEED_LIMIT.in(MetersPerSecond));
 
     // 3: Reconstruct the ACTUAL chassis speeds after limiting
     ChassisSpeeds limitedSpeeds = kinematics.toChassisSpeeds(states);
@@ -276,7 +290,7 @@ public class Drive extends SubsystemBase {
     // (Optional but usually unnecessary)
     // desaturate again for safety
     SwerveDriveKinematics.desaturateWheelSpeeds(
-        finalStates, drivetrainSpeedLimit.in(MetersPerSecond));
+        finalStates, DRIVETRAIN_SPEED_LIMIT.in(MetersPerSecond));
 
     // 6: Send to modules
     for (int i = 0; i < 4; i++) {
@@ -322,7 +336,7 @@ public class Drive extends SubsystemBase {
   public void stopWithX() {
     Rotation2d[] headings = new Rotation2d[4];
     for (int i = 0; i < 4; i++) {
-      headings[i] = moduleTranslations[i].getAngle();
+      headings[i] = MODULE_TRANSLATIONS[i].getAngle();
     }
     kinematics.resetHeadings(headings);
     stop();
@@ -423,12 +437,12 @@ public class Drive extends SubsystemBase {
 
   /** Returns the maximum linear speed in meters per sec. */
   public double getMaxLinearSpeedMetersPerSec() {
-    return maxChassisVelocity.in(MetersPerSecond);
+    return MAX_CHASSIS_VELOCITY.in(MetersPerSecond);
   }
 
   /** Returns the maximum angular speed in radians per sec. */
   public double getMaxAngularSpeedRadPerSec() {
-    return maxChassisAngularVelocity.in(RadiansPerSecond);
+    return MAX_CHASSIS_ANGULAR_VELOCITY.in(RadiansPerSecond);
   }
 
   /** Returns the total motor current draw across all modules for battery simulation. */
@@ -444,5 +458,6 @@ public class Drive extends SubsystemBase {
     for (var module : modules) {
       module.setTurnZero();
     }
+    alignEncodersPub.set(false);
   }
 }

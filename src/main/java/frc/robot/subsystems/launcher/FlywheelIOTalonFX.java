@@ -39,7 +39,7 @@ public class FlywheelIOTalonFX implements FlywheelIO {
   private final NeutralOut brake = new NeutralOut();
 
   private final TrapezoidProfile profile =
-      new TrapezoidProfile(new TrapezoidProfile.Constraints(maxAcceleration, maxJerk));
+      new TrapezoidProfile(new TrapezoidProfile.Constraints(MAX_ACCELERATION, MAX_JERK));
 
   // Inputs from flywheel motor
   private final StatusSignal<AngularVelocity> flywheelVelocity;
@@ -48,19 +48,20 @@ public class FlywheelIOTalonFX implements FlywheelIO {
   private final StatusSignal<Current> flywheelCurrent, followerCurrent;
 
   public FlywheelIOTalonFX() {
-    flywheelLeaderTalon = new TalonFX(CAN2.flywheelLeader, CAN2.bus);
-    flywheelFollowerTalon = new TalonFX(CAN2.flywheelFollower, CAN2.bus);
+    flywheelLeaderTalon = new TalonFX(CAN2.FLYWHEEL_LEADER, CAN2.BUS);
+    flywheelFollowerTalon = new TalonFX(CAN2.FLYWHEEL_FOLLOWER, CAN2.BUS);
     // Configuration
     config = new TalonFXConfiguration();
     config.MotorOutput.withNeutralMode(NeutralModeValue.Brake)
         .withNeutralMode(NeutralModeValue.Brake);
-    config.Slot0 = velocityVoltageGains;
-    config.Slot1 = velocityTorqueCurrentGains;
-    config.TorqueCurrent.PeakForwardTorqueCurrent = KrakenX60Constants.kDefaultStatorCurrentLimit;
-    config.TorqueCurrent.PeakReverseTorqueCurrent = -KrakenX60Constants.kDefaultStatorCurrentLimit;
-    config.CurrentLimits.StatorCurrentLimit = KrakenX60Constants.kDefaultStatorCurrentLimit;
+    config.Slot0 = VELOCITY_VOLTAGE_GAINS;
+    config.Slot1 = VELOCITY_TORQUE_CURRENT_GAINS;
+    config.TorqueCurrent.PeakForwardTorqueCurrent = KrakenX60Constants.DEFAULT_STATOR_CURRENT_LIMIT;
+    config.TorqueCurrent.PeakReverseTorqueCurrent =
+        -KrakenX60Constants.DEFAULT_STATOR_CURRENT_LIMIT;
+    config.CurrentLimits.StatorCurrentLimit = KrakenX60Constants.DEFAULT_STATOR_CURRENT_LIMIT;
     config.CurrentLimits.StatorCurrentLimitEnable = true;
-    config.CurrentLimits.SupplyCurrentLimit = KrakenX60Constants.kDefaultSupplyCurrentLimit;
+    config.CurrentLimits.SupplyCurrentLimit = KrakenX60Constants.DEFAULT_SUPPLY_CURRENT_LIMIT;
     config.CurrentLimits.SupplyCurrentLimitEnable = true;
     tryUntilOk(5, () -> flywheelLeaderTalon.getConfigurator().apply(config, 0.25));
     tryUntilOk(5, () -> flywheelFollowerTalon.getConfigurator().apply(config, 0.25));
@@ -86,7 +87,7 @@ public class FlywheelIOTalonFX implements FlywheelIO {
     // configurations require certain status signals for proper follower behavior
 
     flywheelFollowerTalon.setControl(
-        new Follower(CAN2.flywheelLeader, MotorAlignmentValue.Opposed));
+        new Follower(CAN2.FLYWHEEL_LEADER, MotorAlignmentValue.Opposed));
   }
 
   @Override
@@ -106,8 +107,8 @@ public class FlywheelIOTalonFX implements FlywheelIO {
     inputs.appliedVolts = flywheelAppliedVolts.getValueAsDouble();
     inputs.currentAmps = flywheelCurrent.getValueAsDouble();
     inputs.velocityMetersPerSec =
-        (flywheelVelocity.getValue().in(RadiansPerSecond) * wheelRadius.in(Meters))
-            / motorReduction;
+        (flywheelVelocity.getValue().in(RadiansPerSecond) * WHEEL_RADIUS.in(Meters))
+            / MOTOR_REDUCTION;
 
     // Populate follower telemetry via inputs struct (AdvantageKit best practice:
     // IO layers should be pure - only populate inputs, logging happens via @AutoLog)
@@ -128,7 +129,7 @@ public class FlywheelIOTalonFX implements FlywheelIO {
   public void setVelocity(LinearVelocity tangentialVelocity) {
     AngularVelocity angularVelocity =
         RadiansPerSecond.of(
-            tangentialVelocity.in(MetersPerSecond) * motorReduction / wheelRadius.in(Meters));
+            tangentialVelocity.in(MetersPerSecond) * MOTOR_REDUCTION / WHEEL_RADIUS.in(Meters));
 
     TrapezoidProfile.State goal =
         new TrapezoidProfile.State(angularVelocity.in(RotationsPerSecond), 0);

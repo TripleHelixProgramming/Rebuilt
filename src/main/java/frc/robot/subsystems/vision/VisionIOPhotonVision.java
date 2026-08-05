@@ -12,6 +12,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import frc.robot.subsystems.vision.VisionConstants.CameraConfig;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -32,16 +33,15 @@ public class VisionIOPhotonVision implements VisionIO {
   /**
    * Creates a new VisionIOPhotonVision.
    *
-   * @param name The configured name of the camera.
-   * @param rotationSupplier The 3D position of the camera relative to the robot.
+   * @param config Camera name and robot-to-camera transform.
    */
-  public VisionIOPhotonVision(String name, Transform3d robotToCamera) {
-    camera = new PhotonCamera(name);
-    this.robotToCamera = robotToCamera;
+  public VisionIOPhotonVision(CameraConfig config) {
+    camera = new PhotonCamera(config.name());
+    this.robotToCamera = config.robotToCamera();
     fpsSubscriber =
         NetworkTableInstance.getDefault()
             .getTable("photonvision")
-            .getSubTable(name)
+            .getSubTable(config.name())
             .getDoubleTopic("fps")
             .subscribe(0.0);
   }

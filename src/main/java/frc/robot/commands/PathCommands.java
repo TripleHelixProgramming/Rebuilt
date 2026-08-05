@@ -157,7 +157,7 @@ public class PathCommands {
     var path =
         new PathPlannerPath(
             waypoints,
-            pathFollowingConstraints,
+            PATH_FOLLOWING_CONSTRAINTS,
             // The ideal starting state, this is only relevant for pre-planned paths,
             // so can be null for on-the-fly paths.
             null,

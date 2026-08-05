@@ -13,147 +13,154 @@ import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
 import frc.robot.Constants;
-import frc.robot.Constants.MotorConstants.KrakenX60Constants;
-import frc.robot.Constants.MotorConstants.NEO550Constants;
 
 public final class LauncherConstants {
 
   // Geometry
-  public static final Distance fuelRadius = Inches.of(3);
-  public static final Distance ceilingHeight = Feet.of(11).plus(Inches.of(2));
-  public static final double g = 9.81;
+  public static final Distance FUEL_RADIUS = Inches.of(3);
+  public static final Distance CEILING_HEIGHT = Feet.of(11).plus(Inches.of(2));
+  public static final double GRAVITY = 9.81;
 
   // Distance-based impact angle: steeper at close range, shallower at far range
-  public static final Distance impactAngleCloseDistance = Meters.of(2.0);
-  public static final Distance impactAngleFarDistance = Meters.of(6.0);
-  public static final Rotation2d impactAngleClose = Rotation2d.fromDegrees(55);
-  public static final Rotation2d impactAngleFar = Rotation2d.fromDegrees(40);
+  public static final Distance IMPACT_ANGLE_CLOSE_DISTANCE = Meters.of(2.0);
+  public static final Distance IMPACT_ANGLE_FAR_DISTANCE = Meters.of(6.0);
+  public static final Rotation2d IMPACT_ANGLE_CLOSE = Rotation2d.fromDegrees(55);
+  public static final Rotation2d IMPACT_ANGLE_FAR = Rotation2d.fromDegrees(40);
 
   // Logging / simulation periods
-  public static final boolean logFuelTrajectories;
-  public static final double fuelSpawnPeriod;
-  public static final double ballisticSimPeriod;
-  public static final double ballisticLogPeriod;
+  public static final boolean LOG_FUEL_TRAJECTORIES;
+  public static final double FUEL_SPAWN_PERIOD;
+  public static final double BALLISTIC_SIM_PERIOD;
+  public static final double BALLISTIC_LOG_PERIOD;
 
   static {
     switch (Constants.currentMode) {
       case REAL -> {
-        logFuelTrajectories = true;
-        fuelSpawnPeriod = 0.2;
-        ballisticSimPeriod = 0.1;
-        ballisticLogPeriod = 0.25;
+        LOG_FUEL_TRAJECTORIES = true;
+        FUEL_SPAWN_PERIOD = 0.2;
+        BALLISTIC_SIM_PERIOD = 0.1;
+        BALLISTIC_LOG_PERIOD = 0.25;
       }
 
       case SIM -> {
-        logFuelTrajectories = true;
-        fuelSpawnPeriod = 0.1;
-        ballisticSimPeriod = 0.05;
-        ballisticLogPeriod = 0.1;
+        LOG_FUEL_TRAJECTORIES = true;
+        FUEL_SPAWN_PERIOD = 0.1;
+        BALLISTIC_SIM_PERIOD = 0.05;
+        BALLISTIC_LOG_PERIOD = 0.1;
       }
 
       case REPLAY -> {
-        logFuelTrajectories = false;
-        fuelSpawnPeriod = 0.0;
-        ballisticSimPeriod = 0.0;
-        ballisticLogPeriod = 0.0;
+        LOG_FUEL_TRAJECTORIES = false;
+        FUEL_SPAWN_PERIOD = 0.0;
+        BALLISTIC_SIM_PERIOD = 0.0;
+        BALLISTIC_LOG_PERIOD = 0.0;
       }
 
       default -> {
-        logFuelTrajectories = true;
-        fuelSpawnPeriod = 0.1;
-        ballisticSimPeriod = 0.05;
-        ballisticLogPeriod = 0.1;
+        LOG_FUEL_TRAJECTORIES = true;
+        FUEL_SPAWN_PERIOD = 0.1;
+        BALLISTIC_SIM_PERIOD = 0.05;
+        BALLISTIC_LOG_PERIOD = 0.1;
       }
     }
   }
 
-  public static final String nominalKey = "Nominal";
-  public static final String replannedKey = "Replanned";
-  public static final String actualKey = "Actual";
+  public static final String NOMINAL_KEY = "Nominal";
+  public static final String REPLANNED_KEY = "Replanned";
+  public static final String ACTUAL_KEY = "Actual";
 
   // Tolerance for isOnTarget() check (independent of motor controller allowable error)
-  public static final Angle isOnTargetTolerance = Degrees.of(2.0);
+  public static final Angle IS_ON_TARGET_TOLERANCE = Degrees.of(2.0);
 
   public static final class TurretConstants {
     // Geometry
-    public static final Transform3d chassisToTurretBase =
+    public static final Transform3d CHASSIS_TO_TURRET_BASE =
         new Transform3d(Inches.of(-4.000), Inches.of(6.500), Inches.of(16.331), Rotation3d.kZero);
-    public static final Rotation2d absEncoderOffset = new Rotation2d(5.157);
-    public static final Rotation2d mechanismOffset = Rotation2d.kZero;
-    public static final double upperLimitRad = Units.degreesToRadians(270);
-    public static final double lowerLimitRad = Units.degreesToRadians(45);
-    public static final double marginRad = Units.degreesToRadians(5);
+    // Turret angle convention: 0 / 2*pi rad = forward, increasing CCW (viewed from above),
+    // matching standard Rotation2d/WPILib handedness. All constants below are w/r/t forward.
+
+    // Calibration value chosen so the absolute encoder reads 0 / 2*pi when the turret is
+    // physically facing forward. To reclock after a mechanical rebuild or encoder reseat: point
+    // the turret forward by hand, read the raw absolute encoder value (with this offset backed
+    // out, i.e. temporarily zeroed), and set ABS_ENCODER_OFFSET to that raw reading.
+    public static final Rotation2d ABS_ENCODER_OFFSET = new Rotation2d(5.157 + 1.267);
+
+    // Soft limits of the mechanical range, measured CCW from forward (e.g. LOWER=-280 means the
+    // turret can travel 280 deg clockwise of forward). UPPER_LIMIT_RAD - LOWER_LIMIT_RAD must
+    // stay under 360 deg, or the wrap math below (CENTER_RAD, and its use in TurretIOSpark /
+    // TurretIOSimSpark) can no longer place every reachable angle in a single unambiguous branch.
+    public static final double UPPER_LIMIT_RAD = Units.degreesToRadians(30);
+    public static final double LOWER_LIMIT_RAD = Units.degreesToRadians(-280);
+
+    // Center of the operating range. Used to pick the modulus window ([CENTER-pi, CENTER+pi))
+    // that setpoints and the relative-encoder seed get wrapped into, so the branch cut always
+    // falls in the unreachable gap directly opposite the range rather than inside it. Derived
+    // automatically from the limits above - do not hand-edit when reclocking.
+    public static final double CENTER_RAD = (LOWER_LIMIT_RAD + UPPER_LIMIT_RAD) / 2.0;
+    public static final double MARGIN_RAD = Units.degreesToRadians(5);
 
     // Position controller
-    public static final double kPReal = 0.5;
+    public static final double kP = 0.5;
+    public static final double kD = 0.05;
     public static final Angle kAllowableError = Degrees.of(0.25);
 
     // Motor controller
-    public static final double motorReduction = 9.0 * 72.0 / 12.0;
-    public static final AngularVelocity maxAngularVelocity =
-        NEO550Constants.kFreeSpeed.div(motorReduction);
-    public static final double encoderPositionFactor = (2 * Math.PI) / motorReduction; // Radians
-    public static final double encoderVelocityFactor =
-        (2 * Math.PI) / (60.0 * motorReduction); // Rad/sec
-
-    // Simulation
-    public static final DCMotor gearbox = DCMotor.getNeo550(1);
-    public static final double kPSim = 0.5;
-    public static final double kDSim = 0.05;
+    public static final double MOTOR_REDUCTION = 9.0 * 72.0 / 12.0;
+    public static final DCMotor GEARBOX = DCMotor.getNeo550(1);
+    public static final AngularVelocity MAX_ANGULAR_VELOCITY =
+        RadiansPerSecond.of(GEARBOX.freeSpeedRadPerSec / MOTOR_REDUCTION);
+    public static final double ENCODER_POSITION_FACTOR = (2 * Math.PI) / MOTOR_REDUCTION; // Radians
+    public static final double ENCODER_VELOCITY_FACTOR =
+        (2 * Math.PI) / (60.0 * MOTOR_REDUCTION); // Rad/sec
   }
 
   public static final class FlywheelConstants {
 
     public static final class FlywheelScaling {
-      public static final double exponent = 1.8;
-      public static final double coefficient = 0.335;
+      public static final double EXPONENT = 1.8;
+      public static final double COEFFICIENT = 0.335;
     }
 
-    public static final Distance wheelRadius = Inches.of(1.5);
+    public static final Distance WHEEL_RADIUS = Inches.of(1.5);
 
     // Velocity Controller
-    public static final double maxAcceleration = 4000.0;
-    public static final double maxJerk = 40000.0;
+    public static final double MAX_ACCELERATION = 4000.0;
+    public static final double MAX_JERK = 40000.0;
 
     // Motor controller
-    public static final double motorReduction = 1.0;
-    public static final AngularVelocity maxAngularVelocity =
-        KrakenX60Constants.kFreeSpeed.div(motorReduction);
-    public static final Slot0Configs velocityVoltageGains =
+    public static final double MOTOR_REDUCTION = 1.0;
+    public static final DCMotor GEARBOX = DCMotor.getKrakenX60(2);
+    public static final AngularVelocity MAX_ANGULAR_VELOCITY =
+        RadiansPerSecond.of(GEARBOX.freeSpeedRadPerSec / MOTOR_REDUCTION);
+    public static final Slot0Configs VELOCITY_VOLTAGE_GAINS =
         new Slot0Configs().withKP(0.11).withKI(0.0).withKD(0.0).withKS(0.1).withKV(0.12);
-    public static final Slot1Configs velocityTorqueCurrentGains =
+    public static final Slot1Configs VELOCITY_TORQUE_CURRENT_GAINS =
         new Slot1Configs().withKP(12).withKI(0.0).withKD(0.0).withKS(2.5);
-
-    // Simulation
-    public static final double kPSim = 0.1;
-    public static final DCMotor gearbox = DCMotor.getKrakenX60(2);
   }
 
   public static final class HoodConstants {
-    public static final Rotation2d ballToHoodOffset = new Rotation2d(Degrees.of(0));
+    public static final Rotation2d BALL_TO_HOOD_OFFSET = new Rotation2d(Degrees.of(0));
     public static final Angle kAllowableError = Degrees.of(0.25);
 
     // Position controller
     public static final double kPRealPos = 0.35;
     public static final double kPSimPos = 1.5;
     public static final double kDSimPos = 0.05;
-    public static final Angle minPosition = Degrees.of(60);
-    public static final Angle maxPosition = Degrees.of(80);
-    public static final double minPosRad = minPosition.in(Radians);
-    public static final double maxPosRad = maxPosition.in(Radians);
+    public static final Angle MIN_POSITION = Degrees.of(60);
+    public static final Angle MAX_POSITION = Degrees.of(80);
+    public static final double MIN_POS_RAD = MIN_POSITION.in(Radians);
+    public static final double MAX_POS_RAD = MAX_POSITION.in(Radians);
 
     // Velocity controller
     public static final double kPRealVel = 0.2;
 
     // Motor controller
-    public static final double motorReduction = 5.0 * 256.0 / 16.0;
-    public static final AngularVelocity maxAngularVelocity =
-        NEO550Constants.kFreeSpeed.div(motorReduction);
-    public static final double encoderPositionFactor = 2 * Math.PI / motorReduction; // Radians
-    public static final double encoderVelocityFactor =
-        (2 * Math.PI) / (60.0 * motorReduction); // Rad/sec
-
-    // Simulation
-    public static final DCMotor gearbox = DCMotor.getNeo550(1);
+    public static final double MOTOR_REDUCTION = 5.0 * 256.0 / 16.0;
+    public static final DCMotor GEARBOX = DCMotor.getNeo550(1);
+    public static final AngularVelocity MAX_ANGULAR_VELOCITY =
+        RadiansPerSecond.of(GEARBOX.freeSpeedRadPerSec / MOTOR_REDUCTION);
+    public static final double ENCODER_POSITION_FACTOR = 2 * Math.PI / MOTOR_REDUCTION; // Radians
+    public static final double ENCODER_VELOCITY_FACTOR =
+        (2 * Math.PI) / (60.0 * MOTOR_REDUCTION); // Rad/sec
   }
 }

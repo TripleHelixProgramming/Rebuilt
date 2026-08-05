@@ -10,17 +10,17 @@ public final class LEDConstants {
 
   // ==================== ANIMATION CONFIGURATION ====================
 
-  public static final int kLEDsPerBlock = 1;
-  public static final int kLEDsBetweenBlocks = 1;
+  public static final int LEDS_PER_BLOCK = 1;
+  public static final int LEDS_BETWEEN_BLOCKS = 1;
 
   // ==================== POSE SEEK TOLERANCES ====================
 
   /** Heading tolerance in degrees for pose-seek feedback. */
-  public static final double kPoseSeekHeadingToleranceDegrees = 3.0;
+  public static final double POSE_SEEK_HEADING_TOL_DEGREES = 3.0;
 
   /** X position tolerance in centimeters for pose-seek feedback. */
-  public static final double kPoseSeekXToleranceCm = 5.0;
+  public static final double POSE_SEEK_X_TOL_CM = 5.0;
 
   /** Y position tolerance in centimeters for pose-seek feedback. */
-  public static final double kPoseSeekYToleranceCm = 6.0;
+  public static final double POSE_SEEK_Y_TOL_CM = 6.0;
 }

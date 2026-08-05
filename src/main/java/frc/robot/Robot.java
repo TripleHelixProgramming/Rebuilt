@@ -9,12 +9,12 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.event.EventLoop;
 import edu.wpi.first.wpilibj.simulation.BatterySim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.CommandGenericHID;
@@ -33,6 +33,7 @@ import frc.lib.ControllerSelector.DriverController;
 import frc.lib.ControllerSelector.OperatorConfig;
 import frc.lib.LoggedPowerDistribution;
 import frc.lib.ZorroController.Axis;
+import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.DIOPorts;
 import frc.robot.Constants.FeatureFlags;
 import frc.robot.auto.B_LeftTrenchAuto;
@@ -119,11 +120,11 @@ public class Robot extends LoggedRobot {
   }
 
   public static final AllianceSelector allianceSelector =
-      new AllianceSelector(DIOPorts.allianceColorSelector);
+      new AllianceSelector(DIOPorts.ALLIANCE_COLOR_SELECTOR);
   public static final AutoSelector autoSelector =
-      new AutoSelector(DIOPorts.autonomousModeSelector, allianceSelector::getAllianceColor);
+      new AutoSelector(DIOPorts.AUTONOMOUS_MODE_SELECTOR, allianceSelector::getAllianceColor);
   public final LoggedPowerDistribution powerDistribution =
-      new LoggedPowerDistribution(1, ModuleType.kRev, "PDH");
+      new LoggedPowerDistribution(CAN2.PD, ModuleType.kRev, "PD");
 
   private final java.util.Set<String> activeCommands = new java.util.LinkedHashSet<>();
 
@@ -171,18 +172,18 @@ public class Robot extends LoggedRobot {
         drive =
             new Drive(
                 new GyroIOBoron(),
-                new ModuleIOTalonFX(DriveConstants.FrontLeft),
-                new ModuleIOTalonFX(DriveConstants.FrontRight),
-                new ModuleIOTalonFX(DriveConstants.BackLeft),
-                new ModuleIOTalonFX(DriveConstants.BackRight));
+                new ModuleIOTalonFX(DriveConstants.FRONT_LEFT),
+                new ModuleIOTalonFX(DriveConstants.FRONT_RIGHT),
+                new ModuleIOTalonFX(DriveConstants.BACK_LEFT),
+                new ModuleIOTalonFX(DriveConstants.BACK_RIGHT));
         vision =
             new Vision(
                 drive::addVisionMeasurement,
                 drive::getFieldRelativeHeading,
-                new VisionIOPhotonVision(cameraFrontRightName, robotToFrontRightCamera),
-                new VisionIOPhotonVision(cameraFrontLeftName, robotToFrontLeftCamera),
-                new VisionIOPhotonVision(cameraBackRightName, robotToBackRightCamera),
-                new VisionIOPhotonVision(cameraBackLeftName, robotToBackLeftCamera));
+                new VisionIOPhotonVision(FRONT_RIGHT_CAMERA),
+                new VisionIOPhotonVision(FRONT_LEFT_CAMERA),
+                new VisionIOPhotonVision(BACK_RIGHT_CAMERA),
+                new VisionIOPhotonVision(BACK_LEFT_CAMERA));
         launcher =
             new Launcher(
                 drive::getPose,
@@ -190,11 +191,11 @@ public class Robot extends LoggedRobot {
                 new TurretIOSpark(),
                 new FlywheelIOTalonFX(),
                 new HoodIOSpark());
-        if (FeatureFlags.kHopperEnabled) hopper = new Hopper(new HopperIOReal());
+        if (FeatureFlags.HOPPER_ENABLED) hopper = new Hopper(new HopperIOReal());
         intake =
             new Intake(
-                new RollerIOSpark(RollerConstants.upperRollerConfig),
-                new RollerIOSpark(RollerConstants.lowerRollerConfig),
+                new RollerIOSpark(RollerConstants.UPPER_ROLLER_CONFIG),
+                new RollerIOSpark(RollerConstants.LOWER_ROLLER_CONFIG),
                 new IntakeArmIOSpark());
         feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
 
@@ -211,22 +212,18 @@ public class Robot extends LoggedRobot {
         drive =
             new Drive(
                 new GyroIO() {},
-                new ModuleIOSimWPI(DriveConstants.FrontLeft),
-                new ModuleIOSimWPI(DriveConstants.FrontRight),
-                new ModuleIOSimWPI(DriveConstants.BackLeft),
-                new ModuleIOSimWPI(DriveConstants.BackRight));
+                new ModuleIOSimWPI(DriveConstants.FRONT_LEFT),
+                new ModuleIOSimWPI(DriveConstants.FRONT_RIGHT),
+                new ModuleIOSimWPI(DriveConstants.BACK_LEFT),
+                new ModuleIOSimWPI(DriveConstants.BACK_RIGHT));
         vision =
             new Vision(
                 drive::addVisionMeasurement,
                 drive::getFieldRelativeHeading,
-                new VisionIOPhotonVisionSim(
-                    cameraFrontRightName, robotToFrontRightCamera, drive::getPose),
-                new VisionIOPhotonVisionSim(
-                    cameraFrontLeftName, robotToFrontLeftCamera, drive::getPose),
-                new VisionIOPhotonVisionSim(
-                    cameraBackRightName, robotToBackRightCamera, drive::getPose),
-                new VisionIOPhotonVisionSim(
-                    cameraBackLeftName, robotToBackLeftCamera, drive::getPose));
+                new VisionIOPhotonVisionSim(FRONT_RIGHT_CAMERA, drive::getPose),
+                new VisionIOPhotonVisionSim(FRONT_LEFT_CAMERA, drive::getPose),
+                new VisionIOPhotonVisionSim(BACK_RIGHT_CAMERA, drive::getPose),
+                new VisionIOPhotonVisionSim(BACK_LEFT_CAMERA, drive::getPose));
         launcher =
             new Launcher(
                 drive::getPose,
@@ -235,11 +232,11 @@ public class Robot extends LoggedRobot {
                 new FlywheelIOSimTalonFX(),
                 new HoodIOSimSpark());
         feeder = new Feeder(new SpindexerIOSimSpark(), new KickerIOSimSpark());
-        if (FeatureFlags.kHopperEnabled) hopper = new Hopper(new HopperIOSim());
+        if (FeatureFlags.HOPPER_ENABLED) hopper = new Hopper(new HopperIOSim());
         intake =
             new Intake(
-                new RollerIOSimSpark(RollerConstants.upperRollerConfig),
-                new RollerIOSimSpark(RollerConstants.lowerRollerConfig),
+                new RollerIOSimSpark(RollerConstants.UPPER_ROLLER_CONFIG),
+                new RollerIOSimSpark(RollerConstants.LOWER_ROLLER_CONFIG),
                 new IntakeArmIOSimSpark());
         break;
 
@@ -274,7 +271,7 @@ public class Robot extends LoggedRobot {
                 new TurretIO() {},
                 new FlywheelIO() {},
                 new HoodIO() {});
-        if (FeatureFlags.kHopperEnabled) hopper = new Hopper(new HopperIO() {});
+        if (FeatureFlags.HOPPER_ENABLED) hopper = new Hopper(new HopperIO() {});
         intake = new Intake(new RollerIO() {}, new RollerIO() {}, new IntakeArmIO() {});
         feeder = new Feeder(new SpindexerIO() {}, new KickerIO() {});
         break;
@@ -293,13 +290,13 @@ public class Robot extends LoggedRobot {
 
     // Wire the hopper/intake interlocks. Done here (after both subsystems exist) to avoid a
     // circular dependency between the two subsystems.
-    if (FeatureFlags.kHopperEnabled) {
+    if (FeatureFlags.HOPPER_ENABLED) {
       intake.setDeployInterlock(
           hopper::isDeployed,
-          () -> hopper.getDeployCommand().withTimeout(IntakeConstants.kInterlockSettleSeconds));
+          () -> hopper.getDeployCommand().withTimeout(IntakeConstants.INTERLOCK_SETTLE_SECONDS));
       hopper.setRetractInterlock(
           intake::isStowed,
-          () -> intake.getStopCommand().withTimeout(IntakeConstants.kInterlockSettleSeconds));
+          () -> intake.getStopCommand().withTimeout(IntakeConstants.INTERLOCK_SETTLE_SECONDS));
     }
 
     configureControlPanelBindings();
@@ -309,13 +306,6 @@ public class Robot extends LoggedRobot {
     CommandScheduler.getInstance().onCommandFinish(cmd -> activeCommands.remove(cmd.getName()));
     CommandScheduler.getInstance().onCommandInterrupt(cmd -> activeCommands.remove(cmd.getName()));
 
-    new Trigger(
-            NetworkTableInstance.getDefault()
-                    .getTable("Triggers")
-                    .getBooleanTopic("Align Encoders")
-                    .subscribe(false)
-                ::get)
-        .onTrue(new InstantCommand(drive::zeroAbsoluteEncoders).ignoringDisable(true));
     Field.plotRegions();
 
     feeder.setDefaultCommand(Commands.startEnd(feeder::stop, () -> {}, feeder).withName("Stop"));
@@ -342,10 +332,13 @@ public class Robot extends LoggedRobot {
     // This must be called from the robot's periodic block in order for anything in
     // the Command-based framework to work.
     CommandScheduler.getInstance().run();
+    // Controller button bindings live on their own EventLoop (see ControllerSelector) so that
+    // re-scanning for controller changes never clears Triggers registered elsewhere.
+    ControllerSelector.getInstance().getBindingLoop().poll();
     long t1 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
-    logCANBus("CAN2", Constants.CANBusPorts.CAN2.bus);
-    logCANBus("CANHD", Constants.CANBusPorts.CANHD.bus);
+    logCANBus("CAN2", Constants.CANBusPorts.CAN2.BUS);
+    logCANBus("CANHD", Constants.CANBusPorts.CANHD.BUS);
     powerDistribution.log();
     logHIDs();
     logScheduler();
@@ -490,7 +483,7 @@ public class Robot extends LoggedRobot {
         new DriverConfig(ControllerType.KEYBOARD, this::bindKeyboardDriver, Constants.Mode.SIM));
   }
 
-  public DriverController bindZorroDriver(int port) {
+  public DriverController bindZorroDriver(int port, EventLoop loop) {
     var zorroDriver = new CommandZorroController(port);
 
     var controller =
@@ -525,16 +518,16 @@ public class Robot extends LoggedRobot {
 
     // Reset gyro to 0° when button G is pressed
     zorroDriver
-        .GIn()
+        .GIn(loop)
         .onTrue(
             Commands.runOnce(() -> DriveCommands.resetDriverForward(drive)).ignoringDisable(true));
 
     // Toggle hopper: deploy if stowed, stow if deployed (retracting intake first if needed).
     // runOnce has no subsystem requirements so it always executes; the scheduled command
     // requires hopper and will interrupt whatever is currently running on that subsystem.
-    if (FeatureFlags.kHopperEnabled)
+    if (FeatureFlags.HOPPER_ENABLED)
       zorroDriver
-          .DIn()
+          .DIn(loop)
           .onTrue(
               Commands.runOnce(
                   () ->
@@ -542,10 +535,11 @@ public class Robot extends LoggedRobot {
                           .schedule()));
 
     // Desaturate turret and advance feeder
-    zorroDriver.AIn().whileTrue(createDesaturateAndShootCommand(controller));
+    zorroDriver.AIn(loop).whileTrue(createDesaturateAndShootCommand(controller));
 
     // Launcher
-    Trigger launcherEnabled = zorroDriver.axisGreaterThan(Axis.kLeftDial.value, 0.5).debounce(0.1);
+    Trigger launcherEnabled =
+        zorroDriver.axisGreaterThan(Axis.kLeftDial.value, 0.5, loop).debounce(0.1);
     launcherEnabled
         .or(() -> DriverStation.isFMSAttached())
         .whileTrue(
@@ -559,12 +553,12 @@ public class Robot extends LoggedRobot {
                         .withName("Aim at hub")));
 
     // Intake
-    zorroDriver.HIn().whileTrue(intake.getDeployCommand());
+    zorroDriver.HIn(loop).whileTrue(intake.getDeployCommand());
 
     return controller;
   }
 
-  public DriverController bindXboxDriver(int port) {
+  public DriverController bindXboxDriver(int port, EventLoop loop) {
     var xboxDriver = new CommandXboxController(port);
 
     var controller =
@@ -599,7 +593,7 @@ public class Robot extends LoggedRobot {
 
     // Reset gyro to 0° when B button is pressed
     xboxDriver
-        .b()
+        .b(loop)
         .onTrue(
             Commands.runOnce(() -> DriveCommands.resetDriverForward(drive)).ignoringDisable(true));
 
@@ -669,15 +663,15 @@ public class Robot extends LoggedRobot {
     // xboxDriver.x().onTrue(Commands.runOnce(drive::stopWithX, drive));
 
     // Desaturate turret and advance feeder
-    xboxDriver.a().whileTrue(createDesaturateAndShootCommand(controller));
+    xboxDriver.a(loop).whileTrue(createDesaturateAndShootCommand(controller));
 
     // Intake
-    xboxDriver.rightBumper().whileTrue(intake.getDeployCommand());
+    xboxDriver.rightBumper(loop).whileTrue(intake.getDeployCommand());
 
     return controller;
   }
 
-  public DriverController bindKeyboardDriver(int port) {
+  public DriverController bindKeyboardDriver(int port, EventLoop loop) {
     var keyboard = new CommandGenericHID(port);
 
     // WPILib sim keyboard axis layout:
@@ -716,30 +710,30 @@ public class Robot extends LoggedRobot {
 
     // Reset heading to 0° when Z (button 1) is pressed
     keyboard
-        .button(1)
+        .button(1, loop)
         .onTrue(
             Commands.runOnce(() -> DriveCommands.resetDriverForward(drive)).ignoringDisable(true));
 
     return controller;
   }
 
-  public void bindXboxOperator(int port, DriverController driver) {
+  public void bindXboxOperator(int port, DriverController driver, EventLoop loop) {
     var xboxOperator = new CommandXboxController(port);
 
     // Intake
-    xboxOperator.b().whileTrue(intake.getDeployCommand());
-    // xboxOperator.b().and(() -> hopper.isDeployed()).whileTrue(intake.getDeployCommand());
+    xboxOperator.b(loop).whileTrue(intake.getDeployCommand());
+    // xboxOperator.b(loop).and(() -> hopper.isDeployed()).whileTrue(intake.getDeployCommand());
 
-    xboxOperator.y().whileTrue(intake.getReverseCommand());
-    // xboxOperator.y().and(() -> hopper.isDeployed()).whileTrue(intake.getReverseCommand());
+    xboxOperator.y(loop).whileTrue(intake.getReverseCommand());
+    // xboxOperator.y(loop).and(() -> hopper.isDeployed()).whileTrue(intake.getReverseCommand());
 
     // Feeder
-    xboxOperator.a().whileTrue(feeder.getSpinForwardCommand());
+    xboxOperator.a(loop).whileTrue(feeder.getSpinForwardCommand());
 
-    xboxOperator.x().whileTrue(feeder.getReverseCommand());
+    xboxOperator.x(loop).whileTrue(feeder.getReverseCommand());
 
     // Desaturate turret and advance feeder
-    xboxOperator.rightBumper().whileTrue(createDesaturateAndShootCommand(driver));
+    xboxOperator.rightBumper(loop).whileTrue(createDesaturateAndShootCommand(driver));
   }
 
   public void configureAutoOptions() {

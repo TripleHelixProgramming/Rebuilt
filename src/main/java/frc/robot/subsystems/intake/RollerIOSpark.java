@@ -2,6 +2,7 @@ package frc.robot.subsystems.intake;
 
 import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystems.intake.IntakeConstants.RollerConstants.*;
+import static frc.robot.subsystems.intake.IntakeConstants.RollerConstants.SparkConfig.*;
 import static frc.robot.util.SparkUtil.*;
 
 import com.revrobotics.PersistMode;
@@ -19,44 +20,35 @@ import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.Constants.MotorConstants.NEOVortexConstants;
 import frc.robot.Constants.RobotConstants;
-import frc.robot.subsystems.intake.IntakeConstants.RollerConfig;
 import frc.robot.util.SparkOdometryThread;
 import frc.robot.util.SparkOdometryThread.SparkInputs;
 
 public class RollerIOSpark implements RollerIO {
-  private static final double KP = 0.001;
-  private static final double KD = 0.0;
-  private static final LinearVelocity maxTangentialVelocity =
-      MetersPerSecond.of(
-          NEOVortexConstants.kFreeSpeed.in(RadiansPerSecond)
-              * rollerRadius.in(Meters)
-              / motorReduction);
-
   private final SparkFlex flex;
   private final RelativeEncoder encoder;
   private final SparkClosedLoopController controller;
   private final SparkInputs sparkInputs;
 
   public RollerIOSpark(RollerConfig rollerConfig) {
-    flex = new SparkFlex(rollerConfig.port, MotorType.kBrushless);
+    flex = new SparkFlex(rollerConfig.port(), MotorType.kBrushless);
     encoder = flex.getEncoder();
     controller = flex.getClosedLoopController();
 
     var config = new SparkFlexConfig();
     config
-        .inverted(rollerConfig.inverted)
+        .inverted(rollerConfig.inverted())
         .idleMode(IdleMode.kBrake)
-        .smartCurrentLimit(NEOVortexConstants.kDefaultSupplyCurrentLimit)
-        .voltageCompensation(RobotConstants.kNominalVoltage);
+        .smartCurrentLimit(NEOVortexConstants.DEFAULT_STATOR_CURRENT_LIMIT)
+        .voltageCompensation(RobotConstants.NOMINAL_VOLTAGE);
 
     config
         .encoder
-        .positionConversionFactor(encoderPositionFactor)
-        .velocityConversionFactor(encoderVelocityFactor)
+        .positionConversionFactor(ENCODER_POSITION_FACTOR)
+        .velocityConversionFactor(ENCODER_VELOCITY_FACTOR)
         .uvwAverageDepth(2)
         .uvwMeasurementPeriod(8);
 
-    config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(KP, 0.0, KD);
+    config.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kP, 0.0, kD);
 
     tryUntilOk(
         flex,
@@ -70,7 +62,7 @@ public class RollerIOSpark implements RollerIO {
   @Override
   public void updateInputs(RollerIOInputs inputs) {
     inputs.connected = sparkInputs.isConnected();
-    inputs.velocityMetersPerSec = sparkInputs.getVelocity() * rollerRadius.in(Meters);
+    inputs.velocityMetersPerSec = sparkInputs.getVelocity() * RADIUS.in(Meters);
     inputs.appliedVolts = sparkInputs.getAppliedVolts();
     inputs.currentAmps = sparkInputs.getOutputCurrent();
   }
@@ -84,11 +76,11 @@ public class RollerIOSpark implements RollerIO {
   @Override
   public void setVelocity(LinearVelocity tangentialVelocity) {
     double feedforwardVolts =
-        RobotConstants.kNominalVoltage
+        RobotConstants.NOMINAL_VOLTAGE
             * tangentialVelocity.in(MetersPerSecond)
-            / maxTangentialVelocity.in(MetersPerSecond);
+            / MAX_TANGENTIAL_VELOCITY.in(MetersPerSecond);
     controller.setSetpoint(
-        tangentialVelocity.in(MetersPerSecond) / rollerRadius.in(Meters),
+        tangentialVelocity.in(MetersPerSecond) / RADIUS.in(Meters),
         ControlType.kVelocity,
         ClosedLoopSlot.kSlot0,
         feedforwardVolts);

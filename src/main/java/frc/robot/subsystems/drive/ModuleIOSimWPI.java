@@ -19,7 +19,6 @@ import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Timer;
@@ -37,9 +36,6 @@ public class ModuleIOSimWPI implements ModuleIO {
   private static final double DRIVE_KV = 1.0 / Units.rotationsToRadians(1.0 / DRIVE_KV_ROT);
   private static final double TURN_KP = 8.0;
   private static final double TURN_KD = 0.0;
-  private static final DCMotor DRIVE_GEARBOX = DCMotor.getKrakenX60Foc(1);
-  private static final DCMotor TURN_GEARBOX = DCMotor.getKrakenX60Foc(1);
-
   private final DCMotorSim driveSim;
   private final DCMotorSim turnSim;
 
@@ -58,13 +54,15 @@ public class ModuleIOSimWPI implements ModuleIO {
     driveSim =
         new DCMotorSim(
             LinearSystemId.createDCMotorSystem(
-                DRIVE_GEARBOX, constants.DriveInertia, constants.DriveMotorGearRatio),
-            DRIVE_GEARBOX);
+                DriveConstants.DRIVE_GEARBOX,
+                constants.DriveInertia,
+                constants.DriveMotorGearRatio),
+            DriveConstants.DRIVE_GEARBOX);
     turnSim =
         new DCMotorSim(
             LinearSystemId.createDCMotorSystem(
-                TURN_GEARBOX, constants.SteerInertia, constants.SteerMotorGearRatio),
-            TURN_GEARBOX);
+                DriveConstants.TURN_GEARBOX, constants.SteerInertia, constants.SteerMotorGearRatio),
+            DriveConstants.TURN_GEARBOX);
 
     // Enable wrapping for turn PID
     turnController.enableContinuousInput(-Math.PI, Math.PI);

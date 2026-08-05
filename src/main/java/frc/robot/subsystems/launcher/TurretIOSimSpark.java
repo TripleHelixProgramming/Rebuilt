@@ -39,7 +39,7 @@ public class TurretIOSimSpark implements TurretIO {
   private double oversaturationLessMargin = 0.0;
 
   public TurretIOSimSpark() {
-    turnSpark = new SparkMax(CAN2.turret, MotorType.kBrushless);
+    turnSpark = new SparkMax(CAN2.TURRET, MotorType.kBrushless);
     controller = turnSpark.getClosedLoopController();
 
     var turnConfig = new SparkMaxConfig();
@@ -47,37 +47,40 @@ public class TurretIOSimSpark implements TurretIO {
     turnConfig
         .inverted(false)
         .idleMode(IdleMode.kBrake)
-        .smartCurrentLimit(NEO550Constants.kDefaultSupplyCurrentLimit)
-        .voltageCompensation(RobotConstants.kNominalVoltage);
+        .smartCurrentLimit(NEO550Constants.DEFAULT_STATOR_CURRENT_LIMIT)
+        .voltageCompensation(RobotConstants.NOMINAL_VOLTAGE);
 
     turnConfig
         .encoder
-        .positionConversionFactor(encoderPositionFactor)
-        .velocityConversionFactor(encoderVelocityFactor);
+        .positionConversionFactor(ENCODER_POSITION_FACTOR)
+        .velocityConversionFactor(ENCODER_VELOCITY_FACTOR);
 
     turnConfig
         .softLimit
-        .forwardSoftLimit(upperLimitRad)
+        .forwardSoftLimit(UPPER_LIMIT_RAD)
         .forwardSoftLimitEnabled(true)
-        .reverseSoftLimit(lowerLimitRad)
+        .reverseSoftLimit(LOWER_LIMIT_RAD)
         .reverseSoftLimitEnabled(true);
 
     turnConfig
         .closedLoop
         .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-        .pid(kPSim, 0.0, kDSim)
+        .pid(kP, 0.0, kD)
         .allowedClosedLoopError(kAllowableError.in(Radians), ClosedLoopSlot.kSlot0);
 
     turnConfig.signals.appliedOutputPeriodMs(20).busVoltagePeriodMs(20).outputCurrentPeriodMs(20);
 
     turnSpark.configure(turnConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-    turnSparkSim = new SparkMaxSim(turnSpark, gearbox);
+    turnSparkSim = new SparkMaxSim(turnSpark, GEARBOX);
 
     turnSim =
         new DCMotorSim(
-            LinearSystemId.createDCMotorSystem(gearbox, TURRET_MOI_KG_M2, motorReduction), gearbox);
+            LinearSystemId.createDCMotorSystem(GEARBOX, TURRET_MOI_KG_M2, MOTOR_REDUCTION),
+            GEARBOX);
 
-    turnSim.setState(2.0 * Math.PI - mechanismOffset.getRadians(), 0);
+    double seedPosition =
+        MathUtil.inputModulus(2.0 * Math.PI, CENTER_RAD - Math.PI, CENTER_RAD + Math.PI);
+    turnSim.setState(seedPosition, 0);
     turnSparkSim.setPosition(turnSim.getAngularPositionRad());
   }
 
@@ -92,13 +95,13 @@ public class TurretIOSimSpark implements TurretIO {
 
     // Update inputs
     inputs.motorControllerConnected = true;
-    inputs.relativePosition = new Rotation2d(turnSparkSim.getPosition()).plus(mechanismOffset);
+    inputs.relativePosition = new Rotation2d(turnSparkSim.getPosition());
     inputs.velocityRadPerSec = turnSparkSim.getVelocity();
     inputs.appliedVolts = turnSparkSim.getAppliedOutput() * turnSparkSim.getBusVoltage();
     inputs.currentAmps = Math.abs(turnSparkSim.getMotorCurrent());
 
     inputs.absoluteEncoderConnected = true;
-    inputs.absolutePosition = new Rotation2d(turnSparkSim.getPosition()).plus(mechanismOffset);
+    inputs.absolutePosition = new Rotation2d(turnSparkSim.getPosition());
 
     inputs.oversaturation = oversaturation;
     inputs.oversaturationLessMargin = oversaturationLessMargin;
@@ -114,17 +117,16 @@ public class TurretIOSimSpark implements TurretIO {
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
     double setpoint =
-        MathUtil.inputModulus(
-            rotation.getRadians() - mechanismOffset.getRadians(), 0.0, 2.0 * Math.PI);
-    double clampedSetpoint = MathUtil.clamp(setpoint, lowerLimitRad, upperLimitRad);
+        MathUtil.inputModulus(rotation.getRadians(), CENTER_RAD - Math.PI, CENTER_RAD + Math.PI);
+    double clampedSetpoint = MathUtil.clamp(setpoint, LOWER_LIMIT_RAD, UPPER_LIMIT_RAD);
     double clampedSetpointWithMargin =
-        MathUtil.clamp(setpoint, lowerLimitRad + marginRad, upperLimitRad - marginRad);
+        MathUtil.clamp(setpoint, LOWER_LIMIT_RAD + MARGIN_RAD, UPPER_LIMIT_RAD - MARGIN_RAD);
     oversaturation = setpoint - clampedSetpoint;
     oversaturationLessMargin = setpoint - clampedSetpointWithMargin;
     double feedforwardVolts =
-        RobotConstants.kNominalVoltage
+        RobotConstants.NOMINAL_VOLTAGE
             * angularVelocity.in(RadiansPerSecond)
-            / maxAngularVelocity.in(RadiansPerSecond);
+            / MAX_ANGULAR_VELOCITY.in(RadiansPerSecond);
     controller.setSetpoint(
         clampedSetpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforwardVolts);
   }
