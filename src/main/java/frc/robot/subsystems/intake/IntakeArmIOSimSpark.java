@@ -79,11 +79,6 @@ public class IntakeArmIOSimSpark implements IntakeArmIO {
     armSim.setInput(motorSim.getAppliedOutput() * busVoltage);
     armSim.update(Robot.defaultPeriodSecs);
 
-    if (motorSim.getPosition() > maxPosRad) {
-      armSim.setState(maxPosRad, 0.0);
-      motorSim.setPosition(maxPosRad);
-    }
-
     motorSim.iterate(armSim.getAngularVelocityRadPerSec(), busVoltage, Robot.defaultPeriodSecs);
 
     // Update inputs
