@@ -78,7 +78,10 @@ public class TurretIOSimSpark implements TurretIO {
             LinearSystemId.createDCMotorSystem(GEARBOX, TURRET_MOI_KG_M2, MOTOR_REDUCTION),
             GEARBOX);
 
-    turnSim.setState(2.0 * Math.PI - MECHANISM_OFFSET.getRadians(), 0);
+    double seedPosition =
+        MathUtil.inputModulus(
+            2.0 * Math.PI - MECHANISM_OFFSET.getRadians(), CENTER_RAD - Math.PI, CENTER_RAD + Math.PI);
+    turnSim.setState(seedPosition, 0);
     turnSparkSim.setPosition(turnSim.getAngularPositionRad());
   }
 
@@ -116,7 +119,9 @@ public class TurretIOSimSpark implements TurretIO {
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
     double setpoint =
         MathUtil.inputModulus(
-            rotation.getRadians() - MECHANISM_OFFSET.getRadians(), 0.0, 2.0 * Math.PI);
+            rotation.getRadians() - MECHANISM_OFFSET.getRadians(),
+            CENTER_RAD - Math.PI,
+            CENTER_RAD + Math.PI);
     double clampedSetpoint = MathUtil.clamp(setpoint, LOWER_LIMIT_RAD, UPPER_LIMIT_RAD);
     double clampedSetpointWithMargin =
         MathUtil.clamp(setpoint, LOWER_LIMIT_RAD + MARGIN_RAD, UPPER_LIMIT_RAD - MARGIN_RAD);

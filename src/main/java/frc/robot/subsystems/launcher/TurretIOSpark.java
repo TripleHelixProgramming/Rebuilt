@@ -98,12 +98,11 @@ public class TurretIOSpark implements TurretIO {
   @Override
   public void updateInputs(TurretIOInputs inputs) {
     if (!relativeEncoderSeeded && inputs.absoluteEncoderConnected) {
-      double center = (LOWER_LIMIT_RAD + UPPER_LIMIT_RAD) / 2.0;
       double seedPosition =
           MathUtil.inputModulus(
               absoluteEncoder.get() - MECHANISM_OFFSET.getRadians(),
-              center - Math.PI,
-              center + Math.PI);
+              CENTER_RAD - Math.PI,
+              CENTER_RAD + Math.PI);
       turnSparkEncoder.setPosition(seedPosition);
       relativeEncoderSeeded = true;
     }
@@ -134,12 +133,11 @@ public class TurretIOSpark implements TurretIO {
 
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
-    double center = (LOWER_LIMIT_RAD + UPPER_LIMIT_RAD) / 2.0;
     double setpoint =
         MathUtil.inputModulus(
             rotation.getRadians() - MECHANISM_OFFSET.getRadians(),
-            center - Math.PI,
-            center + Math.PI);
+            CENTER_RAD - Math.PI,
+            CENTER_RAD + Math.PI);
     double clampedSetpoint = MathUtil.clamp(setpoint, LOWER_LIMIT_RAD, UPPER_LIMIT_RAD);
     double clampedSetpointWithMargin =
         MathUtil.clamp(setpoint, LOWER_LIMIT_RAD + MARGIN_RAD, UPPER_LIMIT_RAD - MARGIN_RAD);

@@ -80,6 +80,7 @@ public final class LauncherConstants {
     public static final Rotation2d MECHANISM_OFFSET = Rotation2d.kZero;
     public static final double UPPER_LIMIT_RAD = Units.degreesToRadians(30);
     public static final double LOWER_LIMIT_RAD = Units.degreesToRadians(-280);
+    public static final double CENTER_RAD = (LOWER_LIMIT_RAD + UPPER_LIMIT_RAD) / 2.0;
     public static final double MARGIN_RAD = Units.degreesToRadians(5);
 
     // Position controller
