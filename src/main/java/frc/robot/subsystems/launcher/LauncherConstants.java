@@ -77,7 +77,6 @@ public final class LauncherConstants {
     public static final Transform3d CHASSIS_TO_TURRET_BASE =
         new Transform3d(Inches.of(-4.000), Inches.of(6.500), Inches.of(16.331), Rotation3d.kZero);
     public static final Rotation2d ABS_ENCODER_OFFSET = new Rotation2d(5.157 + 1.267);
-    public static final Rotation2d MECHANISM_OFFSET = Rotation2d.kZero;
     public static final double UPPER_LIMIT_RAD = Units.degreesToRadians(30);
     public static final double LOWER_LIMIT_RAD = Units.degreesToRadians(-280);
     public static final double CENTER_RAD = (LOWER_LIMIT_RAD + UPPER_LIMIT_RAD) / 2.0;

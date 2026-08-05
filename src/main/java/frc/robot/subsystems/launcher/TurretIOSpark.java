@@ -54,7 +54,7 @@ public class TurretIOSpark implements TurretIO {
         new DutyCycleEncoder(
             new DigitalInput(DIOPorts.TURRET_ABS_ENCODER),
             2 * Math.PI,
-            ABS_ENCODER_OFFSET.getRadians() + MECHANISM_OFFSET.getRadians());
+            ABS_ENCODER_OFFSET.getRadians());
 
     var turnConfig = new SparkMaxConfig();
 
@@ -99,16 +99,13 @@ public class TurretIOSpark implements TurretIO {
   public void updateInputs(TurretIOInputs inputs) {
     if (!relativeEncoderSeeded && inputs.absoluteEncoderConnected) {
       double seedPosition =
-          MathUtil.inputModulus(
-              absoluteEncoder.get() - MECHANISM_OFFSET.getRadians(),
-              CENTER_RAD - Math.PI,
-              CENTER_RAD + Math.PI);
+          MathUtil.inputModulus(absoluteEncoder.get(), CENTER_RAD - Math.PI, CENTER_RAD + Math.PI);
       turnSparkEncoder.setPosition(seedPosition);
       relativeEncoderSeeded = true;
     }
 
     // Read from cached values (non-blocking) - updated by SparkOdometryThread
-    inputs.relativePosition = new Rotation2d(sparkInputs.getPosition()).plus(MECHANISM_OFFSET);
+    inputs.relativePosition = new Rotation2d(sparkInputs.getPosition());
     inputs.velocityRadPerSec = sparkInputs.getVelocity();
     inputs.appliedVolts = sparkInputs.getAppliedVolts();
     inputs.currentAmps = sparkInputs.getOutputCurrent();
@@ -134,10 +131,7 @@ public class TurretIOSpark implements TurretIO {
   @Override
   public void setPosition(Rotation2d rotation, AngularVelocity angularVelocity) {
     double setpoint =
-        MathUtil.inputModulus(
-            rotation.getRadians() - MECHANISM_OFFSET.getRadians(),
-            CENTER_RAD - Math.PI,
-            CENTER_RAD + Math.PI);
+        MathUtil.inputModulus(rotation.getRadians(), CENTER_RAD - Math.PI, CENTER_RAD + Math.PI);
     double clampedSetpoint = MathUtil.clamp(setpoint, LOWER_LIMIT_RAD, UPPER_LIMIT_RAD);
     double clampedSetpointWithMargin =
         MathUtil.clamp(setpoint, LOWER_LIMIT_RAD + MARGIN_RAD, UPPER_LIMIT_RAD - MARGIN_RAD);
