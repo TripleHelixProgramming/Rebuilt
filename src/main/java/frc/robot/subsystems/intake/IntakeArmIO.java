@@ -24,8 +24,6 @@ public interface IntakeArmIO {
 
   public default void setPosition(Angle rotation, AngularVelocity velocity) {}
 
-  public default void setVelocity(AngularVelocity velocity) {}
-
   public default void configureSoftLimits(boolean enable) {}
 
   public default void resetEncoder() {}

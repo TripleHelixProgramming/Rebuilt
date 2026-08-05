@@ -130,12 +130,6 @@ public class IntakeArmIOSpark implements IntakeArmIO {
   }
 
   @Override
-  public void setVelocity(AngularVelocity velocity) {
-    controller.setSetpoint(
-        velocity.in(RadiansPerSecond), ControlType.kVelocity, ClosedLoopSlot.kSlot1);
-  }
-
-  @Override
   public void configureSoftLimits(boolean enable) {
     motorConfig.softLimit.forwardSoftLimitEnabled(enable);
     motorConfig.softLimit.reverseSoftLimitEnabled(enable);
