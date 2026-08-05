@@ -17,7 +17,6 @@ import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
-import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import frc.robot.Constants.MotorConstants.NEOConstants;
@@ -96,11 +95,6 @@ public class IntakeArmIOSimSpark implements IntakeArmIO {
   }
 
   @Override
-  public void setOpenLoop(Voltage volts) {
-    motorSim.setAppliedOutput(volts.in(Volts) / RobotConstants.NOMINAL_VOLTAGE);
-  }
-
-  @Override
   public void setPosition(Angle rotation, AngularVelocity velocity) {
     double feedforward =
         RobotConstants.NOMINAL_VOLTAGE
@@ -108,12 +102,6 @@ public class IntakeArmIOSimSpark implements IntakeArmIO {
             / maxAngularVelocity.in(RadiansPerSecond);
     controller.setSetpoint(
         rotation.magnitude(), ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforward);
-  }
-
-  @Override
-  public void configureSoftLimits(boolean enable) {
-    motorConfig.softLimit.forwardSoftLimitEnabled(enable);
-    motorConfig.softLimit.reverseSoftLimitEnabled(enable);
   }
 
   @Override

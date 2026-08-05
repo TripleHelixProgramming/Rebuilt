@@ -70,7 +70,6 @@ public class RollerIOSpark implements RollerIO {
   @Override
   public void setOpenLoop(Voltage volts) {
     flex.setVoltage(volts);
-    ;
   }
 
   @Override

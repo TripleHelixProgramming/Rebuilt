@@ -22,7 +22,6 @@ import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
-import edu.wpi.first.units.measure.Voltage;
 import frc.robot.Constants.MotorConstants.NEOConstants;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.util.SparkOdometryThread;
@@ -108,11 +107,6 @@ public class IntakeArmIOSpark implements IntakeArmIO {
   }
 
   @Override
-  public void setOpenLoop(Voltage volts) {
-    motor.setVoltage(volts);
-  }
-
-  @Override
   public void setPosition(Angle rotation, AngularVelocity velocity) {
     double feedforward =
         RobotConstants.NOMINAL_VOLTAGE
@@ -120,18 +114,6 @@ public class IntakeArmIOSpark implements IntakeArmIO {
             / maxAngularVelocity.in(RadiansPerSecond);
     double setpoint = MathUtil.clamp(rotation.magnitude(), minPosRad, maxPosRad);
     controller.setSetpoint(setpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforward);
-  }
-
-  @Override
-  public void configureSoftLimits(boolean enable) {
-    motorConfig.softLimit.forwardSoftLimitEnabled(enable);
-    motorConfig.softLimit.reverseSoftLimitEnabled(enable);
-    tryUntilOk(
-        motor,
-        5,
-        () ->
-            motor.configure(
-                motorConfig, ResetMode.kNoResetSafeParameters, PersistMode.kNoPersistParameters));
   }
 
   @Override

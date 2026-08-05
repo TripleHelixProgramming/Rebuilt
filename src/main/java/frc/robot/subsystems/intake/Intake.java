@@ -141,10 +141,6 @@ public class Intake extends SubsystemBase {
     armGoal = new State(minPosRad, 0.0);
   }
 
-  public Boolean isDeployed() {
-    return false;
-  }
-
   public boolean isStowed() {
     return false;
   }
@@ -222,22 +218,4 @@ public class Intake extends SubsystemBase {
             Commands.runOnce(this::deployArm, this))
         .repeatedly();
   }
-
-  // public Command initializeIntakeArmCommand() {
-  //   return new StartEndCommand(
-  //           // initialize
-  //           () -> {
-  //             intakeArmIO.configureSoftLimits(false);
-  //             intakeArmIO.setOpenLoop(Volts.of(1.0));
-  //           },
-  //           // end
-  //           () -> {
-  //             intakeArmIO.configureSoftLimits(true);
-  //             intakeArmIO.resetEncoder();
-  //           },
-  //           // requirements
-  //           this)
-  //       .withTimeout(1.0)
-  //       .withName("Initialize intake arm");
-  // }
 }
