@@ -78,6 +78,8 @@ public class IntakeConstants {
     // Motion profile
     public static final double PROFILE_MAX_VELOCITY = maxAngularVelocity.in(RadiansPerSecond);
     public static final double PROFILE_MAX_ACCELERATION = 20.0; // rad/s^2 — assumed, tune on robot
+    public static final double STOWED_TOLERANCE_RAD =
+        Degrees.of(5.0).in(Radians); // assumed, tune on robot
 
     // Configs
     public record ArmConfig(int port, CANBus bus, boolean inverted) {}

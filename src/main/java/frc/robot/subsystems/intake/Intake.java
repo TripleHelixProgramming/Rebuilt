@@ -156,8 +156,11 @@ public class Intake extends SubsystemBase {
     armGoal = new State(minPosRad, 0.0);
   }
 
+  /** True once both arms are seeded and measured within tolerance of the stowed position. */
   public boolean isStowed() {
-    return false;
+    return armSeeded
+        && MathUtil.isNear(minPosRad, leftArmInputs.position, STOWED_TOLERANCE_RAD)
+        && MathUtil.isNear(minPosRad, rightArmInputs.position, STOWED_TOLERANCE_RAD);
   }
 
   /**
