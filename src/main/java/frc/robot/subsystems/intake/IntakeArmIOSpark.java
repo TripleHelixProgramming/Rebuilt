@@ -111,7 +111,7 @@ public class IntakeArmIOSpark implements IntakeArmIO {
         RobotConstants.NOMINAL_VOLTAGE
                 * velocity.in(RadiansPerSecond)
                 / maxAngularVelocity.in(RadiansPerSecond)
-            + kG * Math.cos(rotation.magnitude());
+            + kG * Math.cos(relEncoder.getPosition());
     double setpoint = MathUtil.clamp(rotation.magnitude(), minPosRad, maxPosRad);
     controller.setSetpoint(setpoint, ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforward);
   }

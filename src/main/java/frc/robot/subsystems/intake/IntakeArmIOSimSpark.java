@@ -14,11 +14,10 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
-import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
-import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
+import edu.wpi.first.wpilibj.simulation.SingleJointedArmSim;
 import frc.robot.Constants.MotorConstants.NEOConstants;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
@@ -27,7 +26,7 @@ public class IntakeArmIOSimSpark implements IntakeArmIO {
   private static final double kP = 1.0;
   private static final double kD = 1.0;
 
-  private final DCMotorSim armSim;
+  private final SingleJointedArmSim armSim;
 
   private final SparkMax motor;
   private final SparkClosedLoopController controller;
@@ -66,9 +65,16 @@ public class IntakeArmIOSimSpark implements IntakeArmIO {
     motorSim = new SparkMaxSim(motor, gearbox);
 
     armSim =
-        new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
+        new SingleJointedArmSim(
+            gearbox,
+            motorReduction,
+            MOMENT_OF_INERTIA_KG_M2,
+            ARM_LENGTH_METERS,
+            minPosRad,
+            maxPosRad,
+            true,
+            0.0);
 
-    armSim.setState(0.0, 0.0);
     motorSim.setPosition(0.0);
   }
 
@@ -76,10 +82,10 @@ public class IntakeArmIOSimSpark implements IntakeArmIO {
   public void updateInputs(IntakeArmIOInputs inputs) {
     // Update simulation state
     double busVoltage = RoboRioSim.getVInVoltage();
-    armSim.setInput(motorSim.getAppliedOutput() * busVoltage);
+    armSim.setInputVoltage(motorSim.getAppliedOutput() * busVoltage);
     armSim.update(Robot.defaultPeriodSecs);
 
-    motorSim.iterate(armSim.getAngularVelocityRadPerSec(), busVoltage, Robot.defaultPeriodSecs);
+    motorSim.iterate(armSim.getVelocityRadPerSec(), busVoltage, Robot.defaultPeriodSecs);
 
     // Update inputs
     inputs.connected = true;
@@ -95,7 +101,7 @@ public class IntakeArmIOSimSpark implements IntakeArmIO {
         RobotConstants.NOMINAL_VOLTAGE
                 * velocity.in(RadiansPerSecond)
                 / maxAngularVelocity.in(RadiansPerSecond)
-            + kG * Math.cos(rotation.magnitude());
+            + kG * Math.cos(motorSim.getPosition());
     controller.setSetpoint(
         rotation.magnitude(), ControlType.kPosition, ClosedLoopSlot.kSlot0, feedforward);
   }

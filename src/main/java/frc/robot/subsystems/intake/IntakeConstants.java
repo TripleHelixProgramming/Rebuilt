@@ -81,6 +81,12 @@ public class IntakeConstants {
     // holding voltage — scales with cos(position) and drops to 0 at vertical (±90°).
     public static final double kG = 0.0; // volts — not yet measured, has no effect until tuned
 
+    // Sim physics. SingleJointedArmSim models the arm as a uniform rod pivoting at one end,
+    // giving it the same cos(position) gravity torque that kG compensates for on the real arm.
+    public static final double MOMENT_OF_INERTIA_KG_M2 = 0.004; // assumed, tune on robot
+    public static final double ARM_LENGTH_METERS =
+        0.4; // ~16in — assumed placeholder, tune on robot
+
     // Target positions. Motors and encoders are mounted inverted, so the raw range is flipped:
     // stowed reads as the top of the range and deployed reads as the bottom.
     public static final double STOWED_POS_RAD = maxPosRad;
