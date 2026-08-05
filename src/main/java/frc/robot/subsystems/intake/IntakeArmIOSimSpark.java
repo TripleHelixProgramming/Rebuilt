@@ -40,8 +40,8 @@ public class IntakeArmIOSimSpark implements IntakeArmIO {
   private final SparkMaxConfig followerConfig;
 
   public IntakeArmIOSimSpark() {
-    maxRight = new SparkMax(CAN2.intakeArmRight, MotorType.kBrushless);
-    maxLeft = new SparkMax(CAN2.intakeArmLeft, MotorType.kBrushless);
+    maxRight = new SparkMax(CAN2.INTAKE_ARM_RIGHT, MotorType.kBrushless);
+    maxLeft = new SparkMax(CAN2.INTAKE_ARM_LEFT, MotorType.kBrushless);
 
     controller = maxRight.getClosedLoopController();
 
@@ -50,8 +50,8 @@ public class IntakeArmIOSimSpark implements IntakeArmIO {
     armConfig
         .inverted(false)
         .idleMode(IdleMode.kBrake)
-        .smartCurrentLimit(NEOConstants.kDefaultSupplyCurrentLimit)
-        .voltageCompensation(RobotConstants.kNominalVoltage);
+        .smartCurrentLimit(NEOConstants.DEFAULT_SUPPLY_CURRENT_LIMIT)
+        .voltageCompensation(RobotConstants.NOMINAL_VOLTAGE);
 
     armConfig
         .encoder
@@ -69,7 +69,7 @@ public class IntakeArmIOSimSpark implements IntakeArmIO {
 
     followerConfig = new SparkMaxConfig();
 
-    followerConfig.apply(armConfig).follow(CAN2.intakeArmRight);
+    followerConfig.apply(armConfig).follow(CAN2.INTAKE_ARM_RIGHT);
 
     maxRight.configure(armConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     maxSim = new SparkMaxSim(maxRight, gearbox);
@@ -108,13 +108,13 @@ public class IntakeArmIOSimSpark implements IntakeArmIO {
 
   @Override
   public void setOpenLoop(Voltage volts) {
-    maxSim.setAppliedOutput(volts.in(Volts) / RobotConstants.kNominalVoltage);
+    maxSim.setAppliedOutput(volts.in(Volts) / RobotConstants.NOMINAL_VOLTAGE);
   }
 
   @Override
   public void setPosition(Angle rotation, AngularVelocity velocity) {
     double feedforward =
-        RobotConstants.kNominalVoltage
+        RobotConstants.NOMINAL_VOLTAGE
             * velocity.in(RadiansPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
     controller.setSetpoint(

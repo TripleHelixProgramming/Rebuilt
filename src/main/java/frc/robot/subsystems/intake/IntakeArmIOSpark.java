@@ -49,8 +49,8 @@ public class IntakeArmIOSpark implements IntakeArmIO {
   private boolean relativeEncoderSeeded = false;
 
   public IntakeArmIOSpark() {
-    intakeArmLeft = new SparkMax(CAN2.intakeArmLeft, MotorType.kBrushless);
-    intakeArmRight = new SparkMax(CAN2.intakeArmRight, MotorType.kBrushless);
+    intakeArmLeft = new SparkMax(CAN2.INTAKE_ARM_LEFT, MotorType.kBrushless);
+    intakeArmRight = new SparkMax(CAN2.INTAKE_ARM_RIGHT, MotorType.kBrushless);
     absoluteEncoder = intakeArmLeft.getAbsoluteEncoder();
     encoderSpark = intakeArmLeft.getEncoder();
     intakeArmController = intakeArmLeft.getClosedLoopController();
@@ -67,8 +67,8 @@ public class IntakeArmIOSpark implements IntakeArmIO {
     leftArmConfig
         .inverted(false)
         .idleMode(IdleMode.kBrake)
-        .smartCurrentLimit(NEOConstants.kDefaultSupplyCurrentLimit)
-        .voltageCompensation(RobotConstants.kNominalVoltage);
+        .smartCurrentLimit(NEOConstants.DEFAULT_SUPPLY_CURRENT_LIMIT)
+        .voltageCompensation(RobotConstants.NOMINAL_VOLTAGE);
 
     leftArmConfig
         .encoder
@@ -92,7 +92,7 @@ public class IntakeArmIOSpark implements IntakeArmIO {
 
     rightArmConfig = new SparkMaxConfig();
 
-    rightArmConfig.apply(leftArmConfig).follow(CAN2.intakeArmRight, true);
+    rightArmConfig.apply(leftArmConfig).follow(CAN2.INTAKE_ARM_RIGHT, true);
 
     leftArmConfig
         .signals
@@ -140,7 +140,7 @@ public class IntakeArmIOSpark implements IntakeArmIO {
   @Override
   public void setPosition(Angle rotation, AngularVelocity velocity) {
     double feedforward =
-        RobotConstants.kNominalVoltage
+        RobotConstants.NOMINAL_VOLTAGE
             * velocity.in(RadiansPerSecond)
             / maxAngularVelocity.in(RadiansPerSecond);
     double setpoint = MathUtil.clamp(rotation.magnitude(), minPosRad, maxPosRad);
