@@ -65,8 +65,8 @@ public class Intake extends SubsystemBase {
 
     upperRollerDisconnectedAlert = new Alert("Disconnected upper intake roller", AlertType.kError);
     lowerRollerDisconnectedAlert = new Alert("Disconnected lower intake roller", AlertType.kError);
-    leftArmDisconnectedAlert = new Alert("Disconnected intake arm", AlertType.kError);
-    rightArmDisconnectedAlert = new Alert("Disconnected intake arm", AlertType.kError);
+    leftArmDisconnectedAlert = new Alert("Disconnected left intake arm", AlertType.kError);
+    rightArmDisconnectedAlert = new Alert("Disconnected right intake arm", AlertType.kError);
     armSeedOutOfRangeAlert =
         new Alert(
             "Intake arm absolute encoder seed is outside the soft limit range — check"
