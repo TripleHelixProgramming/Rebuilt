@@ -75,6 +75,10 @@ public class IntakeConstants {
     public static final double maxPosRad = maxPos.in(Radians);
     public static final double minPosRad = minPos.in(Radians);
 
+    // Motion profile
+    public static final double PROFILE_MAX_VELOCITY = maxAngularVelocity.in(RadiansPerSecond);
+    public static final double PROFILE_MAX_ACCELERATION = 20.0; // rad/s^2 — assumed, tune on robot
+
     // Configs
     public record ArmConfig(int port, CANBus bus, boolean inverted) {}
 

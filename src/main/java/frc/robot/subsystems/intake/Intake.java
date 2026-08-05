@@ -1,16 +1,20 @@
 package frc.robot.subsystems.intake;
 
 import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.Radians;
 import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static edu.wpi.first.units.Units.Volts;
 import static frc.robot.subsystems.intake.IntakeConstants.ArmConstants.*;
 
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
+import edu.wpi.first.math.trajectory.TrapezoidProfile.State;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
+import frc.robot.Robot;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import org.littletonrobotics.junction.Logger;
@@ -30,6 +34,13 @@ public class Intake extends SubsystemBase {
   private final Alert lowerRollerDisconnectedAlert;
   private final Alert leftArmDisconnectedAlert;
   private final Alert rightArmDisconnectedAlert;
+
+  // Both arms independently follow the same profiled setpoint; commands only ever move the goal.
+  private final TrapezoidProfile armProfile =
+      new TrapezoidProfile(
+          new TrapezoidProfile.Constraints(PROFILE_MAX_VELOCITY, PROFILE_MAX_ACCELERATION));
+  private State armGoal = new State(minPosRad, 0.0);
+  private State armSetpoint = new State(minPosRad, 0.0);
 
   // Injected after both subsystems are created to avoid a circular dependency.
   // When set, getDeployCommand() and getReverseCommand() will deploy the hopper first if needed.
@@ -76,6 +87,15 @@ public class Intake extends SubsystemBase {
     Logger.recordOutput("Faults/Intake/LeftArmDisconnected", !leftArmInputs.connected);
     Logger.recordOutput("Faults/Intake/RightArmDisconnected", !rightArmInputs.connected);
 
+    // Advance the arm motion profile and drive both arms to the resulting setpoint. Commands
+    // never set arm position directly — they only move armGoal, and this is the sole place
+    // setPosition() is called.
+    armSetpoint = armProfile.calculate(Robot.defaultPeriodSecs, armSetpoint, armGoal);
+    leftArmIO.setPosition(
+        Radians.of(armSetpoint.position), RadiansPerSecond.of(armSetpoint.velocity));
+    rightArmIO.setPosition(
+        Radians.of(armSetpoint.position), RadiansPerSecond.of(armSetpoint.velocity));
+
     // Profiling output
     if (Constants.FeatureFlags.PROFILING_ENABLED) {
       long totalMs = (t2 - t0) / 1_000_000;
@@ -95,18 +115,15 @@ public class Intake extends SubsystemBase {
   public void stop() {
     upperRollerIO.setOpenLoop(Volts.of(0.0));
     lowerRollerIO.setOpenLoop(Volts.of(0.0));
-    leftArmIO.setPosition(minPos, RadiansPerSecond.of(0.0));
-    rightArmIO.setPosition(minPos, RadiansPerSecond.of(0.0));
+    armGoal = new State(minPosRad, 0.0);
   }
 
   public void deployArm() {
-    leftArmIO.setPosition(maxPos, RadiansPerSecond.of(0.0));
-    rightArmIO.setPosition(maxPos, RadiansPerSecond.of(0.0));
+    armGoal = new State(maxPosRad, 0.0);
   }
 
   public void retractArm() {
-    leftArmIO.setPosition(minPos, RadiansPerSecond.of(0.0));
-    rightArmIO.setPosition(minPos, RadiansPerSecond.of(0.0));
+    armGoal = new State(minPosRad, 0.0);
   }
 
   public Boolean isDeployed() {
