@@ -89,8 +89,8 @@ public class IntakeArmIOSimSpark implements IntakeArmIO {
 
     // Update inputs
     inputs.connected = true;
-    inputs.position = motorSim.getPosition();
-    inputs.velocityMetersPerSec = motorSim.getVelocity();
+    inputs.positionRad = motorSim.getPosition();
+    inputs.velocityRadPerSec = motorSim.getVelocity();
     inputs.appliedVolts = motorSim.getAppliedOutput() * motorSim.getBusVoltage();
     inputs.currentAmps = Math.abs(motorSim.getMotorCurrent());
   }

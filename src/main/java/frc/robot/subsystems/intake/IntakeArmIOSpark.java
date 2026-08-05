@@ -96,8 +96,8 @@ public class IntakeArmIOSpark implements IntakeArmIO {
 
   @Override
   public void updateInputs(IntakeArmIOInputs inputs) {
-    inputs.position = sparkInputs.getPosition();
-    inputs.velocityMetersPerSec = sparkInputs.getVelocity();
+    inputs.positionRad = sparkInputs.getPosition();
+    inputs.velocityRadPerSec = sparkInputs.getVelocity();
     inputs.appliedVolts = sparkInputs.getAppliedVolts();
     inputs.currentAmps = sparkInputs.getOutputCurrent();
     inputs.connected = connectedDebounce.calculate(sparkInputs.isConnected());
