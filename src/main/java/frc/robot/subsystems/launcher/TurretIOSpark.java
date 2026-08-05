@@ -98,7 +98,13 @@ public class TurretIOSpark implements TurretIO {
   @Override
   public void updateInputs(TurretIOInputs inputs) {
     if (!relativeEncoderSeeded && inputs.absoluteEncoderConnected) {
-      turnSparkEncoder.setPosition(absoluteEncoder.get());
+      double center = (LOWER_LIMIT_RAD + UPPER_LIMIT_RAD) / 2.0;
+      double seedPosition =
+          MathUtil.inputModulus(
+              absoluteEncoder.get() - MECHANISM_OFFSET.getRadians(),
+              center - Math.PI,
+              center + Math.PI);
+      turnSparkEncoder.setPosition(seedPosition);
       relativeEncoderSeeded = true;
     }
 
