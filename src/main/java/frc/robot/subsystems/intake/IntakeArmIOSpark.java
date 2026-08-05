@@ -43,8 +43,6 @@ public class IntakeArmIOSpark implements IntakeArmIO {
 
   private final Debouncer connectedDebounce = new Debouncer(0.5, Debouncer.DebounceType.kFalling);
 
-  private boolean relativeEncoderSeeded = false;
-
   public IntakeArmIOSpark(ArmConfig armConfig) {
     motor = new SparkMax(armConfig.port(), MotorType.kBrushless);
     absEncoder = motor.getAbsoluteEncoder();
@@ -100,11 +98,6 @@ public class IntakeArmIOSpark implements IntakeArmIO {
 
   @Override
   public void updateInputs(IntakeArmIOInputs inputs) {
-    if (!relativeEncoderSeeded) {
-      relEncoder.setPosition(absEncoder.getPosition());
-      relativeEncoderSeeded = true;
-    }
-
     inputs.position = sparkInputs.getPosition();
     inputs.velocityMetersPerSec = sparkInputs.getVelocity();
     inputs.appliedVolts = sparkInputs.getAppliedVolts();
@@ -142,7 +135,7 @@ public class IntakeArmIOSpark implements IntakeArmIO {
   }
 
   @Override
-  public void resetEncoder() {
-    relEncoder.setPosition(0.0);
+  public void resetEncoder(Angle position) {
+    relEncoder.setPosition(position.magnitude());
   }
 }

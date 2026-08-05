@@ -26,5 +26,5 @@ public interface IntakeArmIO {
 
   public default void configureSoftLimits(boolean enable) {}
 
-  public default void resetEncoder() {}
+  public default void resetEncoder(Angle position) {}
 }

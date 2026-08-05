@@ -117,7 +117,7 @@ public class IntakeArmIOSimSpark implements IntakeArmIO {
   }
 
   @Override
-  public void resetEncoder() {
-    motorSim.setPosition(maxPosRad);
+  public void resetEncoder(Angle position) {
+    motorSim.setPosition(position.magnitude());
   }
 }

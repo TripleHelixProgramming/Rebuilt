@@ -42,6 +42,10 @@ public class Intake extends SubsystemBase {
   private State armGoal = new State(minPosRad, 0.0);
   private State armSetpoint = new State(minPosRad, 0.0);
 
+  // Only the left arm's Spark has an absolute encoder wired up. Both arms' relative encoders,
+  // and the motion profile itself, are seeded from that one reading the first time it's valid.
+  private boolean armSeeded = false;
+
   // Injected after both subsystems are created to avoid a circular dependency.
   // When set, getDeployCommand() and getReverseCommand() will deploy the hopper first if needed.
   private BooleanSupplier hopperIsDeployed;
@@ -86,6 +90,17 @@ public class Intake extends SubsystemBase {
     Logger.recordOutput("Faults/Intake/LowerRollerDisconnected", !lowerRollerInputs.connected);
     Logger.recordOutput("Faults/Intake/LeftArmDisconnected", !leftArmInputs.connected);
     Logger.recordOutput("Faults/Intake/RightArmDisconnected", !rightArmInputs.connected);
+
+    // Seed both relative encoders, and the motion profile, from the left arm's absolute encoder
+    // once it reports connected. Runs once at boot.
+    if (!armSeeded && leftArmInputs.connected) {
+      double seedPositionRad = leftArmInputs.absolutePosition.getRadians();
+      leftArmIO.resetEncoder(Radians.of(seedPositionRad));
+      rightArmIO.resetEncoder(Radians.of(seedPositionRad));
+      armGoal = new State(seedPositionRad, 0.0);
+      armSetpoint = new State(seedPositionRad, 0.0);
+      armSeeded = true;
+    }
 
     // Advance the arm motion profile and drive both arms to the resulting setpoint. Commands
     // never set arm position directly — they only move armGoal, and this is the sole place
