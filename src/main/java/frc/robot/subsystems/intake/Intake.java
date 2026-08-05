@@ -41,8 +41,8 @@ public class Intake extends SubsystemBase {
   private final TrapezoidProfile armProfile =
       new TrapezoidProfile(
           new TrapezoidProfile.Constraints(PROFILE_MAX_VELOCITY, PROFILE_MAX_ACCELERATION));
-  private State armGoal = new State(minPosRad, 0.0);
-  private State armSetpoint = new State(minPosRad, 0.0);
+  private State armGoal = new State(STOWED_POS_RAD, 0.0);
+  private State armSetpoint = new State(STOWED_POS_RAD, 0.0);
 
   // Only the left arm's Spark has an absolute encoder wired up. Both arms' relative encoders,
   // and the motion profile itself, are seeded from that one reading the first time it's valid.
@@ -145,22 +145,22 @@ public class Intake extends SubsystemBase {
   public void stop() {
     upperRollerIO.setOpenLoop(Volts.of(0.0));
     lowerRollerIO.setOpenLoop(Volts.of(0.0));
-    armGoal = new State(minPosRad, 0.0);
+    armGoal = new State(STOWED_POS_RAD, 0.0);
   }
 
   public void deployArm() {
-    armGoal = new State(maxPosRad, 0.0);
+    armGoal = new State(DEPLOYED_POS_RAD, 0.0);
   }
 
   public void retractArm() {
-    armGoal = new State(minPosRad, 0.0);
+    armGoal = new State(STOWED_POS_RAD, 0.0);
   }
 
   /** True once both arms are seeded and measured within tolerance of the stowed position. */
   public boolean isStowed() {
     return armSeeded
-        && MathUtil.isNear(minPosRad, leftArmInputs.position, STOWED_TOLERANCE_RAD)
-        && MathUtil.isNear(minPosRad, rightArmInputs.position, STOWED_TOLERANCE_RAD);
+        && MathUtil.isNear(STOWED_POS_RAD, leftArmInputs.position, STOWED_TOLERANCE_RAD)
+        && MathUtil.isNear(STOWED_POS_RAD, rightArmInputs.position, STOWED_TOLERANCE_RAD);
   }
 
   /**

@@ -81,12 +81,17 @@ public class IntakeConstants {
     public static final double STOWED_TOLERANCE_RAD =
         Degrees.of(5.0).in(Radians); // assumed, tune on robot
 
+    // Target positions. Motors and encoders are mounted inverted, so the raw range is flipped:
+    // stowed reads as the top of the range and deployed reads as the bottom.
+    public static final double STOWED_POS_RAD = maxPosRad;
+    public static final double DEPLOYED_POS_RAD = minPosRad;
+
     // Configs
     public record ArmConfig(int port, CANBus bus, boolean inverted) {}
 
     public static final ArmConfig LEFT_ARM_CONFIG =
-        new ArmConfig(CAN2.INTAKE_ARM_LEFT, CAN2.BUS, false);
+        new ArmConfig(CAN2.INTAKE_ARM_LEFT, CAN2.BUS, true);
     public static final ArmConfig RIGHT_ARM_CONFIG =
-        new ArmConfig(CAN2.INTAKE_ARM_RIGHT, CAN2.BUS, true);
+        new ArmConfig(CAN2.INTAKE_ARM_RIGHT, CAN2.BUS, false);
   }
 }

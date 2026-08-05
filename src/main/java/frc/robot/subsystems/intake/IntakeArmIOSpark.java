@@ -50,6 +50,7 @@ public class IntakeArmIOSpark implements IntakeArmIO {
     absEncoderConfig = new AbsoluteEncoderConfig();
 
     absEncoderConfig
+        .inverted(true)
         .zeroOffset(absEncoderOffset)
         .positionConversionFactor(absEncoderPositionFactor)
         .velocityConversionFactor(absEncoderVelocityFactor);
