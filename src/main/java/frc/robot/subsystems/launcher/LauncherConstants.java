@@ -78,8 +78,8 @@ public final class LauncherConstants {
         new Transform3d(Inches.of(-4.000), Inches.of(6.500), Inches.of(16.331), Rotation3d.kZero);
     public static final Rotation2d ABS_ENCODER_OFFSET = new Rotation2d(5.157 + 1.267);
     public static final Rotation2d MECHANISM_OFFSET = Rotation2d.kZero;
-    public static final double UPPER_LIMIT_RAD = Units.degreesToRadians(100);
-    public static final double LOWER_LIMIT_RAD = Units.degreesToRadians(-10);
+    public static final double UPPER_LIMIT_RAD = Units.degreesToRadians(0);
+    public static final double LOWER_LIMIT_RAD = Units.degreesToRadians(-45);
     public static final double MARGIN_RAD = Units.degreesToRadians(5);
 
     // Position controller
