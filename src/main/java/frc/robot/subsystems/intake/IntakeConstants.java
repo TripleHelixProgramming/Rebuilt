@@ -6,7 +6,6 @@ import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.Slot1Configs;
 import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearVelocity;
@@ -69,11 +68,8 @@ public class IntakeConstants {
     public static final AngularVelocity maxAngularVelocity =
         RadiansPerSecond.of(gearbox.freeSpeedRadPerSec / motorReduction);
 
-    public static final Angle backlash = Degrees.of(0); // original was 25
-    public static final Angle maxPos = Degrees.of(110.0);
-    public static final Angle minPos = Degrees.of(0.0).minus(backlash);
-    public static final double maxPosRad = maxPos.in(Radians);
-    public static final double minPosRad = minPos.in(Radians);
+    public static final double maxPosRad = Degrees.of(110.0).in(Radians);
+    public static final double minPosRad = Degrees.of(0.0).in(Radians);
 
     // Motion profile
     public static final double PROFILE_MAX_VELOCITY = maxAngularVelocity.in(RadiansPerSecond);
