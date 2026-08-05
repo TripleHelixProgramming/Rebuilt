@@ -76,10 +76,27 @@ public final class LauncherConstants {
     // Geometry
     public static final Transform3d CHASSIS_TO_TURRET_BASE =
         new Transform3d(Inches.of(-4.000), Inches.of(6.500), Inches.of(16.331), Rotation3d.kZero);
-    public static final Rotation2d ABS_ENCODER_OFFSET = new Rotation2d(5.157);
-    public static final Rotation2d MECHANISM_OFFSET = Rotation2d.kZero;
-    public static final double UPPER_LIMIT_RAD = Units.degreesToRadians(270);
-    public static final double LOWER_LIMIT_RAD = Units.degreesToRadians(45);
+    // Turret angle convention: 0 / 2*pi rad = forward, increasing CCW (viewed from above),
+    // matching standard Rotation2d/WPILib handedness. All constants below are w/r/t forward.
+
+    // Calibration value chosen so the absolute encoder reads 0 / 2*pi when the turret is
+    // physically facing forward. To reclock after a mechanical rebuild or encoder reseat: point
+    // the turret forward by hand, read the raw absolute encoder value (with this offset backed
+    // out, i.e. temporarily zeroed), and set ABS_ENCODER_OFFSET to that raw reading.
+    public static final Rotation2d ABS_ENCODER_OFFSET = new Rotation2d(5.157 + 1.267);
+
+    // Soft limits of the mechanical range, measured CCW from forward (e.g. LOWER=-280 means the
+    // turret can travel 280 deg clockwise of forward). UPPER_LIMIT_RAD - LOWER_LIMIT_RAD must
+    // stay under 360 deg, or the wrap math below (CENTER_RAD, and its use in TurretIOSpark /
+    // TurretIOSimSpark) can no longer place every reachable angle in a single unambiguous branch.
+    public static final double UPPER_LIMIT_RAD = Units.degreesToRadians(30);
+    public static final double LOWER_LIMIT_RAD = Units.degreesToRadians(-280);
+
+    // Center of the operating range. Used to pick the modulus window ([CENTER-pi, CENTER+pi))
+    // that setpoints and the relative-encoder seed get wrapped into, so the branch cut always
+    // falls in the unreachable gap directly opposite the range rather than inside it. Derived
+    // automatically from the limits above - do not hand-edit when reclocking.
+    public static final double CENTER_RAD = (LOWER_LIMIT_RAD + UPPER_LIMIT_RAD) / 2.0;
     public static final double MARGIN_RAD = Units.degreesToRadians(5);
 
     // Position controller
