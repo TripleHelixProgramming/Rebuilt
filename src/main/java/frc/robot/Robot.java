@@ -68,6 +68,7 @@ import frc.robot.subsystems.intake.IntakeArmIO;
 import frc.robot.subsystems.intake.IntakeArmIOSimSpark;
 import frc.robot.subsystems.intake.IntakeArmIOSpark;
 import frc.robot.subsystems.intake.IntakeConstants;
+import frc.robot.subsystems.intake.IntakeConstants.ArmConstants;
 import frc.robot.subsystems.intake.IntakeConstants.RollerConstants;
 import frc.robot.subsystems.intake.RollerIO;
 import frc.robot.subsystems.intake.RollerIOSimSpark;
@@ -196,7 +197,8 @@ public class Robot extends LoggedRobot {
             new Intake(
                 new RollerIOSpark(RollerConstants.UPPER_ROLLER_CONFIG),
                 new RollerIOSpark(RollerConstants.LOWER_ROLLER_CONFIG),
-                new IntakeArmIOSpark());
+                new IntakeArmIOSpark(ArmConstants.LEFT_ARM_CONFIG),
+                new IntakeArmIOSpark(ArmConstants.RIGHT_ARM_CONFIG));
         feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
 
         // Start kernel log monitoring (singleton, starts automatically on first call)
@@ -237,7 +239,8 @@ public class Robot extends LoggedRobot {
             new Intake(
                 new RollerIOSimSpark(RollerConstants.UPPER_ROLLER_CONFIG),
                 new RollerIOSimSpark(RollerConstants.LOWER_ROLLER_CONFIG),
-                new IntakeArmIOSimSpark());
+                new IntakeArmIOSimSpark(ArmConstants.LEFT_ARM_CONFIG),
+                new IntakeArmIOSimSpark(ArmConstants.RIGHT_ARM_CONFIG));
         break;
 
       case REPLAY: // Replaying a log
@@ -272,7 +275,9 @@ public class Robot extends LoggedRobot {
                 new FlywheelIO() {},
                 new HoodIO() {});
         if (FeatureFlags.HOPPER_ENABLED) hopper = new Hopper(new HopperIO() {});
-        intake = new Intake(new RollerIO() {}, new RollerIO() {}, new IntakeArmIO() {});
+        intake =
+            new Intake(
+                new RollerIO() {}, new RollerIO() {}, new IntakeArmIO() {}, new IntakeArmIO() {});
         feeder = new Feeder(new SpindexerIO() {}, new KickerIO() {});
         break;
     }

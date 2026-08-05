@@ -18,29 +18,38 @@ import org.littletonrobotics.junction.Logger;
 public class Intake extends SubsystemBase {
   private final RollerIO upperRollerIO;
   private final RollerIO lowerRollerIO;
-  private final IntakeArmIO intakeArmIO;
+  private final IntakeArmIO leftArmIO;
+  private final IntakeArmIO rightArmIO;
 
   private final RollerIOInputsAutoLogged upperRollerInputs = new RollerIOInputsAutoLogged();
   private final RollerIOInputsAutoLogged lowerRollerInputs = new RollerIOInputsAutoLogged();
-  private final IntakeArmIOInputsAutoLogged intakeArmInputs = new IntakeArmIOInputsAutoLogged();
+  private final IntakeArmIOInputsAutoLogged leftArmInputs = new IntakeArmIOInputsAutoLogged();
+  private final IntakeArmIOInputsAutoLogged rightArmInputs = new IntakeArmIOInputsAutoLogged();
 
   private final Alert upperRollerDisconnectedAlert;
   private final Alert lowerRollerDisconnectedAlert;
-  private final Alert intakeArmDisconnectedAlert;
+  private final Alert leftArmDisconnectedAlert;
+  private final Alert rightArmDisconnectedAlert;
 
   // Injected after both subsystems are created to avoid a circular dependency.
   // When set, getDeployCommand() and getReverseCommand() will deploy the hopper first if needed.
   private BooleanSupplier hopperIsDeployed;
   private Supplier<Command> hopperDeployCommand;
 
-  public Intake(RollerIO upperRollerIO, RollerIO lowerRollerIO, IntakeArmIO intakeArmIO) {
+  public Intake(
+      RollerIO upperRollerIO,
+      RollerIO lowerRollerIO,
+      IntakeArmIO leftArmIO,
+      IntakeArmIO rightArmIO) {
     this.upperRollerIO = upperRollerIO;
     this.lowerRollerIO = lowerRollerIO;
-    this.intakeArmIO = intakeArmIO;
+    this.leftArmIO = leftArmIO;
+    this.rightArmIO = rightArmIO;
 
     upperRollerDisconnectedAlert = new Alert("Disconnected upper intake roller", AlertType.kError);
     lowerRollerDisconnectedAlert = new Alert("Disconnected lower intake roller", AlertType.kError);
-    intakeArmDisconnectedAlert = new Alert("Disconnected intake arm", AlertType.kError);
+    leftArmDisconnectedAlert = new Alert("Disconnected intake arm", AlertType.kError);
+    rightArmDisconnectedAlert = new Alert("Disconnected intake arm", AlertType.kError);
   }
 
   @Override
@@ -48,20 +57,24 @@ public class Intake extends SubsystemBase {
     long t0 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
     upperRollerIO.updateInputs(upperRollerInputs);
     lowerRollerIO.updateInputs(lowerRollerInputs);
-    intakeArmIO.updateInputs(intakeArmInputs);
+    leftArmIO.updateInputs(leftArmInputs);
+    rightArmIO.updateInputs(rightArmInputs);
     long t1 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     Logger.processInputs("UpperRoller", upperRollerInputs);
     Logger.processInputs("LowerRoller", lowerRollerInputs);
-    Logger.processInputs("IntakeArm", intakeArmInputs);
+    Logger.processInputs("LeftArm", leftArmInputs);
+    Logger.processInputs("RightArm", rightArmInputs);
     long t2 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     upperRollerDisconnectedAlert.set(!upperRollerInputs.connected);
     lowerRollerDisconnectedAlert.set(!lowerRollerInputs.connected);
-    intakeArmDisconnectedAlert.set(!intakeArmInputs.connected);
+    leftArmDisconnectedAlert.set(!leftArmInputs.connected);
+    rightArmDisconnectedAlert.set(!rightArmInputs.connected);
     Logger.recordOutput("Faults/Intake/UpperRollerDisconnected", !upperRollerInputs.connected);
     Logger.recordOutput("Faults/Intake/LowerRollerDisconnected", !lowerRollerInputs.connected);
-    Logger.recordOutput("Faults/Intake/IntakeArmDisconnected", !intakeArmInputs.connected);
+    Logger.recordOutput("Faults/Intake/LeftArmDisconnected", !leftArmInputs.connected);
+    Logger.recordOutput("Faults/Intake/RightArmDisconnected", !rightArmInputs.connected);
 
     // Profiling output
     if (Constants.FeatureFlags.PROFILING_ENABLED) {
@@ -82,15 +95,18 @@ public class Intake extends SubsystemBase {
   public void stop() {
     upperRollerIO.setOpenLoop(Volts.of(0.0));
     lowerRollerIO.setOpenLoop(Volts.of(0.0));
-    intakeArmIO.setPosition(minPos, RadiansPerSecond.of(0.0));
+    leftArmIO.setPosition(minPos, RadiansPerSecond.of(0.0));
+    rightArmIO.setPosition(minPos, RadiansPerSecond.of(0.0));
   }
 
   public void deployArm() {
-    intakeArmIO.setPosition(maxPos, RadiansPerSecond.of(0.0));
+    leftArmIO.setPosition(maxPos, RadiansPerSecond.of(0.0));
+    rightArmIO.setPosition(maxPos, RadiansPerSecond.of(0.0));
   }
 
   public void retractArm() {
-    intakeArmIO.setPosition(minPos, RadiansPerSecond.of(0.0));
+    leftArmIO.setPosition(minPos, RadiansPerSecond.of(0.0));
+    rightArmIO.setPosition(minPos, RadiansPerSecond.of(0.0));
   }
 
   public Boolean isDeployed() {

@@ -20,7 +20,6 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
-import frc.robot.Constants.CANBusPorts.CAN2;
 import frc.robot.Constants.MotorConstants.NEOConstants;
 import frc.robot.Constants.RobotConstants;
 import frc.robot.Robot;
@@ -31,84 +30,74 @@ public class IntakeArmIOSimSpark implements IntakeArmIO {
 
   private final DCMotorSim armSim;
 
-  private final SparkMax maxRight;
-  private final SparkMax maxLeft;
+  private final SparkMax motor;
   private final SparkClosedLoopController controller;
-  private final SparkMaxSim maxSim;
+  private final SparkMaxSim motorSim;
 
-  private final SparkMaxConfig armConfig;
-  private final SparkMaxConfig followerConfig;
+  private final SparkMaxConfig motorConfig;
 
-  public IntakeArmIOSimSpark() {
-    maxRight = new SparkMax(CAN2.INTAKE_ARM_RIGHT, MotorType.kBrushless);
-    maxLeft = new SparkMax(CAN2.INTAKE_ARM_LEFT, MotorType.kBrushless);
+  public IntakeArmIOSimSpark(ArmConfig armConfig) {
+    motor = new SparkMax(armConfig.port(), MotorType.kBrushless);
 
-    controller = maxRight.getClosedLoopController();
+    controller = motor.getClosedLoopController();
 
-    armConfig = new SparkMaxConfig();
+    motorConfig = new SparkMaxConfig();
 
-    armConfig
-        .inverted(false)
+    motorConfig
+        .inverted(armConfig.inverted())
         .idleMode(IdleMode.kBrake)
         .smartCurrentLimit(NEOConstants.DEFAULT_SUPPLY_CURRENT_LIMIT)
         .voltageCompensation(RobotConstants.NOMINAL_VOLTAGE);
 
-    armConfig
+    motorConfig
         .encoder
         .positionConversionFactor(encoderPositionFactor)
         .velocityConversionFactor(encoderVelocityFactor);
 
-    armConfig.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kP, 0.0, kD);
+    motorConfig.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kP, 0.0, kD);
 
-    armConfig
+    motorConfig
         .softLimit
         .forwardSoftLimit(maxPosRad)
         .forwardSoftLimitEnabled(true)
         .reverseSoftLimit(minPosRad)
         .reverseSoftLimitEnabled(true);
 
-    followerConfig = new SparkMaxConfig();
-
-    followerConfig.apply(armConfig).follow(CAN2.INTAKE_ARM_RIGHT);
-
-    maxRight.configure(armConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-    maxSim = new SparkMaxSim(maxRight, gearbox);
+    motor.configure(motorConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+    motorSim = new SparkMaxSim(motor, gearbox);
 
     armSim =
         new DCMotorSim(LinearSystemId.createDCMotorSystem(gearbox, 0.004, motorReduction), gearbox);
 
     armSim.setState(0.0, 0.0);
-    maxSim.setPosition(0.0);
-
-    maxLeft.configure(
-        followerConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+    motorSim.setPosition(0.0);
   }
 
   @Override
   public void updateInputs(IntakeArmIOInputs inputs) {
     // Update simulation state
     double busVoltage = RoboRioSim.getVInVoltage();
-    armSim.setInput(maxSim.getAppliedOutput() * busVoltage);
+    armSim.setInput(motorSim.getAppliedOutput() * busVoltage);
     armSim.update(Robot.defaultPeriodSecs);
 
-    if (maxSim.getPosition() > maxPosRad) {
+    if (motorSim.getPosition() > maxPosRad) {
       armSim.setState(maxPosRad, 0.0);
-      maxSim.setPosition(maxPosRad);
+      motorSim.setPosition(maxPosRad);
     }
 
-    maxSim.iterate(armSim.getAngularVelocityRadPerSec(), busVoltage, Robot.defaultPeriodSecs);
+    motorSim.iterate(armSim.getAngularVelocityRadPerSec(), busVoltage, Robot.defaultPeriodSecs);
 
     // Update inputs
     inputs.connected = true;
-    inputs.position = maxSim.getPosition();
-    inputs.velocityMetersPerSec = maxSim.getVelocity();
-    inputs.appliedVolts = maxSim.getAppliedOutput() * maxSim.getBusVoltage();
-    inputs.currentAmps = Math.abs(maxSim.getMotorCurrent());
+    inputs.position = motorSim.getPosition();
+    inputs.velocityMetersPerSec = motorSim.getVelocity();
+    inputs.appliedVolts = motorSim.getAppliedOutput() * motorSim.getBusVoltage();
+    inputs.currentAmps = Math.abs(motorSim.getMotorCurrent());
   }
 
   @Override
   public void setOpenLoop(Voltage volts) {
-    maxSim.setAppliedOutput(volts.in(Volts) / RobotConstants.NOMINAL_VOLTAGE);
+    motorSim.setAppliedOutput(volts.in(Volts) / RobotConstants.NOMINAL_VOLTAGE);
   }
 
   @Override
@@ -123,12 +112,12 @@ public class IntakeArmIOSimSpark implements IntakeArmIO {
 
   @Override
   public void configureSoftLimits(boolean enable) {
-    armConfig.softLimit.forwardSoftLimitEnabled(enable);
-    armConfig.softLimit.reverseSoftLimitEnabled(enable);
+    motorConfig.softLimit.forwardSoftLimitEnabled(enable);
+    motorConfig.softLimit.reverseSoftLimitEnabled(enable);
   }
 
   @Override
   public void resetEncoder() {
-    maxSim.setPosition(maxPosRad);
+    motorSim.setPosition(maxPosRad);
   }
 }

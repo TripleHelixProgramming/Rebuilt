@@ -74,5 +74,13 @@ public class IntakeConstants {
     public static final Angle minPos = Degrees.of(0.0).minus(backlash);
     public static final double maxPosRad = maxPos.in(Radians);
     public static final double minPosRad = minPos.in(Radians);
+
+    // Configs
+    public record ArmConfig(int port, CANBus bus, boolean inverted) {}
+
+    public static final ArmConfig LEFT_ARM_CONFIG =
+        new ArmConfig(CAN2.INTAKE_ARM_LEFT, CAN2.BUS, false);
+    public static final ArmConfig RIGHT_ARM_CONFIG =
+        new ArmConfig(CAN2.INTAKE_ARM_RIGHT, CAN2.BUS, true);
   }
 }
