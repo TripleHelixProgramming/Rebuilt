@@ -1,15 +1,22 @@
 package frc.robot.subsystems.intake;
 
 import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.Radians;
+import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static edu.wpi.first.units.Units.Volts;
+import static frc.robot.subsystems.intake.IntakeConstants.ArmConstants.*;
 
+import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.filter.LinearFilter;
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
+import edu.wpi.first.math.trajectory.TrapezoidProfile.State;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
-import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
+import frc.robot.Robot;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import org.littletonrobotics.junction.Logger;
@@ -17,27 +24,58 @@ import org.littletonrobotics.junction.Logger;
 public class Intake extends SubsystemBase {
   private final RollerIO upperRollerIO;
   private final RollerIO lowerRollerIO;
-  private final IntakeArmIO intakeArmIO;
+  private final IntakeArmIO leftArmIO;
+  private final IntakeArmIO rightArmIO;
 
   private final RollerIOInputsAutoLogged upperRollerInputs = new RollerIOInputsAutoLogged();
   private final RollerIOInputsAutoLogged lowerRollerInputs = new RollerIOInputsAutoLogged();
-  private final IntakeArmIOInputsAutoLogged intakeArmInputs = new IntakeArmIOInputsAutoLogged();
+  private final IntakeArmIOInputsAutoLogged leftArmInputs = new IntakeArmIOInputsAutoLogged();
+  private final IntakeArmIOInputsAutoLogged rightArmInputs = new IntakeArmIOInputsAutoLogged();
 
   private final Alert upperRollerDisconnectedAlert;
   private final Alert lowerRollerDisconnectedAlert;
+  private final Alert leftArmDisconnectedAlert;
+  private final Alert rightArmDisconnectedAlert;
+  private final Alert armSeedOutOfRangeAlert;
+
+  // Both arms independently follow the same profiled setpoint; commands only ever move the goal.
+  private final TrapezoidProfile armProfile =
+      new TrapezoidProfile(
+          new TrapezoidProfile.Constraints(PROFILE_MAX_VELOCITY, PROFILE_MAX_ACCELERATION));
+  private State armGoal = new State(STOWED_POS_RAD, 0.0);
+  private State armSetpoint = new State(STOWED_POS_RAD, 0.0);
+
+  // Only the left arm's Spark has an absolute encoder wired up. Both arms' relative encoders,
+  // and the motion profile itself, are seeded from that one reading once it's settled — its
+  // first CAN frame after connecting can be a stale default rather than a real sample.
+  private boolean armSeeded = false;
+  private final LinearFilter armSeedFilter = LinearFilter.movingAverage(ARM_SEED_SETTLE_SAMPLES);
+  private int armSeedSampleCount = 0;
 
   // Injected after both subsystems are created to avoid a circular dependency.
   // When set, getDeployCommand() and getReverseCommand() will deploy the hopper first if needed.
   private BooleanSupplier hopperIsDeployed;
   private Supplier<Command> hopperDeployCommand;
 
-  public Intake(RollerIO upperRollerIO, RollerIO lowerRollerIO, IntakeArmIO intakeArmIO) {
+  public Intake(
+      RollerIO upperRollerIO,
+      RollerIO lowerRollerIO,
+      IntakeArmIO leftArmIO,
+      IntakeArmIO rightArmIO) {
     this.upperRollerIO = upperRollerIO;
     this.lowerRollerIO = lowerRollerIO;
-    this.intakeArmIO = intakeArmIO;
+    this.leftArmIO = leftArmIO;
+    this.rightArmIO = rightArmIO;
 
     upperRollerDisconnectedAlert = new Alert("Disconnected upper intake roller", AlertType.kError);
     lowerRollerDisconnectedAlert = new Alert("Disconnected lower intake roller", AlertType.kError);
+    leftArmDisconnectedAlert = new Alert("Disconnected left intake arm", AlertType.kError);
+    rightArmDisconnectedAlert = new Alert("Disconnected right intake arm", AlertType.kError);
+    armSeedOutOfRangeAlert =
+        new Alert(
+            "Intake arm absolute encoder seed is outside the soft limit range — check"
+                + " absEncoderOffset",
+            AlertType.kWarning);
   }
 
   @Override
@@ -45,18 +83,61 @@ public class Intake extends SubsystemBase {
     long t0 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
     upperRollerIO.updateInputs(upperRollerInputs);
     lowerRollerIO.updateInputs(lowerRollerInputs);
-    intakeArmIO.updateInputs(intakeArmInputs);
+    leftArmIO.updateInputs(leftArmInputs);
+    rightArmIO.updateInputs(rightArmInputs);
     long t1 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     Logger.processInputs("UpperRoller", upperRollerInputs);
     Logger.processInputs("LowerRoller", lowerRollerInputs);
-    Logger.processInputs("IntakeArm", intakeArmInputs);
+    Logger.processInputs("LeftArm", leftArmInputs);
+    Logger.processInputs("RightArm", rightArmInputs);
     long t2 = Constants.FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     upperRollerDisconnectedAlert.set(!upperRollerInputs.connected);
     lowerRollerDisconnectedAlert.set(!lowerRollerInputs.connected);
+    leftArmDisconnectedAlert.set(!leftArmInputs.connected);
+    rightArmDisconnectedAlert.set(!rightArmInputs.connected);
     Logger.recordOutput("Faults/Intake/UpperRollerDisconnected", !upperRollerInputs.connected);
     Logger.recordOutput("Faults/Intake/LowerRollerDisconnected", !lowerRollerInputs.connected);
+    Logger.recordOutput("Faults/Intake/LeftArmDisconnected", !leftArmInputs.connected);
+    Logger.recordOutput("Faults/Intake/RightArmDisconnected", !rightArmInputs.connected);
+
+    // Seed both relative encoders, and the motion profile, from the left arm's absolute encoder
+    // once it reports connected and its reading has settled. The first CAN frame(s) after
+    // connecting can be a stale default rather than a real sample, so those are discarded outright
+    // — never fed to the moving average — and only samples known to be past that go into the
+    // average the seed actually trusts. The settled reading is clamped into the soft limit range
+    // so a miscalibrated absEncoderOffset can't seed a position the arm can never leave;
+    // armSeedOutOfRangeAlert flags when that clamp did something.
+    if (!armSeeded && leftArmInputs.connected) {
+      armSeedSampleCount++;
+      if (armSeedSampleCount > ARM_SEED_DISCARD_SAMPLES) {
+        double filteredSeedPositionRad =
+            armSeedFilter.calculate(leftArmInputs.absolutePosition.getRadians());
+        if (armSeedSampleCount >= ARM_SEED_DISCARD_SAMPLES + ARM_SEED_SETTLE_SAMPLES) {
+          double seedPositionRad = MathUtil.clamp(filteredSeedPositionRad, minPosRad, maxPosRad);
+          armSeedOutOfRangeAlert.set(seedPositionRad != filteredSeedPositionRad);
+          leftArmIO.resetEncoder(Radians.of(seedPositionRad));
+          rightArmIO.resetEncoder(Radians.of(seedPositionRad));
+          armGoal = new State(seedPositionRad, 0.0);
+          armSetpoint = new State(seedPositionRad, 0.0);
+          armSeeded = true;
+        }
+      }
+    }
+
+    // Advance the arm motion profile and drive both arms to the resulting setpoint. Commands
+    // never set arm position directly — they only move armGoal, and this is the sole place
+    // setPosition() is called. Nothing drives the arm until it's seeded: both Sparks hold their
+    // last commanded state (brake mode, no output) rather than closing a position loop against
+    // the unseeded, false-zero relative encoder.
+    if (armSeeded) {
+      armSetpoint = armProfile.calculate(Robot.defaultPeriodSecs, armSetpoint, armGoal);
+      leftArmIO.setPosition(
+          Radians.of(armSetpoint.position), RadiansPerSecond.of(armSetpoint.velocity));
+      rightArmIO.setPosition(
+          Radians.of(armSetpoint.position), RadiansPerSecond.of(armSetpoint.velocity));
+    }
 
     // Profiling output
     if (Constants.FeatureFlags.PROFILING_ENABLED) {
@@ -77,23 +158,22 @@ public class Intake extends SubsystemBase {
   public void stop() {
     upperRollerIO.setOpenLoop(Volts.of(0.0));
     lowerRollerIO.setOpenLoop(Volts.of(0.0));
-    intakeArmIO.retract();
+    armGoal = new State(STOWED_POS_RAD, 0.0);
   }
 
   public void deployArm() {
-    intakeArmIO.deploy();
+    armGoal = new State(DEPLOYED_POS_RAD, 0.0);
   }
 
   public void retractArm() {
-    intakeArmIO.retract();
+    armGoal = new State(STOWED_POS_RAD, 0.0);
   }
 
-  public Boolean isDeployed() {
-    return intakeArmInputs.isDeployed == DoubleSolenoid.Value.kForward;
-  }
-
+  /** True once both arms are seeded and measured within tolerance of the stowed position. */
   public boolean isStowed() {
-    return intakeArmInputs.isDeployed == DoubleSolenoid.Value.kReverse;
+    return armSeeded
+        && MathUtil.isNear(STOWED_POS_RAD, leftArmInputs.positionRad, STOWED_TOLERANCE_RAD)
+        && MathUtil.isNear(STOWED_POS_RAD, rightArmInputs.positionRad, STOWED_TOLERANCE_RAD);
   }
 
   /**
@@ -135,7 +215,10 @@ public class Intake extends SubsystemBase {
 
   /** Returns the total motor current draw for battery simulation. */
   public double getSimCurrentDrawAmps() {
-    return upperRollerInputs.currentAmps + lowerRollerInputs.currentAmps;
+    return upperRollerInputs.currentAmps
+        + lowerRollerInputs.currentAmps
+        + leftArmInputs.currentAmps
+        + rightArmInputs.currentAmps;
   }
 
   public Command getReverseCommand() {

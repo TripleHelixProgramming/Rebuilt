@@ -103,6 +103,8 @@ public final class Constants {
       // Intake
       public static final int INTAKE_ROLLER_LOWER = 22;
       public static final int INTAKE_ROLLER_UPPER = 23;
+      public static final int INTAKE_ARM_RIGHT = 27;
+      public static final int INTAKE_ARM_LEFT = 26;
     }
 
     public static final class CANHD {

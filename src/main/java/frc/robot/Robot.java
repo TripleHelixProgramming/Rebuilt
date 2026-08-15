@@ -7,12 +7,10 @@ import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
-import edu.wpi.first.wpilibj.PneumaticsModuleType;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.event.EventLoop;
 import edu.wpi.first.wpilibj.simulation.BatterySim;
-import edu.wpi.first.wpilibj.simulation.REVPHSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -33,7 +31,6 @@ import frc.lib.ControllerSelector.ControllerType;
 import frc.lib.ControllerSelector.DriverConfig;
 import frc.lib.ControllerSelector.DriverController;
 import frc.lib.ControllerSelector.OperatorConfig;
-import frc.lib.LoggedCompressor;
 import frc.lib.LoggedPowerDistribution;
 import frc.lib.ZorroController.Axis;
 import frc.robot.Constants.CANBusPorts.CAN2;
@@ -68,9 +65,10 @@ import frc.robot.subsystems.hopper.HopperIOReal;
 import frc.robot.subsystems.hopper.HopperIOSim;
 import frc.robot.subsystems.intake.Intake;
 import frc.robot.subsystems.intake.IntakeArmIO;
-import frc.robot.subsystems.intake.IntakeArmIOReal;
-import frc.robot.subsystems.intake.IntakeArmIOSim;
+import frc.robot.subsystems.intake.IntakeArmIOSimSpark;
+import frc.robot.subsystems.intake.IntakeArmIOSpark;
 import frc.robot.subsystems.intake.IntakeConstants;
+import frc.robot.subsystems.intake.IntakeConstants.ArmConstants;
 import frc.robot.subsystems.intake.IntakeConstants.RollerConstants;
 import frc.robot.subsystems.intake.RollerIO;
 import frc.robot.subsystems.intake.RollerIOSimSpark;
@@ -139,8 +137,6 @@ public class Robot extends LoggedRobot {
   private Intake intake;
   private Hopper hopper;
   private LEDController leds = LEDController.getInstance();
-  private LoggedCompressor compressor;
-  private PneumaticsSimulator pneumaticsSimulator;
 
   // Battery simulation constants
   private static final double ELECTRONICS_OVERHEAD_AMPS = 4.5; // RoboRIO + radio + PDH + misc
@@ -201,9 +197,9 @@ public class Robot extends LoggedRobot {
             new Intake(
                 new RollerIOSpark(RollerConstants.UPPER_ROLLER_CONFIG),
                 new RollerIOSpark(RollerConstants.LOWER_ROLLER_CONFIG),
-                new IntakeArmIOReal());
+                new IntakeArmIOSpark(ArmConstants.LEFT_ARM_CONFIG),
+                new IntakeArmIOSpark(ArmConstants.RIGHT_ARM_CONFIG));
         feeder = new Feeder(new SpindexerIOSpark(), new KickerIOSpark());
-        compressor = new LoggedCompressor(PneumaticsModuleType.REVPH, "Compressor");
 
         // Start kernel log monitoring (singleton, starts automatically on first call)
         KernelLogMonitor.getInstance();
@@ -239,14 +235,12 @@ public class Robot extends LoggedRobot {
                 new HoodIOSimSpark());
         feeder = new Feeder(new SpindexerIOSimSpark(), new KickerIOSimSpark());
         if (FeatureFlags.HOPPER_ENABLED) hopper = new Hopper(new HopperIOSim());
-        var intakeArmIOSim = new IntakeArmIOSim();
         intake =
             new Intake(
                 new RollerIOSimSpark(RollerConstants.UPPER_ROLLER_CONFIG),
                 new RollerIOSimSpark(RollerConstants.LOWER_ROLLER_CONFIG),
-                intakeArmIOSim);
-        pneumaticsSimulator =
-            new PneumaticsSimulator(intakeArmIOSim.intakeArmPneumatic, new REVPHSim(1));
+                new IntakeArmIOSimSpark(ArmConstants.LEFT_ARM_CONFIG),
+                new IntakeArmIOSimSpark(ArmConstants.RIGHT_ARM_CONFIG));
         break;
 
       case REPLAY: // Replaying a log
@@ -281,7 +275,9 @@ public class Robot extends LoggedRobot {
                 new FlywheelIO() {},
                 new HoodIO() {});
         if (FeatureFlags.HOPPER_ENABLED) hopper = new Hopper(new HopperIO() {});
-        intake = new Intake(new RollerIO() {}, new RollerIO() {}, new IntakeArmIO() {});
+        intake =
+            new Intake(
+                new RollerIO() {}, new RollerIO() {}, new IntakeArmIO() {}, new IntakeArmIO() {});
         feeder = new Feeder(new SpindexerIO() {}, new KickerIO() {});
         break;
     }
@@ -348,7 +344,6 @@ public class Robot extends LoggedRobot {
     logCANBus("CAN2", Constants.CANBusPorts.CAN2.BUS);
     logCANBus("CANHD", Constants.CANBusPorts.CANHD.BUS);
     powerDistribution.log();
-    if (compressor != null) compressor.log();
     logHIDs();
     logScheduler();
 
@@ -437,9 +432,6 @@ public class Robot extends LoggedRobot {
   public void teleopPeriodic() {
     leds.displayHubCountdown();
     leds.displayRobotState(() -> launcher.isOnTarget(), () -> feeder.isSpinning());
-    if (!DriverStation.isFMSAttached()) {
-      leds.displayCompressorState(compressor != null && compressor.isEnabled());
-    }
   }
 
   /** This function is called once when test mode is enabled. */
@@ -466,11 +458,8 @@ public class Robot extends LoggedRobot {
   /** This function is called periodically whilst in simulation. */
   @Override
   public void simulationPeriodic() {
-    // Skip battery simulation during replay (pneumaticsSimulator is only initialized in SIM mode)
-    if (pneumaticsSimulator == null) return;
 
     // Update battery voltage based on total current draw this cycle
-    pneumaticsSimulator.update(Robot.defaultPeriodSecs);
     RoboRioSim.setVInVoltage(
         vBusFilter.calculate(
             Math.max(
@@ -480,7 +469,6 @@ public class Robot extends LoggedRobot {
                     launcher.getSimCurrentDrawAmps(),
                     feeder.getSimCurrentDrawAmps(),
                     intake.getSimCurrentDrawAmps(),
-                    pneumaticsSimulator.getCompressorCurrentAmps(),
                     ELECTRONICS_OVERHEAD_AMPS))));
   }
 
