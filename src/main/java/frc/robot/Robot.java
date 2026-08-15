@@ -316,13 +316,7 @@ public class Robot extends LoggedRobot {
     feeder.setDefaultCommand(Commands.startEnd(feeder::stop, () -> {}, feeder).withName("Stop"));
     intake.setDefaultCommand(intake.getDefaultCommand());
     launcher.setDefaultCommand(
-        launcher
-            .initializeHoodCommand()
-            .andThen(
-                new RunCommand(
-                        () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()),
-                        launcher)
-                    .withName("Aim at hub")));
+        Commands.startEnd(launcher::stop, () -> {}, launcher).withName("Stop"));
   }
 
   /** This function is called periodically during all modes. */
@@ -541,25 +535,29 @@ public class Robot extends LoggedRobot {
     // Desaturate turret and advance feeder
     zorroDriver.AIn(loop).whileTrue(createDesaturateAndShootCommand(controller));
 
-    // Launcher
+    // Launcher: dial-enabled off the field, always on once connected to the FMS
     Trigger launcherEnabled =
         zorroDriver.axisGreaterThan(Axis.kLeftDial.value, 0.5, loop).debounce(0.1);
-    launcherEnabled
-        .or(() -> DriverStation.isFMSAttached())
-        .whileTrue(
-            launcher
-                .initializeHoodCommand()
-                .andThen(
-                    new RunCommand(
-                            () ->
-                                launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()),
-                            launcher)
-                        .withName("Aim at hub")));
+    launcherEnabled.or(() -> DriverStation.isFMSAttached()).whileTrue(aimAtHubCommand());
 
     // Intake
     zorroDriver.HIn(loop).whileTrue(intake.getDeployCommand());
 
     return controller;
+  }
+
+  /**
+   * Builds the launcher's "aim at hub" command: initializes the hood, then continuously tracks the
+   * hub target. Requires the launcher subsystem.
+   */
+  private Command aimAtHubCommand() {
+    return launcher
+        .initializeHoodCommand()
+        .andThen(
+            new RunCommand(
+                    () -> launcher.aim(GameState.getTarget(drive.getPose()).getTranslation()),
+                    launcher)
+                .withName("Aim at hub"));
   }
 
   public DriverController bindXboxDriver(int port, EventLoop loop) {
@@ -672,6 +670,9 @@ public class Robot extends LoggedRobot {
     // Intake
     xboxDriver.rightBumper(loop).whileTrue(intake.getDeployCommand());
 
+    // Launcher: no dial to gate it on this controller, so aim unconditionally
+    new Trigger(loop, () -> true).whileTrue(aimAtHubCommand());
+
     return controller;
   }
 
@@ -717,6 +718,9 @@ public class Robot extends LoggedRobot {
         .button(1, loop)
         .onTrue(
             Commands.runOnce(() -> DriveCommands.resetDriverForward(drive)).ignoringDisable(true));
+
+    // Launcher: no dial to gate it on this controller, so aim unconditionally
+    new Trigger(loop, () -> true).whileTrue(aimAtHubCommand());
 
     return controller;
   }
