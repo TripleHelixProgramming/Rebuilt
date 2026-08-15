@@ -62,14 +62,27 @@ public class IntakeConstants {
     public static final double absEncoderPositionFactor = 2 * Math.PI;
     public static final double absEncoderVelocityFactor = (2 * Math.PI) / 60.0;
 
-    public static final double absEncoderOffset = 0;
+    // Measured on the bench: raw absolute-encoder reading at horizontal (0 rad — see the kG
+    // feedforward comment below), in rotations. Averaged from two 5-second pauses at horizontal,
+    // approached from opposite directions, which agreed within ~7° of each other.
+    public static final double absEncoderOffset = 0.7297;
+
+    // Seed settling. The absolute encoder's first CAN frame(s) after connecting can be a stale
+    // default rather than a real reading, so those samples are discarded outright — never fed to
+    // the moving average — before the average starts filling on samples known to be past that.
+    public static final int ARM_SEED_DISCARD_SAMPLES = 5; // 0.1s @ 50Hz
+    public static final int ARM_SEED_SETTLE_SAMPLES = 25; // 0.5s @ 50Hz, after the discard
 
     public static final DCMotor gearbox = DCMotor.getNEO(2);
     public static final AngularVelocity maxAngularVelocity =
         RadiansPerSecond.of(gearbox.freeSpeedRadPerSec / motorReduction);
 
-    public static final double maxPosRad = Degrees.of(110.0).in(Radians);
-    public static final double minPosRad = Degrees.of(0.0).in(Radians);
+    // Measured on the bench with the absolute encoder, relative to horizontal (0): the stowed and
+    // deployed hardstops, each held for 5 seconds. Deployed sits past horizontal, not at it — the
+    // gravity feedforward's zero reference is a physical fact about the mechanism, not a hardstop.
+    // No margin included — these are the exact hand-measured hardstop positions.
+    public static final double maxPosRad = Degrees.of(81.0).in(Radians);
+    public static final double minPosRad = Degrees.of(-51.7).in(Radians);
 
     // Motion profile
     public static final double PROFILE_MAX_VELOCITY = maxAngularVelocity.in(RadiansPerSecond);
@@ -98,11 +111,12 @@ public class IntakeConstants {
     public static final double DEPLOYED_POS_RAD = minPosRad;
 
     // Configs
-    public record ArmConfig(int port, CANBus bus, boolean inverted) {}
+    // Only the left arm's Spark has an absolute encoder wired up; see Intake's seeding comment.
+    public record ArmConfig(int port, CANBus bus, boolean inverted, boolean hasAbsoluteEncoder) {}
 
     public static final ArmConfig LEFT_ARM_CONFIG =
-        new ArmConfig(CAN2.INTAKE_ARM_LEFT, CAN2.BUS, true);
+        new ArmConfig(CAN2.INTAKE_ARM_LEFT, CAN2.BUS, false, true);
     public static final ArmConfig RIGHT_ARM_CONFIG =
-        new ArmConfig(CAN2.INTAKE_ARM_RIGHT, CAN2.BUS, false);
+        new ArmConfig(CAN2.INTAKE_ARM_RIGHT, CAN2.BUS, true, false);
   }
 }

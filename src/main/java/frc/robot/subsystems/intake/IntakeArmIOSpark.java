@@ -43,17 +43,20 @@ public class IntakeArmIOSpark implements IntakeArmIO {
 
   public IntakeArmIOSpark(ArmConfig armConfig) {
     motor = new SparkMax(armConfig.port(), MotorType.kBrushless);
-    absEncoder = motor.getAbsoluteEncoder();
+    absEncoder = armConfig.hasAbsoluteEncoder() ? motor.getAbsoluteEncoder() : null;
     relEncoder = motor.getEncoder();
     controller = motor.getClosedLoopController();
 
     absEncoderConfig = new AbsoluteEncoderConfig();
 
-    absEncoderConfig
-        .inverted(true)
-        .zeroOffset(absEncoderOffset)
-        .positionConversionFactor(absEncoderPositionFactor)
-        .velocityConversionFactor(absEncoderVelocityFactor);
+    if (armConfig.hasAbsoluteEncoder()) {
+      // AbsoluteEncoderConfig.inverted() only applies in brushed mode (see its javadoc); this
+      // is a brushless NEO.
+      absEncoderConfig
+          .zeroOffset(absEncoderOffset)
+          .positionConversionFactor(absEncoderPositionFactor)
+          .velocityConversionFactor(absEncoderVelocityFactor);
+    }
 
     motorConfig = new SparkMaxConfig();
 
@@ -68,7 +71,9 @@ public class IntakeArmIOSpark implements IntakeArmIO {
         .positionConversionFactor(encoderPositionFactor)
         .velocityConversionFactor(encoderVelocityFactor);
 
-    motorConfig.absoluteEncoder.apply(absEncoderConfig);
+    if (armConfig.hasAbsoluteEncoder()) {
+      motorConfig.absoluteEncoder.apply(absEncoderConfig);
+    }
 
     motorConfig
         .closedLoop
@@ -102,7 +107,13 @@ public class IntakeArmIOSpark implements IntakeArmIO {
     inputs.currentAmps = sparkInputs.getOutputCurrent();
     inputs.connected = connectedDebounce.calculate(sparkInputs.isConnected());
 
-    inputs.absolutePosition = new Rotation2d(absEncoder.getPosition());
+    if (absEncoder != null) {
+      // The absolute encoder is a separate physical sensor from the relative encoder, so
+      // armConfig.inverted() (which flips the relative encoder's sign, along with motor output)
+      // has no effect on it. Measured on the bench: absEncoder.getPosition() decreases as the
+      // arm moves from stowed to deployed, matching the relative encoder's convention.
+      inputs.absolutePosition = new Rotation2d(absEncoder.getPosition());
+    }
   }
 
   @Override

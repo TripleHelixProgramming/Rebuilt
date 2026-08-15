@@ -7,6 +7,7 @@ import static edu.wpi.first.units.Units.Volts;
 import static frc.robot.subsystems.intake.IntakeConstants.ArmConstants.*;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.State;
 import edu.wpi.first.wpilibj.Alert;
@@ -45,8 +46,11 @@ public class Intake extends SubsystemBase {
   private State armSetpoint = new State(STOWED_POS_RAD, 0.0);
 
   // Only the left arm's Spark has an absolute encoder wired up. Both arms' relative encoders,
-  // and the motion profile itself, are seeded from that one reading the first time it's valid.
+  // and the motion profile itself, are seeded from that one reading once it's settled — its
+  // first CAN frame after connecting can be a stale default rather than a real sample.
   private boolean armSeeded = false;
+  private final LinearFilter armSeedFilter = LinearFilter.movingAverage(ARM_SEED_SETTLE_SAMPLES);
+  private int armSeedSampleCount = 0;
 
   // Injected after both subsystems are created to avoid a circular dependency.
   // When set, getDeployCommand() and getReverseCommand() will deploy the hopper first if needed.
@@ -99,18 +103,27 @@ public class Intake extends SubsystemBase {
     Logger.recordOutput("Faults/Intake/RightArmDisconnected", !rightArmInputs.connected);
 
     // Seed both relative encoders, and the motion profile, from the left arm's absolute encoder
-    // once it reports connected. Runs once at boot. The reading is clamped into the soft limit
-    // range so a miscalibrated absEncoderOffset can't seed a position the arm can never leave;
-    // armSeedOutOfRangeAlert flags when that clamp actually did something.
+    // once it reports connected and its reading has settled. The first CAN frame(s) after
+    // connecting can be a stale default rather than a real sample, so those are discarded outright
+    // — never fed to the moving average — and only samples known to be past that go into the
+    // average the seed actually trusts. The settled reading is clamped into the soft limit range
+    // so a miscalibrated absEncoderOffset can't seed a position the arm can never leave;
+    // armSeedOutOfRangeAlert flags when that clamp did something.
     if (!armSeeded && leftArmInputs.connected) {
-      double rawSeedPositionRad = leftArmInputs.absolutePosition.getRadians();
-      double seedPositionRad = MathUtil.clamp(rawSeedPositionRad, minPosRad, maxPosRad);
-      armSeedOutOfRangeAlert.set(seedPositionRad != rawSeedPositionRad);
-      leftArmIO.resetEncoder(Radians.of(seedPositionRad));
-      rightArmIO.resetEncoder(Radians.of(seedPositionRad));
-      armGoal = new State(seedPositionRad, 0.0);
-      armSetpoint = new State(seedPositionRad, 0.0);
-      armSeeded = true;
+      armSeedSampleCount++;
+      if (armSeedSampleCount > ARM_SEED_DISCARD_SAMPLES) {
+        double filteredSeedPositionRad =
+            armSeedFilter.calculate(leftArmInputs.absolutePosition.getRadians());
+        if (armSeedSampleCount >= ARM_SEED_DISCARD_SAMPLES + ARM_SEED_SETTLE_SAMPLES) {
+          double seedPositionRad = MathUtil.clamp(filteredSeedPositionRad, minPosRad, maxPosRad);
+          armSeedOutOfRangeAlert.set(seedPositionRad != filteredSeedPositionRad);
+          leftArmIO.resetEncoder(Radians.of(seedPositionRad));
+          rightArmIO.resetEncoder(Radians.of(seedPositionRad));
+          armGoal = new State(seedPositionRad, 0.0);
+          armSetpoint = new State(seedPositionRad, 0.0);
+          armSeeded = true;
+        }
+      }
     }
 
     // Advance the arm motion profile and drive both arms to the resulting setpoint. Commands

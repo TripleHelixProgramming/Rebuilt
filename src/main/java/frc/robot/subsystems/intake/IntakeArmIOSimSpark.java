@@ -14,6 +14,7 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
@@ -31,11 +32,13 @@ public class IntakeArmIOSimSpark implements IntakeArmIO {
   private final SparkMax motor;
   private final SparkClosedLoopController controller;
   private final SparkMaxSim motorSim;
+  private final boolean hasAbsoluteEncoder;
 
   private final SparkMaxConfig motorConfig;
 
   public IntakeArmIOSimSpark(ArmConfig armConfig) {
     motor = new SparkMax(armConfig.port(), MotorType.kBrushless);
+    hasAbsoluteEncoder = armConfig.hasAbsoluteEncoder();
 
     controller = motor.getClosedLoopController();
 
@@ -64,6 +67,7 @@ public class IntakeArmIOSimSpark implements IntakeArmIO {
     motor.configure(motorConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     motorSim = new SparkMaxSim(motor, gearbox);
 
+    // Starts stowed (maxPosRad), matching where the real arm sits at boot.
     armSim =
         new SingleJointedArmSim(
             gearbox,
@@ -73,9 +77,9 @@ public class IntakeArmIOSimSpark implements IntakeArmIO {
             minPosRad,
             maxPosRad,
             true,
-            0.0);
+            maxPosRad);
 
-    motorSim.setPosition(0.0);
+    motorSim.setPosition(maxPosRad);
   }
 
   @Override
@@ -93,6 +97,12 @@ public class IntakeArmIOSimSpark implements IntakeArmIO {
     inputs.velocityRadPerSec = motorSim.getVelocity();
     inputs.appliedVolts = motorSim.getAppliedOutput() * motorSim.getBusVoltage();
     inputs.currentAmps = Math.abs(motorSim.getMotorCurrent());
+
+    if (hasAbsoluteEncoder) {
+      // No offset/calibration to simulate — the sim arm's position is already ground truth, so
+      // it's reported directly, matching the real absolute encoder's convention.
+      inputs.absolutePosition = new Rotation2d(motorSim.getPosition());
+    }
   }
 
   @Override
