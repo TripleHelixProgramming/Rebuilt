@@ -81,7 +81,7 @@ public class IntakeConstants {
     // deployed hardstops, each held for 5 seconds. Deployed sits past horizontal, not at it — the
     // gravity feedforward's zero reference is a physical fact about the mechanism, not a hardstop.
     // No margin included — these are the exact hand-measured hardstop positions.
-    public static final double maxPosRad = Degrees.of(81.0).in(Radians);
+    public static final double maxPosRad = Degrees.of(90.0).in(Radians);
     public static final double minPosRad = Degrees.of(-51.7).in(Radians);
 
     // Motion profile
