@@ -145,7 +145,7 @@ public class VisionConstants {
   public static double MIN_SCORE = 0.65;
 
   // Feature flags
-  public static boolean LOG_INDIVIDUAL_CAMERA_POSES = false;
+  public static boolean LOG_INDIVIDUAL_CAMERA_POSES = true;
   public static boolean LOG_SUMMARY_POSES = false;
   public static boolean LOG_ACCEPTED_POSES = true;
   public static boolean LOG_REJECTED_POSES = true;
