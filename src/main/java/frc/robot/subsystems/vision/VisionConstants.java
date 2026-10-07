@@ -146,13 +146,13 @@ public class VisionConstants {
 
   // Feature flags
   public static boolean LOG_INDIVIDUAL_CAMERA_POSES = true;
-  public static boolean LOG_SUMMARY_POSES = false;
+  public static boolean LOG_SUMMARY_POSES = true;
   public static boolean LOG_ACCEPTED_POSES = true;
   public static boolean LOG_REJECTED_POSES = true;
 
   // Logging frequency (1 = every cycle, 2 = every other cycle, etc.)
   // Higher values reduce CPU load but loses data granularity for replay
-  public static int LOGGING_DIVISOR = 2;
+  public static int LOGGING_DIVISOR = 1;
 
   // Vision processing interval (1 = every loop, 5 = every 5th loop = 10Hz at 50Hz robot loop)
   // Higher values batch more observations together for fusion, reducing jitter but adding latency.

@@ -284,7 +284,11 @@ public class Robot extends LoggedRobot {
 
     // Start background threads (for non-blocking CAN/network reads)
     SparkOdometryThread.getInstance().start();
-    VisionThread.getInstance().start();
+    if (Constants.currentMode != Constants.Mode.REPLAY) {
+      // VisionThread is not needed in replay mode because vision data is read from the log file
+      VisionThread.getInstance().start();
+    }
+
     CanandgyroThread.getInstance().start();
 
     // Start AdvantageKit logger
