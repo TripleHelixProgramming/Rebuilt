@@ -68,8 +68,8 @@ class VisionFilterTest {
 
   /** Creates a TestedObservation for correlation boost tests. */
   private TestedObservation makeTestedObs(
-      double x, double y, double timestamp, int cameraIndex, double score) {
-    return new TestedObservation(makeObservation(x, y, timestamp), cameraIndex, null, score);
+      double x, double y, double timestamp, int cameraIndex, double score, Boolean pass) {
+    return new TestedObservation(makeObservation(x, y, timestamp), cameraIndex, null, score, pass);
   }
 
   /** Scores an observation with default tests enabled. */
@@ -785,7 +785,7 @@ class VisionFilterTest {
     @DisplayName("Single observation returns single fused with cameraCount=1")
     void singleObservation() {
       var observations = new ArrayList<TestedObservation>();
-      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5, true));
 
       var result = filter.fuseCorrelatedObservations(observations);
 
@@ -798,8 +798,8 @@ class VisionFilterTest {
     @DisplayName("Two agreeing cameras fuse into one observation")
     void twoAgreeingCamerasFuse() {
       var observations = new ArrayList<TestedObservation>();
-      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
-      observations.add(makeTestedObs(8.1, 4.1, 0.01, 1, 0.6));
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5, true));
+      observations.add(makeTestedObs(8.1, 4.1, 0.01, 1, 0.6, true));
 
       var result = filter.fuseCorrelatedObservations(observations);
 
@@ -814,9 +814,9 @@ class VisionFilterTest {
     void fusedPoseIsWeightedAverage() {
       var observations = new ArrayList<TestedObservation>();
       // Camera 0: x=8.0, score=0.6 (within correlation threshold of ~0.15m)
-      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.6));
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.6, true));
       // Camera 1: x=8.1, score=0.4 (0.1m apart, within threshold)
-      observations.add(makeTestedObs(8.1, 4.0, 0.01, 1, 0.4));
+      observations.add(makeTestedObs(8.1, 4.0, 0.01, 1, 0.4, true));
 
       var result = filter.fuseCorrelatedObservations(observations);
 
@@ -829,8 +829,8 @@ class VisionFilterTest {
     @DisplayName("Same camera multiple observations not fused")
     void sameCameraNotFused() {
       var observations = new ArrayList<TestedObservation>();
-      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
-      observations.add(makeTestedObs(8.05, 4.05, 0.01, 0, 0.5)); // Same camera
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5, true));
+      observations.add(makeTestedObs(8.05, 4.05, 0.01, 0, 0.5, true)); // Same camera
 
       var result = filter.fuseCorrelatedObservations(observations);
 
@@ -843,8 +843,9 @@ class VisionFilterTest {
     @DisplayName("Cameras too far apart in time not fused")
     void tooFarInTimeNotFused() {
       var observations = new ArrayList<TestedObservation>();
-      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
-      observations.add(makeTestedObs(8.05, 4.05, 0.2, 1, 0.5)); // 200ms apart (> 150ms threshold)
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5, true));
+      observations.add(
+          makeTestedObs(8.05, 4.05, 0.2, 1, 0.5, true)); // 200ms apart (> 150ms threshold)
 
       var result = filter.fuseCorrelatedObservations(observations);
 
@@ -855,8 +856,8 @@ class VisionFilterTest {
     @DisplayName("Cameras too far apart in position not fused")
     void tooFarInPositionNotFused() {
       var observations = new ArrayList<TestedObservation>();
-      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
-      observations.add(makeTestedObs(9.0, 5.0, 0.01, 1, 0.5)); // 1.4m apart
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5, true));
+      observations.add(makeTestedObs(9.0, 5.0, 0.01, 1, 0.5, true)); // 1.4m apart
 
       var result = filter.fuseCorrelatedObservations(observations);
 
@@ -868,11 +869,11 @@ class VisionFilterTest {
     void twoVsTwoSplitCreatesTwoClusters() {
       var observations = new ArrayList<TestedObservation>();
       // Cameras 0,1 agree on position A
-      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
-      observations.add(makeTestedObs(8.05, 4.05, 0.01, 1, 0.5));
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5, true));
+      observations.add(makeTestedObs(8.05, 4.05, 0.01, 1, 0.5, true));
       // Cameras 2,3 agree on position B
-      observations.add(makeTestedObs(10.0, 6.0, 0.0, 2, 0.5));
-      observations.add(makeTestedObs(10.05, 6.05, 0.01, 3, 0.5));
+      observations.add(makeTestedObs(10.0, 6.0, 0.0, 2, 0.5, true));
+      observations.add(makeTestedObs(10.05, 6.05, 0.01, 3, 0.5, true));
 
       var result = filter.fuseCorrelatedObservations(observations);
 
@@ -888,11 +889,11 @@ class VisionFilterTest {
     void threeVsOneFuses() {
       var observations = new ArrayList<TestedObservation>();
       // Cameras 0,1,2 agree
-      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
-      observations.add(makeTestedObs(8.05, 4.05, 0.01, 1, 0.5));
-      observations.add(makeTestedObs(8.03, 4.03, 0.02, 2, 0.5));
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5, true));
+      observations.add(makeTestedObs(8.05, 4.05, 0.01, 1, 0.5, true));
+      observations.add(makeTestedObs(8.03, 4.03, 0.02, 2, 0.5, true));
       // Camera 3 disagrees
-      observations.add(makeTestedObs(10.0, 6.0, 0.0, 3, 0.5));
+      observations.add(makeTestedObs(10.0, 6.0, 0.0, 3, 0.5, true));
 
       var result = filter.fuseCorrelatedObservations(observations);
 
@@ -913,10 +914,10 @@ class VisionFilterTest {
     @DisplayName("4 cameras all agree fuse into one")
     void fourAllAgreeFuse() {
       var observations = new ArrayList<TestedObservation>();
-      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
-      observations.add(makeTestedObs(8.05, 4.05, 0.01, 1, 0.5));
-      observations.add(makeTestedObs(8.03, 4.03, 0.02, 2, 0.5));
-      observations.add(makeTestedObs(8.07, 4.02, 0.03, 3, 0.5));
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5, true));
+      observations.add(makeTestedObs(8.05, 4.05, 0.01, 1, 0.5, true));
+      observations.add(makeTestedObs(8.03, 4.03, 0.02, 2, 0.5, true));
+      observations.add(makeTestedObs(8.07, 4.02, 0.03, 3, 0.5, true));
 
       var result = filter.fuseCorrelatedObservations(observations);
 
@@ -928,8 +929,8 @@ class VisionFilterTest {
     @DisplayName("Fused score caps at 1.0")
     void fusedScoreCapsAtOne() {
       var observations = new ArrayList<TestedObservation>();
-      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.9));
-      observations.add(makeTestedObs(8.05, 4.05, 0.01, 1, 0.9));
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.9, true));
+      observations.add(makeTestedObs(8.05, 4.05, 0.01, 1, 0.9, true));
 
       var result = filter.fuseCorrelatedObservations(observations);
 
@@ -941,8 +942,8 @@ class VisionFilterTest {
     void edgeOfTimeWindowFuses() {
       double threshold = VisionConstants.CORRELATION_TIME_WINDOW_SECONDS;
       var observations = new ArrayList<TestedObservation>();
-      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
-      observations.add(makeTestedObs(8.05, 4.05, threshold, 1, 0.5)); // Exactly at threshold
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5, true));
+      observations.add(makeTestedObs(8.05, 4.05, threshold, 1, 0.5, true)); // Exactly at threshold
 
       var result = filter.fuseCorrelatedObservations(observations);
 
@@ -956,9 +957,9 @@ class VisionFilterTest {
     void edgeOfPositionThresholdNotFused() {
       double threshold = VisionConstants.CORRELATION_POSE_THRESHOLD_METERS;
       var observations = new ArrayList<TestedObservation>();
-      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5, true));
       // Exactly at threshold distance
-      observations.add(makeTestedObs(8.0 + threshold, 4.0, 0.01, 1, 0.5));
+      observations.add(makeTestedObs(8.0 + threshold, 4.0, 0.01, 1, 0.5, true));
 
       var result = filter.fuseCorrelatedObservations(observations);
 
@@ -971,8 +972,8 @@ class VisionFilterTest {
     void justUnderPositionThresholdFuses() {
       double threshold = VisionConstants.CORRELATION_POSE_THRESHOLD_METERS;
       var observations = new ArrayList<TestedObservation>();
-      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
-      observations.add(makeTestedObs(8.0 + threshold - 0.01, 4.0, 0.01, 1, 0.5));
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5, true));
+      observations.add(makeTestedObs(8.0 + threshold - 0.01, 4.0, 0.01, 1, 0.5, true));
 
       var result = filter.fuseCorrelatedObservations(observations);
 
@@ -985,11 +986,11 @@ class VisionFilterTest {
       double dist = VisionConstants.CORRELATION_POSE_THRESHOLD_METERS - 0.01;
       var observations = new ArrayList<TestedObservation>();
       // A at origin
-      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5, true));
       // B close to A
-      observations.add(makeTestedObs(8.0 + dist, 4.0, 0.01, 1, 0.5));
+      observations.add(makeTestedObs(8.0 + dist, 4.0, 0.01, 1, 0.5, true));
       // C close to B, but farther from A
-      observations.add(makeTestedObs(8.0 + dist * 1.5, 4.0, 0.02, 2, 0.5));
+      observations.add(makeTestedObs(8.0 + dist * 1.5, 4.0, 0.02, 2, 0.5, true));
 
       var result = filter.fuseCorrelatedObservations(observations);
 
@@ -1003,7 +1004,7 @@ class VisionFilterTest {
     void exceedingMaxObservationsReturnsUnfused() {
       var observations = new ArrayList<TestedObservation>();
       for (int i = 0; i < 40; i++) { // More than MAX_OBSERVATIONS (32)
-        observations.add(makeTestedObs(8.0, 4.0, 0.0, i % 4, 0.5));
+        observations.add(makeTestedObs(8.0, 4.0, 0.0, i % 4, 0.5, true));
       }
 
       var result = filter.fuseCorrelatedObservations(observations);
@@ -1021,10 +1022,10 @@ class VisionFilterTest {
     void multipleSameCameraInClusterFuses() {
       var observations = new ArrayList<TestedObservation>();
       // Camera 0: two observations at same position
-      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
-      observations.add(makeTestedObs(8.01, 4.01, 0.01, 0, 0.5));
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5, true));
+      observations.add(makeTestedObs(8.01, 4.01, 0.01, 0, 0.5, true));
       // Camera 1: one observation
-      observations.add(makeTestedObs(8.02, 4.02, 0.02, 1, 0.5));
+      observations.add(makeTestedObs(8.02, 4.02, 0.02, 1, 0.5, true));
 
       var result = filter.fuseCorrelatedObservations(observations);
 
@@ -1038,9 +1039,9 @@ class VisionFilterTest {
     void fusedTimestampIsWeightedAverage() {
       var observations = new ArrayList<TestedObservation>();
       // Camera 0: time=0.0, score=0.6
-      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.6));
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.6, true));
       // Camera 1: time=0.04, score=0.4
-      observations.add(makeTestedObs(8.05, 4.0, 0.04, 1, 0.4));
+      observations.add(makeTestedObs(8.05, 4.0, 0.04, 1, 0.4, true));
 
       var result = filter.fuseCorrelatedObservations(observations);
 
@@ -1253,8 +1254,8 @@ class VisionFilterTest {
     @DisplayName("Fusion is deterministic")
     void fusionIsDeterministic() {
       var observations = new ArrayList<TestedObservation>();
-      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5));
-      observations.add(makeTestedObs(8.05, 4.05, 0.01, 1, 0.5));
+      observations.add(makeTestedObs(8.0, 4.0, 0.0, 0, 0.5, true));
+      observations.add(makeTestedObs(8.05, 4.05, 0.01, 1, 0.5, true));
 
       var result1 = filter.fuseCorrelatedObservations(observations);
       var result2 = filter.fuseCorrelatedObservations(observations);

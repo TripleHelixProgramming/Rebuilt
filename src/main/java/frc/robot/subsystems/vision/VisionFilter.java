@@ -63,7 +63,8 @@ public class VisionFilter {
       PoseObservation observation,
       int cameraIndex,
       EnumMap<Test, Double> testResults,
-      double score) {}
+      double score,
+      Boolean pass) {}
 
   /**
    * Fused observation from multiple cameras agreeing on a pose.
@@ -322,7 +323,9 @@ public class VisionFilter {
     }
     double totalScore = Math.pow(weightedProduct, 1.0 / sumOfWeights);
 
-    return new TestedObservation(observation, cameraIndex, testResults, totalScore);
+    Boolean pass = totalScore >= MIN_SCORE;
+
+    return new TestedObservation(observation, cameraIndex, testResults, totalScore, pass);
   }
 
   /**

@@ -242,7 +242,7 @@ public class Vision extends SubsystemBase {
     // This allows cameras to accumulate observations before fusion decides what agrees
     if (loopCounter % PROCESSING_INTERVAL_LOOPS == 0) {
       // Remove unacceptable observations before fusion
-      observationBuffer.removeIf(o -> o.score() >= MIN_SCORE);
+      observationBuffer.removeIf(o -> !o.pass());
 
       // Fuse correlated observations from multiple cameras into averaged poses
       // This reduces jitter from multiple cameras reporting slightly different poses
