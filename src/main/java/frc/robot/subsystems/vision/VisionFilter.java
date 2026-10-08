@@ -153,9 +153,9 @@ public class VisionFilter {
       public double test(TestContext ctx) {
         return 1.0
             - normalizedSigmoid(
-                Math.abs(ctx.observation().pose().getRotation().getY()),
+                Math.abs(ctx.observation().pose().getRotation().getY()), 
                 PITCH_TOLERANCE_RADIANS,
-                1.0);
+                Math.log(19)/PITCH_TOLERANCE_RADIANS);
       }
     },
 
@@ -166,7 +166,7 @@ public class VisionFilter {
             - normalizedSigmoid(
                 Math.abs(ctx.observation().pose().getRotation().getX()),
                 ROLL_TOLERANCE_RADIANS,
-                1.0);
+                Math.log(19)/ROLL_TOLERANCE_RADIANS);
       }
     },
 
@@ -175,7 +175,7 @@ public class VisionFilter {
       public double test(TestContext ctx) {
         return 1.0
             - normalizedSigmoid(
-                Math.abs(ctx.observation().pose().getZ()), ELEVATION_TOLERANCE_METERS, 1.0);
+                Math.abs(ctx.observation().pose().getZ()), ELEVATION_TOLERANCE_METERS, Math.log(19)/ELEVATION_TOLERANCE_METERS);
       }
     },
 
