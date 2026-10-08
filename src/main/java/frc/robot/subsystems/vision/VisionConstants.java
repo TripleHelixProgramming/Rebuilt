@@ -157,5 +157,5 @@ public class VisionConstants {
   // Vision processing interval (1 = every loop, 5 = every 5th loop = 10Hz at 50Hz robot loop)
   // Higher values batch more observations together for fusion, reducing jitter but adding latency.
   // At 5 loops (100ms batches), cameras have time to all report before fusion decides what agrees.
-  public static int PROCESSING_INTERVAL_LOOPS = 5;
+  public static int PROCESSING_INTERVAL_LOOPS = 1;
 }

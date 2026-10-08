@@ -123,6 +123,25 @@ public class Vision extends SubsystemBase {
 
   @Override
   public void periodic() {
+    Logger.recordOutput("Vision/Config/MinScore", MIN_SCORE);
+    Logger.recordOutput("Vision/Config/AmbiguityTolerance", AMBIGUITY_TOLERANCE);
+    Logger.recordOutput("Vision/Config/PitchToleranceRadians", PITCH_TOLERANCE_RADIANS);
+    Logger.recordOutput("Vision/Config/RollToleranceRadians", ROLL_TOLERANCE_RADIANS);
+    Logger.recordOutput("Vision/Config/ElevationToleranceMeters", ELEVATION_TOLERANCE_METERS);
+    Logger.recordOutput("Vision/Config/TagDistanceToleranceMeters", TAG_DISTANCE_TOLERANCE_METERS);
+    Logger.recordOutput("Vision/Config/YawToleranceRadians", YAW_TOLERANCE_RADIANS);
+    Logger.recordOutput("Vision/Config/VelocityUncertainScore", VELOCITY_UNCERTAIN_SCORE);
+    Logger.recordOutput(
+        "Vision/Config/CorrelationTimeWindowSeconds", CORRELATION_TIME_WINDOW_SECONDS);
+    Logger.recordOutput(
+        "Vision/Config/CorrelationPoseThresholdMeters", CORRELATION_POSE_THRESHOLD_METERS);
+    Logger.recordOutput("Vision/Config/CorrelationBoostFactor", CORRELATION_BOOST_FACTOR);
+    Logger.recordOutput("Vision/Config/LinearStdDevBaseline", LINEAR_STD_DEV_BASELINE);
+    Logger.recordOutput("Vision/Config/AngularStdDevBaseline", ANGULAR_STD_DEV_BASELINE);
+    Logger.recordOutput(
+        "Vision/Config/SingleCameraStdDevMultiplier", SINGLE_CAMERA_STD_DEV_MULTIPLIER);
+    Logger.recordOutput("Vision/Config/ProcessingIntervalLoops", PROCESSING_INTERVAL_LOOPS);
+
     long visionStart = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
     loopCounter++;
 
