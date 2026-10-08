@@ -34,9 +34,10 @@ public class VisionFilter {
   private static final Rectangle2d arenaRectangle;
 
   static {
-    double halfWidth = MIN_ROBOT_WIDTH_HALF_METERS;
-    var cornerA = new Translation2d(halfWidth, halfWidth);
-    var cornerB = new Translation2d(FIELD_X_LEN_METERS - halfWidth, FIELD_Y_LEN_METERS - halfWidth);
+    var tolerance = 0.3;
+    double insetMeters = MIN_ROBOT_WIDTH_HALF_METERS - tolerance;
+    var cornerA = new Translation2d(insetMeters, insetMeters);
+    var cornerB = new Translation2d(FIELD_X_LEN_METERS - insetMeters, FIELD_Y_LEN_METERS - insetMeters);
     arenaRectangle = new Rectangle2d(cornerA, cornerB);
   }
 
