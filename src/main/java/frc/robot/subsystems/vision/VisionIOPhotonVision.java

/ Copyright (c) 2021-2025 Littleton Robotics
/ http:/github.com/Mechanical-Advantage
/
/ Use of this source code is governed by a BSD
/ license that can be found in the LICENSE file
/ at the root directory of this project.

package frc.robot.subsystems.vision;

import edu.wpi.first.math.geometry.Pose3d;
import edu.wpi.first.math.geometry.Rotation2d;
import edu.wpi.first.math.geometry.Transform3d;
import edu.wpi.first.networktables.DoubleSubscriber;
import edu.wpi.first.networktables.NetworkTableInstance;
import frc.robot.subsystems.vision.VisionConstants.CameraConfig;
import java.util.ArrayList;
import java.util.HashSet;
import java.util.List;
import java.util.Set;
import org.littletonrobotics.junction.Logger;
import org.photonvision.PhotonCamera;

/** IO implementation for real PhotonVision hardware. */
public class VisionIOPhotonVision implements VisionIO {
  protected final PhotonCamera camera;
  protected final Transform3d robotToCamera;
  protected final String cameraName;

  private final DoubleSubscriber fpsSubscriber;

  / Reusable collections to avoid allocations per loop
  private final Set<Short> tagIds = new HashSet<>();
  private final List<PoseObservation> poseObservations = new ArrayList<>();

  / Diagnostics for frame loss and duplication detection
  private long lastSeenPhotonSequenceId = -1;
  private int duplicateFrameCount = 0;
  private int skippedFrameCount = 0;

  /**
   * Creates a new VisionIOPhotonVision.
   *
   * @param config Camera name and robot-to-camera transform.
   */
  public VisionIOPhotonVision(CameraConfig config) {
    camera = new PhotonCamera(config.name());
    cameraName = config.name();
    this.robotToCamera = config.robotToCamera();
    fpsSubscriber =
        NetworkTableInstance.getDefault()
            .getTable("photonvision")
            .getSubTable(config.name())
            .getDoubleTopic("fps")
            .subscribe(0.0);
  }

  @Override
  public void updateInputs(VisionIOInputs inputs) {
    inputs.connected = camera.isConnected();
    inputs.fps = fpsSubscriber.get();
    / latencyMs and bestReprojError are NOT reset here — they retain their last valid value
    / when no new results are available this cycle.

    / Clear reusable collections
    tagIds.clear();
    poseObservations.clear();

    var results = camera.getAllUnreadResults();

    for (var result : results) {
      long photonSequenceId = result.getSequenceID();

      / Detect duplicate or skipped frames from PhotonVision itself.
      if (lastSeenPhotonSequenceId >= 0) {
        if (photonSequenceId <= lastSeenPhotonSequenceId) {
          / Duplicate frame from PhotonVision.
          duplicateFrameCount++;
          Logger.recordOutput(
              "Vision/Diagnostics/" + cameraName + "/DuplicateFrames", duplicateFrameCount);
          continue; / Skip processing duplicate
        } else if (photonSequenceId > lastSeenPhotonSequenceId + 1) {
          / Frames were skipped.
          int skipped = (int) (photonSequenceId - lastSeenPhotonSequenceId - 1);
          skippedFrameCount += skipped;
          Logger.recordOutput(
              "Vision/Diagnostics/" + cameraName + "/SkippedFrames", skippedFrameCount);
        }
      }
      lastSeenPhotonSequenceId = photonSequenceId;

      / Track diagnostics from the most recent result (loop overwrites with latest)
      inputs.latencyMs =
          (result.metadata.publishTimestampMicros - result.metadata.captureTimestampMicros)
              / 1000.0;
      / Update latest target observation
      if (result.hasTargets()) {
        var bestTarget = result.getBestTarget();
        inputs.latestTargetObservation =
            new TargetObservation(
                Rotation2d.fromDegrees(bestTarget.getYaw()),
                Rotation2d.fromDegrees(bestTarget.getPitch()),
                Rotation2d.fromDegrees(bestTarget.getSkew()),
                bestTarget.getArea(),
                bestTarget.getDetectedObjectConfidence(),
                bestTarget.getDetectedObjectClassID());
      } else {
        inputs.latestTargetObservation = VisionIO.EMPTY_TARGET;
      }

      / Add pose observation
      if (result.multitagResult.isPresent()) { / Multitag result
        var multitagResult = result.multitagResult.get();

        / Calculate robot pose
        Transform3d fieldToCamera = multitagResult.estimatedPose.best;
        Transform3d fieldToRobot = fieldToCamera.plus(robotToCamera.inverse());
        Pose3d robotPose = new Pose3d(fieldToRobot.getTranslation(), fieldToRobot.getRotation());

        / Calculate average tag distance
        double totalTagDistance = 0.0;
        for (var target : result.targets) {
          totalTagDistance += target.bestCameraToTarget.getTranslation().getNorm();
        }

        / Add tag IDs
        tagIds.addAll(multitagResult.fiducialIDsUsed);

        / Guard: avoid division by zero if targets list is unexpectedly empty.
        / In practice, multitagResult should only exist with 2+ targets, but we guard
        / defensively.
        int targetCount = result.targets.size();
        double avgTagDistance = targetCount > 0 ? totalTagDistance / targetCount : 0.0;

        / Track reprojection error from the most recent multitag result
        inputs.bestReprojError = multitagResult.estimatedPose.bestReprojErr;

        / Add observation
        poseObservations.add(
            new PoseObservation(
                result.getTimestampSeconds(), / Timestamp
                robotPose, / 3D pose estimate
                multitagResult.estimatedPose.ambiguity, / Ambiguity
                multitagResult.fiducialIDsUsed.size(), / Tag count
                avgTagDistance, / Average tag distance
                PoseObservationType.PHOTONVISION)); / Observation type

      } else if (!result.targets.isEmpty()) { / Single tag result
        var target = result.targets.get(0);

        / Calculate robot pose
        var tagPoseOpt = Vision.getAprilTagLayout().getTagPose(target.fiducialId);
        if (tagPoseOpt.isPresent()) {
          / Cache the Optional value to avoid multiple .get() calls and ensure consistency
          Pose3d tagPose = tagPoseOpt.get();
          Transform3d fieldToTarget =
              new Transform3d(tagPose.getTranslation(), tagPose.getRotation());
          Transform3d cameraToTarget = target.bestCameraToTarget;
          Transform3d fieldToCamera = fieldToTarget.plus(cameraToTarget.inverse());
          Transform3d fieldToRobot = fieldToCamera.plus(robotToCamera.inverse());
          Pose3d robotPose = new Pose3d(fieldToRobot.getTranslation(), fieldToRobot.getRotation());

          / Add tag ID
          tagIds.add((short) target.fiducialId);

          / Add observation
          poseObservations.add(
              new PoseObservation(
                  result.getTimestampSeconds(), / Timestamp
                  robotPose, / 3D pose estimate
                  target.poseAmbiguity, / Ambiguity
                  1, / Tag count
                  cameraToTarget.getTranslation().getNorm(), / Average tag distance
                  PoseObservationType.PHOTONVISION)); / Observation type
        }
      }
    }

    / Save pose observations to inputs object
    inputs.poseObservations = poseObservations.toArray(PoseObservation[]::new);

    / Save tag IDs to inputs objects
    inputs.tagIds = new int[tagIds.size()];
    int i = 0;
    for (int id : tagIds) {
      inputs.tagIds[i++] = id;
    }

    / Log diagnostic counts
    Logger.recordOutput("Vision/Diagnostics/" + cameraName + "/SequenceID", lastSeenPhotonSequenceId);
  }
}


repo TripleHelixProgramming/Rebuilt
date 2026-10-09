@@ -1,0 +1,244 @@
+package frc.robot.util;
+
+import edu.wpi.first.wpilibj.Notifier;
+import edu.wpi.first.wpilibj.Timer;
+import frc.robot.subsystems.vision.VisionIO;
+import frc.robot.subsystems.vision.VisionIO.PoseObservation;
+import frc.robot.subsystems.vision.VisionIO.TargetObservation;
+import frc.robot.subsystems.vision.VisionIO.VisionIOInputs;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
+
+/**
+ * Provides an interface for asynchronously reading vision inputs on a background thread, avoiding
+ * blocking network calls on the main robot loop.
+ *
+ * <p>Thread safety: The background Notifier thread calls update() on each registered camera. The
+ * main thread reads snapshots. Each snapshot is identified by a sequence number to detect
+ * duplicates and losses. Snapshots older than 250ms are considered stale. If a camera throws an
+ * exception, it is caught here so one camera failure does not freeze polling of the others.
+ */
+public class VisionThread {
+  private static final double SNAPSHOT_STALE_TIMEOUT_SECONDS = 0.25;
+
+  private static VisionThread instance;
+  private static final double UPDATE_FREQUENCY_HZ = 50.0; // 20ms update rate
+
+  private final ReentrantLock lock = new ReentrantLock();
+  private final Notifier notifier;
+  private final List<VisionInputs> registeredInputs = new ArrayList<>();
+
+  /** Cached inputs for a single VisionIO device. */
+  public static class VisionInputs {
+    private final VisionIO io;
+    private final VisionIOInputs workingInputs = new VisionIOInputs();
+
+    // Cached snapshot (volatile reference for thread safety)
+    private volatile VisionIOInputsSnapshot snapshot = new VisionIOInputsSnapshot();
+
+    public VisionInputs(VisionIO io) {
+      this.io = io;
+    }
+
+    /** Updates cached values. Called from background thread. */
+    private void update() {
+      long sequenceNumber = snapshot.sequenceNumber + 1;
+      try {
+        // Call the potentially-blocking updateInputs.
+        io.updateInputs(workingInputs);
+      } catch (Throwable t) {
+        // Isolate this camera's exception so other cameras keep polling.
+        snapshot = VisionIOInputsSnapshot.faulted(sequenceNumber, t);
+        return;
+      }
+
+      // Create an immutable snapshot of the current state.
+      // sequenceNumber increments to detect duplicate reads and losses.
+      // updatedAtSeconds allows staleness detection if polling stops.
+      snapshot =
+          new VisionIOInputsSnapshot(
+              sequenceNumber,
+              Timer.getFPGATimestamp(),
+              false,
+              "",
+              workingInputs.connected,
+              workingInputs.fps,
+              workingInputs.latencyMs,
+              workingInputs.bestReprojError,
+              workingInputs.latestTargetObservation,
+              workingInputs.poseObservations.clone(),
+              workingInputs.tagIds.clone());
+    }
+
+    /** Returns the cached snapshot. Safe to call from main thread. */
+    public VisionIOInputsSnapshot getSnapshot() {
+      return snapshot;
+    }
+  }
+
+  /** Immutable snapshot of VisionIOInputs for thread-safe reading. */
+  public static class VisionIOInputsSnapshot {
+    public final long sequenceNumber;
+    public final double updatedAtSeconds;
+    public final boolean faulted;
+    public final String faultMessage;
+    public final boolean connected;
+    public final double fps;
+    public final double latencyMs;
+    public final double bestReprojError;
+    public final TargetObservation latestTargetObservation;
+    public final PoseObservation[] poseObservations;
+    public final int[] tagIds;
+
+    public VisionIOInputsSnapshot() {
+      this(
+          -1,
+          0.0,
+          false,
+          "",
+          false,
+          0.0,
+          0.0,
+          0.0,
+          VisionIO.EMPTY_TARGET,
+          new PoseObservation[0],
+          new int[0]);
+    }
+
+    public VisionIOInputsSnapshot(
+        long sequenceNumber,
+        double updatedAtSeconds,
+        boolean faulted,
+        String faultMessage,
+        boolean connected,
+        double fps,
+        double latencyMs,
+        double bestReprojError,
+        TargetObservation latestTargetObservation,
+        PoseObservation[] poseObservations,
+        int[] tagIds) {
+      this.sequenceNumber = sequenceNumber;
+      this.updatedAtSeconds = updatedAtSeconds;
+      this.faulted = faulted;
+      this.faultMessage = faultMessage;
+      this.connected = connected;
+      this.fps = fps;
+      this.latencyMs = latencyMs;
+      this.bestReprojError = bestReprojError;
+      this.latestTargetObservation = latestTargetObservation;
+      this.poseObservations = poseObservations;
+      this.tagIds = tagIds;
+    }
+
+    /** Creates a faulted snapshot from an exception. */
+    public static VisionIOInputsSnapshot faulted(long sequenceNumber, Throwable throwable) {
+      String detail = "unknown";
+      if (throwable != null) {
+        String message = throwable.getMessage();
+        detail =
+            throwable.getClass().getSimpleName()
+                + (message == null ? "" : ": " + message);
+      }
+      return new VisionIOInputsSnapshot(
+          sequenceNumber,
+          Timer.getFPGATimestamp(),
+          true,
+          detail,
+          false,
+          0.0,
+          0.0,
+          0.0,
+          VisionIO.EMPTY_TARGET,
+          new PoseObservation[0],
+          new int[0]);
+    }
+
+    /** Returns true if this snapshot has not been updated in over 250ms. */
+    public boolean isStale() {
+      return !faulted
+          && Timer.getFPGATimestamp() - updatedAtSeconds > SNAPSHOT_STALE_TIMEOUT_SECONDS;
+    }
+
+    /**
+     * Copies this snapshot's values into a VisionIOInputs object for AdvantageKit logging.
+     *
+     * <p>If the snapshot is faulted or stale, outputs empty/default values instead to prevent
+     * stale data from reaching downstream processing.
+     */
+    public void copyTo(VisionIOInputs inputs) {
+      if (faulted || isStale()) {
+        // Snapshot is bad; output empty data.
+        inputs.connected = false;
+        inputs.fps = 0.0;
+        inputs.latencyMs = 0.0;
+        inputs.bestReprojError = 0.0;
+        inputs.latestTargetObservation = VisionIO.EMPTY_TARGET;
+        inputs.poseObservations = new PoseObservation[0];
+        inputs.tagIds = new int[0];
+        return;
+      }
+
+      // Snapshot is valid; copy data.
+      inputs.connected = connected;
+      inputs.fps = fps;
+      inputs.latencyMs = latencyMs;
+      inputs.bestReprojError = bestReprojError;
+      inputs.latestTargetObservation = latestTargetObservation;
+      inputs.poseObservations = poseObservations;
+      inputs.tagIds = tagIds;
+    }
+  }
+
+  /** Returns the singleton instance, creating it if necessary. */
+  public static synchronized VisionThread getInstance() {
+    if (instance == null) {
+      instance = new VisionThread();
+    }
+    return instance;
+  }
+
+  private VisionThread() {
+    notifier = new Notifier(this::periodic);
+    notifier.setName("VisionThread");
+  }
+
+  /** Starts the background thread. */
+  public void start() {
+    notifier.startPeriodic(1.0 / UPDATE_FREQUENCY_HZ);
+  }
+
+  /**
+   * Registers a VisionIO device for background reading.
+   *
+   * @param io The VisionIO device
+   * @return VisionInputs object to read cached values from
+   */
+  public VisionInputs registerVisionIO(VisionIO io) {
+    VisionInputs inputs = new VisionInputs(io);
+    lock.lock();
+    try {
+      registeredInputs.add(inputs);
+    } finally {
+      lock.unlock();
+    }
+    return inputs;
+  }
+
+  /** Called periodically by the Notifier to update all registered inputs. */
+  private void periodic() {
+    lock.lock();
+    try {
+      for (VisionInputs inputs : registeredInputs) {
+        try {
+          inputs.update();
+        } catch (Throwable t) {
+          // Catch exceptions from individual cameras so one failure does not freeze the others.
+          inputs.snapshot = VisionIOInputsSnapshot.faulted(inputs.snapshot.sequenceNumber + 1, t);
+        }
+      }
+    } finally {
+      lock.unlock();
+    }
+  }
+}
