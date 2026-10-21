@@ -65,7 +65,7 @@ public class IntakeConstants {
     // Measured on the bench: raw absolute-encoder reading at horizontal (0 rad — see the kG
     // feedforward comment below), in rotations. Averaged from two 5-second pauses at horizontal,
     // approached from opposite directions, which agreed within ~7° of each other.
-    public static final double absEncoderOffset = 0.7297;
+    public static final double absEncoderOffset = 0.409;
 
     // Seed settling. The absolute encoder's first CAN frame(s) after connecting can be a stale
     // default rather than a real reading, so those samples are discarded outright — never fed to
