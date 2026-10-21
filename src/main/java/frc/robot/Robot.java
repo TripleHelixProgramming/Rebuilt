@@ -670,7 +670,7 @@ public class Robot extends LoggedRobot {
     xboxDriver.a(loop).whileTrue(createDesaturateAndShootCommand(controller));
 
     // Intake
-    xboxDriver.rightBumper(loop).whileTrue(intake.getDeployCommand());
+      xboxDriver.rightBumper(loop).whileTrue(intake.getDeployCommand());
 
     return controller;
   }
