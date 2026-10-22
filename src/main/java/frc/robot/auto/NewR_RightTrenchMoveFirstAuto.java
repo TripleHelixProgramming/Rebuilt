@@ -26,7 +26,7 @@ public class NewR_RightTrenchMoveFirstAuto extends AutoMode {
 
   @Override
   public String getName() {
-    return "NewRedRightNeutralZone";
+    return "NewR_RightTrenchMoveFirstAuto";
   }
 
   @Override
