@@ -84,6 +84,10 @@ public class ModuleIOTalonFX implements ModuleIO {
   private final StatusSignal<Voltage> turnAppliedVolts;
   private final StatusSignal<Current> turnCurrent;
 
+  // Last odometry values from fresh samples, repeated for stale ones
+  private double lastOdometryDriveRotations = 0.0;
+  private double lastOdometryTurnRotations = 0.0;
+
   // Connection debouncers
   private final Debouncer driveConnectedDebounce =
       new Debouncer(0.5, Debouncer.DebounceType.kFalling);
@@ -223,19 +227,56 @@ public class ModuleIOTalonFX implements ModuleIO {
     inputs.turnAppliedVolts = turnAppliedVolts.getValueAsDouble();
     inputs.turnCurrentAmps = turnCurrent.getValueAsDouble();
 
-    // Update odometry inputs
+    // Update odometry inputs. The odometry thread queues NaN for a stale signal; those samples are
+    // marked invalid and repeat the last good value so the log stays finite.
     inputs.odometryTimestamps = new double[timestampQueue.size()];
     for (int i = 0; i < inputs.odometryTimestamps.length; i++) {
       inputs.odometryTimestamps[i] = timestampQueue.poll();
     }
-    inputs.odometryDrivePositionsRad = new double[drivePositionQueue.size()];
-    for (int i = 0; i < inputs.odometryDrivePositionsRad.length; i++) {
-      inputs.odometryDrivePositionsRad[i] = Units.rotationsToRadians(drivePositionQueue.poll());
+    var driveRotations = new double[drivePositionQueue.size()];
+    inputs.odometryDriveValid = new boolean[driveRotations.length];
+    lastOdometryDriveRotations =
+        drainOdometryQueue(
+            drivePositionQueue,
+            driveRotations,
+            inputs.odometryDriveValid,
+            lastOdometryDriveRotations);
+    inputs.odometryDrivePositionsRad = new double[driveRotations.length];
+    for (int i = 0; i < driveRotations.length; i++) {
+      inputs.odometryDrivePositionsRad[i] = Units.rotationsToRadians(driveRotations[i]);
     }
-    inputs.odometryTurnPositions = new Rotation2d[turnPositionQueue.size()];
-    for (int i = 0; i < inputs.odometryTurnPositions.length; i++) {
-      inputs.odometryTurnPositions[i] = Rotation2d.fromRotations(turnPositionQueue.poll());
+    var turnRotations = new double[turnPositionQueue.size()];
+    inputs.odometryTurnValid = new boolean[turnRotations.length];
+    lastOdometryTurnRotations =
+        drainOdometryQueue(
+            turnPositionQueue, turnRotations, inputs.odometryTurnValid, lastOdometryTurnRotations);
+    inputs.odometryTurnPositions = new Rotation2d[turnRotations.length];
+    for (int i = 0; i < turnRotations.length; i++) {
+      inputs.odometryTurnPositions[i] = Rotation2d.fromRotations(turnRotations[i]);
     }
+  }
+
+  /**
+   * Drains queued odometry values. A NaN (stale) value is marked invalid and repeats the last good
+   * value.
+   *
+   * @param queue the values queued by the odometry thread
+   * @param values receives one value per queued sample
+   * @param valid receives whether each sample was fresh
+   * @param lastGood the last good value from earlier samples
+   * @return the last good value after these samples
+   */
+  static double drainOdometryQueue(
+      Queue<Double> queue, double[] values, boolean[] valid, double lastGood) {
+    for (int i = 0; i < values.length; i++) {
+      double value = queue.poll();
+      valid[i] = Double.isFinite(value);
+      if (valid[i]) {
+        lastGood = value;
+      }
+      values[i] = lastGood;
+    }
+    return lastGood;
   }
 
   @Override

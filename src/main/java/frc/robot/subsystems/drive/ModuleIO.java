@@ -37,6 +37,9 @@ public interface ModuleIO {
     public double[] odometryTimestamps = new double[] {};
     public double[] odometryDrivePositionsRad = new double[] {};
     public Rotation2d[] odometryTurnPositions = new Rotation2d[] {};
+    // False where the signal was stale; that sample's position repeats the last good value
+    public boolean[] odometryDriveValid = new boolean[] {};
+    public boolean[] odometryTurnValid = new boolean[] {};
   }
 
   /** Updates the set of loggable inputs. */
