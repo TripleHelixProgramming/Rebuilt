@@ -54,12 +54,12 @@ public class LEDController extends SubsystemBase {
 
   /**
    * Displays pose-seek feedback across the pose-seek LED series. Shows how to move the robot to
-   * reach a target pose.
+   * reach a target pose. Directions are relative to the robot.
    *
    * <ul>
-   *   <li><b>Y (POSE_Y):</b> Green on side to move toward, red on opposite side. White if correct.
-   *   <li><b>Rotation (POSE_ROTATION_X/Y):</b> Red = rotate CCW, Green = rotate CW. White if
-   *       correct.
+   *   <li><b>Y (POSE_Y):</b> Red = move left, Green = move right. White if correct.
+   *   <li><b>Rotation (POSE_ROTATION_X/Y):</b> X green and Y red = rotate CCW, X red and Y green =
+   *       rotate CW. White if correct.
    *   <li><b>X (POSE_X):</b> Green = forward, Red = backward. White if correct.
    * </ul>
    *
@@ -67,13 +67,12 @@ public class LEDController extends SubsystemBase {
    * @param targetPose the target pose to reach
    */
   public void displayPoseSeek(Pose2d currentPose, Pose2d targetPose) {
+    // Pose2d.minus expresses the target in the current pose's frame, so the translation is already
+    // robot-relative and the rotation is the heading error
     var delta = targetPose.minus(currentPose);
+    var robotRelativeDelta = delta.getTranslation();
 
-    // Transform field-relative delta to robot-relative coordinates
-    var robotRelativeDelta =
-        delta.getTranslation().rotateBy(currentPose.getRotation().unaryMinus());
-
-    // X feedback on center LEDs (robot-relative: positive = forward)
+    // X feedback on POSE_X (robot-relative: positive = forward)
     var x = robotRelativeDelta.getMeasureX().in(Centimeters);
     if (Math.abs(x) < LEDConstants.POSE_SEEK_X_TOL_CM) {
       LEDSeries.POSE_X.applyPattern(solidWhitePattern);
@@ -99,7 +98,7 @@ public class LEDController extends SubsystemBase {
       LEDSeries.POSE_ROTATION_Y.applyPattern(solidGreenPattern);
     }
 
-    // Y feedback on end LEDs (robot-relative: positive = move left)
+    // Y feedback on POSE_Y (robot-relative: positive = move left)
     var y = robotRelativeDelta.getMeasureY().in(Centimeters);
     if (Math.abs(y) < LEDConstants.POSE_SEEK_Y_TOL_CM) {
       LEDSeries.POSE_Y.applyPattern(solidWhitePattern);

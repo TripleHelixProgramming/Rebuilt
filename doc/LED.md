@@ -20,7 +20,7 @@ The LED system provides a flexible way to control addressable LED strips on the 
 Enums provide compile-time safety with no string parsing or map lookups at runtime. When you write `LEDSeries.ALL`, the compiler validates it exists.
 
 **Why separate LEDStrip from LEDSeries?**
-Physical layout (which PWM port, how many LEDs) changes rarely. Logical groupings (what we call "all" or "X_AXIS") are how code interacts with LEDs. Separating them means you can reorganize logical series without rewiring, or rewire without changing application code.
+Physical layout (which PWM port, how many LEDs) changes rarely. Logical groupings (what we call "all" or "X_AXIS_FULL") are how code interacts with LEDs. Separating them means you can reorganize logical series without rewiring, or rewire without changing application code.
 
 **Why implement LEDReader/LEDWriter?**
 Series can span multiple physical portions. By implementing WPILib's `LEDReader` and `LEDWriter` interfaces, series present a unified virtual buffer. Patterns see one contiguous strip of LEDs, even if the series spans multiple physical segments.
@@ -60,39 +60,93 @@ The robot currently has one LED strip:
 |-------|----------|-----------|
 | MAIN  | 0        | 36        |
 
+The strip is mounted as an L at the front-right corner of the frame. LEDs 0-11 run along the front edge toward the corner, so LED 11 is at the corner. LEDs 12-35 turn the corner and run back along the right side, so LED 35 is the farthest back.
+
+```
+Top view, front of the robot at the top:
+
+   LED 0 ───── front edge ───── LED 11 ┐ front-right corner
+                                       │ LED 12
+                                       │
+                                       │ right side
+                                       │
+                                       │ LED 35
+```
+
 ### Series Configuration
 
 The strip is divided into two primary segments by robot axis:
 
-| Series | LEDs | Description |
-|--------|------|-------------|
-| `ALL` | 0-35 | All LEDs as one series |
-| `Y_AXIS` | 0-11 | Along robot Y axis (pose-seek feedback, robot state) |
-| `X_AXIS_FULL` | 12-35 | Full X-axis range (hub countdown when FMS attached) |
-| `X_AXIS_BODY` | 15-35 | Main X-axis display area (hub countdown when FMS not attached) |
-| `AUTO_SELECTION` | 24-35 | Auto selection counting blocks |
+| Series | LEDs | Where | Description |
+|--------|------|-------|-------------|
+| `ALL` | 0-35 | Whole strip | All LEDs as one series |
+| `Y_AXIS` | 0-11 | Front edge | Robot state (launcher and spindexer) while enabled |
+| `X_AXIS_FULL` | 12-35 | Right side | Hub countdown when FMS attached |
+| `X_AXIS_BODY` | 15-35 | Right side, behind the compressor LEDs | Hub countdown when FMS not attached |
+| `AUTO_SELECTION` | 24-35 | Rear half of the right side | Auto selection counting blocks |
 
 #### Warning Indicators
 
-Reserved LEDs for status warnings:
+Reserved LEDs for status warnings. Each one overlaps a segment above:
 
-| Series | LEDs | Description |
-|--------|------|-------------|
-| `WARNING_STORAGE` | 0-1 | USB storage low warning (orange-red when <2GB free) |
-| `WARNING_COMPRESSOR` | 12-13 | Compressor state (green when running) |
-| `WARNING_ALLIANCE` | 22-23 | Alliance mismatch warning (yellow when DS/selected disagree) |
+| Series | LEDs | Where | Description |
+|--------|------|-------|-------------|
+| `WARNING_STORAGE` | 0-1 | Front edge, end farthest from the corner | USB storage low warning (orange-red when <2GB free) |
+| `WARNING_COMPRESSOR` | 12-13 | Right side, at the corner | Compressor state (green when running) |
+| `WARNING_ALLIANCE` | 22-23 | Right side, just ahead of the auto selection blocks | Alliance mismatch warning (yellow when DS/selected disagree) |
 
-#### Pose-Seek Segments (within Y_AXIS)
+#### Pose-Seek Segments
 
-The Y_AXIS segment includes pose-seek feedback for manual alignment:
+The pose-seek groups sit on both sides of the corner:
 
-| Series | LEDs | Description |
-|--------|------|-------------|
-| `POSE_Y` | 3-6 | Y translation feedback |
-| `POSE_ROTATION_Y` | 8-11 | Rotation feedback (Y axis side) |
-| `POSE_ROTATION_X` | 12-15 | Rotation feedback (X axis side) |
-| `POSE_X` | 17-20 | X translation feedback |
-| `POSE_ROTATION` | 8-11, 12-15 | Combined rotation (composite series) |
+| Series | LEDs | Where | Description |
+|--------|------|-------|-------------|
+| `POSE_Y` | 3-6 | Front edge | Left/right translation feedback |
+| `POSE_ROTATION_Y` | 8-11 | Front edge, at the corner | Rotation feedback |
+| `POSE_ROTATION_X` | 12-15 | Right side, at the corner | Rotation feedback |
+| `POSE_X` | 17-20 | Right side | Forward/back translation feedback |
+| `POSE_ROTATION` | 8-11, 12-15 | Both sides of the corner | Combined rotation (composite series) |
+
+## Placing the Robot for Auto
+
+While the robot is disabled with an auto selected, the LEDs show how to move the robot onto that auto's start pose. When auto begins, the routine resets the robot's pose to the start pose (`resetOdometry()`), so any placement error carries straight into the auto.
+
+### Before placing
+
+1. Set the alliance switch. Yellow on LEDs 22-23 means the switch disagrees with the driver station's alliance.
+2. Turn the auto selector switch to the routine. LEDs 24-35, on the rear half of the right side, show the option number in the alliance color: one lit LED per number with a dark LED between, counting back from LED 24. Auto 3 lights LEDs 24, 26 and 28. Blinking yellow means no routine is set for that switch position. The pose lights stop updating while it blinks, so ignore them until a routine is selected.
+3. Make sure the cameras have seen an AprilTag since the robot booted. The first accepted camera reading sets the robot's pose. Before that, the pose lights are computed from (0, 0) and mean nothing. If a dashboard shows the robot on the field, check that it is in the right place.
+4. Orange-red on LEDs 0-1 means the USB log drive has less than 2 GB free.
+
+### Reading the pose lights
+
+Each group gives one direction along the edge it sits on. Green means move that edge toward the front-right corner, red means move it away from the corner, and white means that direction is within tolerance.
+
+| Group | Where | Green | Red | White |
+|-------|-------|-------|-----|-------|
+| Left/right (LEDs 3-6) | Front edge | Move right | Move left | Within 6 cm |
+| Forward/back (LEDs 17-20) | Right side | Move forward | Move backward | Within 5 cm |
+
+Rotation uses two groups at the corner, LEDs 8-11 on the front edge and LEDs 12-15 on the right side. When the heading is off they show opposite colors:
+
+- Side group green, front group red: turn counterclockwise, so the front swings to the robot's left. The right side moves forward, toward the corner, and the front edge moves left, away from it.
+- Side group red, front group green: turn clockwise.
+- Both white: within 3°.
+
+Directions are the robot's own. "Forward" is toward the robot's front and "left" is the robot's left, whichever way it faces on the field.
+
+### Procedure
+
+1. Set the robot roughly on its start mark, facing roughly the right way.
+2. Turn it until both rotation groups are white.
+3. Move it until the left/right and forward/back groups are white.
+4. Check that rotation is still white. When every group is white, the robot is on the start pose.
+
+Notes:
+
+- The lights are only as accurate as the robot's camera-based pose. A group that flickers between white and a color is at the edge of its tolerance.
+- The lights only work if a camera can see a tag from the start position.
+- If the auto selection changes after the robot is placed, check the lights again. Each routine has its own start pose.
 
 ## Display Functions
 
@@ -102,7 +156,7 @@ The `LEDController` provides high-level display methods for common robot states:
 
 Displays the currently selected autonomous routine during disabled mode.
 
-- Shows counting blocks in alliance color (red or blue)
+- Shows counting blocks in alliance color (red or blue): one LED per block with a dark LED between blocks, starting at LED 24
 - Number of blocks corresponds to the auto option number (1, 2, 3, etc.)
 - Blinks yellow if no auto is selected
 - Shows yellow warning on `WARNING_ALLIANCE` if there's a mismatch between driver station alliance and selected alliance
@@ -112,13 +166,15 @@ Displays the currently selected autonomous routine during disabled mode.
 
 ### displayPoseSeek(currentPose, targetPose)
 
-Provides visual feedback for manually aligning the robot to a target pose. Useful during disabled mode to help drivers position the robot for autonomous. Coordinates are transformed to robot-relative.
+Shows how to move the robot onto a target pose. `Robot.disabledPeriodic()` calls it with the selected auto's start pose; [Placing the Robot for Auto](#placing-the-robot-for-auto) explains how the drive team reads it. Directions are robot-relative: `targetPose.minus(currentPose)` already expresses the target in the robot's frame, so the code must not rotate it again.
 
 | Segment | Meaning |
 |---------|---------|
 | **X (POSE_X)** | Green = drive forward, Red = drive backward, White = correct |
-| **Rotation (POSE_ROTATION_X/Y)** | Green on one side, Red on other side depending on rotation direction; White = correct |
-| **Y (POSE_Y)** | Red = move left needed, Green = move right needed, White = correct |
+| **Rotation (POSE_ROTATION_X/Y)** | POSE_ROTATION_X green and POSE_ROTATION_Y red = rotate CCW; POSE_ROTATION_X red and POSE_ROTATION_Y green = rotate CW; White = correct |
+| **Y (POSE_Y)** | Red = move left, Green = move right, White = correct |
+
+With the strip mounted at the front-right corner, every green means "move this edge toward the corner" and every red means "move it away". If the layout changes, keep the colors consistent with that rule. `LEDControllerTest` checks the colors at several headings.
 
 Tolerances are defined in `LEDConstants`:
 - X: 5 cm
@@ -176,7 +232,7 @@ LEDSeries.ALL.applyPattern(LEDPattern.solid(Color.kGreen));
 LEDSeries.ALL.applyPattern(LEDPattern.rainbow(255, 255));
 
 // Apply a custom pattern
-LEDSeries.X_AXIS.applyPattern(LEDCustomPattern.scrollingBlocks(Color.kOrange));
+LEDSeries.X_AXIS_BODY.applyPattern(LEDCustomPattern.scrollingBlocks(Color.kOrange));
 ```
 
 ### Using LEDController
