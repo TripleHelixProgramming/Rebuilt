@@ -670,7 +670,7 @@ public class Robot extends LoggedRobot {
     xboxDriver.a(loop).whileTrue(createDesaturateAndShootCommand(controller));
 
     // Intake
-      xboxDriver.rightBumper(loop).whileTrue(intake.getDeployCommand());
+    xboxDriver.rightBumper(loop).whileTrue(intake.getDeployCommand());
 
     return controller;
   }
@@ -791,7 +791,9 @@ public class Robot extends LoggedRobot {
                 allianceSelector::fieldRotated)
             .withName("Desaturate turret"),
         Commands.sequence(
-            Commands.waitUntil(launcher::isTurretDesaturated), feeder.getSpinForwardCommand(), intake.getDeployCommand()));
+            Commands.waitUntil(launcher::isTurretDesaturated),
+            feeder.getSpinForwardCommand(),
+            intake.getDeployCommand()));
   }
 
   private static void logHIDs() {
