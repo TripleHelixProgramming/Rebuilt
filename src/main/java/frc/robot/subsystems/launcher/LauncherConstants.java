@@ -83,14 +83,14 @@ public final class LauncherConstants {
     // physically facing forward. To reclock after a mechanical rebuild or encoder reseat: point
     // the turret forward by hand, read the raw absolute encoder value (with this offset backed
     // out, i.e. temporarily zeroed), and set ABS_ENCODER_OFFSET to that raw reading.
-    public static final Rotation2d ABS_ENCODER_OFFSET = new Rotation2d(5.157 + 1.267);
+    public static final Rotation2d ABS_ENCODER_OFFSET = new Rotation2d(0.19);
 
     // Soft limits of the mechanical range, measured CCW from forward (e.g. LOWER=-280 means the
     // turret can travel 280 deg clockwise of forward). UPPER_LIMIT_RAD - LOWER_LIMIT_RAD must
     // stay under 360 deg, or the wrap math below (CENTER_RAD, and its use in TurretIOSpark /
     // TurretIOSimSpark) can no longer place every reachable angle in a single unambiguous branch.
-    public static final double UPPER_LIMIT_RAD = Units.degreesToRadians(175);
-    public static final double LOWER_LIMIT_RAD = Units.degreesToRadians(-95);
+    public static final double UPPER_LIMIT_RAD = Units.degreesToRadians(262);
+    public static final double LOWER_LIMIT_RAD = Units.degreesToRadians(-79);
 
     // Center of the operating range. Used to pick the modulus window ([CENTER-pi, CENTER+pi))
     // that setpoints and the relative-encoder seed get wrapped into, so the branch cut always
