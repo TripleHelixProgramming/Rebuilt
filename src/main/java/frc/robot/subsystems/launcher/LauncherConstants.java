@@ -89,8 +89,8 @@ public final class LauncherConstants {
     // turret can travel 280 deg clockwise of forward). UPPER_LIMIT_RAD - LOWER_LIMIT_RAD must
     // stay under 360 deg, or the wrap math below (CENTER_RAD, and its use in TurretIOSpark /
     // TurretIOSimSpark) can no longer place every reachable angle in a single unambiguous branch.
-    public static final double UPPER_LIMIT_RAD = Units.degreesToRadians(30);
-    public static final double LOWER_LIMIT_RAD = Units.degreesToRadians(-280);
+    public static final double UPPER_LIMIT_RAD = Units.degreesToRadians(175);
+    public static final double LOWER_LIMIT_RAD = Units.degreesToRadians(-95);
 
     // Center of the operating range. Used to pick the modulus window ([CENTER-pi, CENTER+pi))
     // that setpoints and the relative-encoder seed get wrapped into, so the branch cut always

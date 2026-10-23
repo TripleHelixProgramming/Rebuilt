@@ -16,17 +16,16 @@ public enum LEDSeries implements LEDReader, LEDWriter {
   // Full strip (all 36 LEDs)
   ALL(P.ALL),
 
-  // Primary segments by robot axis
-  // Y_AXIS:                 LEDs 0-11,  aligned along robot Y axis (pose-seek, spindexer/target
-  // state)
-  // X_AXIS_FULL:            LEDs 12-35, full X-axis range
-  //   X_AXIS_WARNING:         LED  12,    reserved warning pixel (USB storage in disabled,
-  // compressor in teleop)
-  //                           LED  13,    implicit gap
-  //   X_AXIS_BODY:            LEDs 14-35, hub countdown range
-  //     X_AXIS:                 LEDs 14-33, auto selection blocks
-  //                             LED  34,    implicit gap
-  //     X_AXIS_ALLIANCE_WARNING:LED  35,    reserved warning pixel (alliance disagreement)
+  // The strip is an L at the front-right corner of the frame: 12 LEDs along the front edge, then
+  // 24 back along the right side. Primary segments, with the portions inside them:
+  // Y_AXIS:                 LEDs 0-11,  front edge, LED 11 at the corner (spindexer/target state)
+  //   WARNING_STORAGE:        LEDs 0-1,   USB storage low warning (disabled)
+  // X_AXIS_FULL:            LEDs 12-35, right side from the corner back (hub countdown with FMS)
+  //   WARNING_COMPRESSOR:     LEDs 12-13, compressor running indicator
+  //                           LED  14,    implicit gap
+  //   X_AXIS_BODY:            LEDs 15-35, hub countdown range without FMS
+  //     WARNING_ALLIANCE:       LEDs 22-23, alliance disagreement warning (disabled)
+  //     AUTO_SELECTION:         LEDs 24-35, auto selection blocks (disabled)
   Y_AXIS(P.Y_AXIS),
   X_AXIS_FULL(P.X_AXIS_FULL),
   WARNING_ALLIANCE(P.WARNING_ALLIANCE),
@@ -37,9 +36,12 @@ public enum LEDSeries implements LEDReader, LEDWriter {
   // Auto selection
   AUTO_SELECTION(P.AUTO_SELECTION),
 
-  // Pose-seek segments (within Y_AXIS)
-  // Layout: [Y_LEFT] [ROT_LEFT] [X_CENTER] [ROT_RIGHT] [Y_RIGHT]
-  //         [0-1]    [2-3]      [4-7]      [8-9]       [10-11]
+  // Pose-seek segments, shown while disabled (see LEDController.displayPoseSeek)
+  // POSE_Y:                 LEDs 3-6,   front edge
+  // POSE_ROTATION_Y:        LEDs 8-11,  front edge, at the corner
+  // POSE_ROTATION_X:        LEDs 12-15, right side, at the corner
+  // POSE_X:                 LEDs 17-20, right side
+  // Green means move that edge toward the corner, red means away from it (see doc/LED.md)
   POSE_Y(P.POSE_Y),
   POSE_ROTATION_X(P.POSE_ROTATION_X),
   POSE_ROTATION_Y(P.POSE_ROTATION_Y),
@@ -48,15 +50,15 @@ public enum LEDSeries implements LEDReader, LEDWriter {
 
   /** Portion definitions - single source of truth for physical layout. */
   private static final class P {
-    // Full strip (all 24 LEDs)
+    // Full strip (all 36 LEDs)
     static final Portion ALL = new Portion(LEDStrip.MAIN, 0, 35, false);
 
     // Primary segments by robot axis
     static final Portion Y_AXIS = new Portion(LEDStrip.MAIN, 0, 11, false);
     static final Portion X_AXIS_FULL = new Portion(LEDStrip.MAIN, 12, 35, false);
-    // LED 13 is an implicit gap between the warning pixel and the body
+    // LED 14 is an implicit gap between WARNING_COMPRESSOR and the body
     static final Portion X_AXIS_BODY = new Portion(LEDStrip.MAIN, 15, 35, false);
-    // LED 34 is an implicit gap between auto selection blocks and the alliance warning pixel
+    // Warning portions overlap the axis segments above
     static final Portion WARNING_STORAGE = new Portion(LEDStrip.MAIN, 0, 1, false);
     static final Portion WARNING_COMPRESSOR = new Portion(LEDStrip.MAIN, 12, 13, false);
     static final Portion WARNING_ALLIANCE = new Portion(LEDStrip.MAIN, 22, 23, false);
@@ -64,8 +66,7 @@ public enum LEDSeries implements LEDReader, LEDWriter {
     // Auto selection
     static final Portion AUTO_SELECTION = new Portion(LEDStrip.MAIN, 24, 35, false);
 
-    // Pose-seek portions (within Y_AXIS): [Y_LEFT][ROT_LEFT][X_CENTER][ROT_RIGHT][Y_RIGHT]
-    //                                     [0-1]  [2-3]     [4-7]     [8-9]      [10-11]
+    // Pose-seek portions: POSE_Y and POSE_ROTATION_Y on Y_AXIS, the other two on X_AXIS_FULL
     static final Portion POSE_Y = new Portion(LEDStrip.MAIN, 3, 6, false);
     static final Portion POSE_ROTATION_Y = new Portion(LEDStrip.MAIN, 8, 11, false);
     static final Portion POSE_ROTATION_X = new Portion(LEDStrip.MAIN, 12, 15, false);
