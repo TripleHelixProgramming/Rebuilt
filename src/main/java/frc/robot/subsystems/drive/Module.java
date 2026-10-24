@@ -32,6 +32,7 @@ public class Module {
   private final Alert driveDisconnectedAlert;
   private final Alert turnDisconnectedAlert;
   private SwerveModulePosition[] odometryPositions = new SwerveModulePosition[] {};
+  private boolean[] odometryValid = new boolean[] {};
 
   public Module(ModuleIO io, String name) {
     this.io = io;
@@ -59,13 +60,27 @@ public class Module {
     Logger.processInputs("Drive/Module" + name, inputs);
     long t2 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
-    // Calculate positions for odometry
-    int sampleCount = inputs.odometryTimestamps.length; // All signals are sampled together
+    // Calculate positions for odometry. All signals are sampled together; the minimum guards
+    // against a log whose arrays disagree.
+    int sampleCount =
+        Math.min(
+            inputs.odometryTimestamps.length,
+            Math.min(inputs.odometryDrivePositionsRad.length, inputs.odometryTurnPositions.length));
+    // Logs recorded before per-sample validity existed have only the connection flags
+    boolean perSampleValidity =
+        inputs.odometryDriveValid.length >= sampleCount
+            && inputs.odometryTurnValid.length >= sampleCount;
     odometryPositions = new SwerveModulePosition[sampleCount];
+    odometryValid = new boolean[sampleCount];
     for (int i = 0; i < sampleCount; i++) {
       double positionMeters = inputs.odometryDrivePositionsRad[i] * WHEEL_RADIUS_METERS;
       Rotation2d angle = inputs.odometryTurnPositions[i];
       odometryPositions[i] = new SwerveModulePosition(positionMeters, angle);
+      boolean valid =
+          perSampleValidity
+              ? inputs.odometryDriveValid[i] && inputs.odometryTurnValid[i]
+              : inputs.driveConnected && inputs.turnConnected;
+      odometryValid[i] = valid && Double.isFinite(positionMeters);
     }
 
     // Update alerts
@@ -144,6 +159,11 @@ public class Module {
   /** Returns the module positions received this cycle. */
   public SwerveModulePosition[] getOdometryPositions() {
     return odometryPositions;
+  }
+
+  /** Returns whether each sample received this cycle can be trusted. */
+  public boolean[] getOdometryValid() {
+    return odometryValid;
   }
 
   /** Returns the timestamps of the samples received this cycle. */

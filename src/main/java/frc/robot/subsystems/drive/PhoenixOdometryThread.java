@@ -12,6 +12,7 @@ import static frc.robot.subsystems.drive.DriveConstants.*;
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.StatusSignal;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.wpilibj.RobotController;
 import java.util.ArrayList;
@@ -38,6 +39,12 @@ public class PhoenixOdometryThread extends Thread {
   private final List<Queue<Double>> phoenixQueues = new ArrayList<>();
   private final List<Queue<Double>> genericQueues = new ArrayList<>();
   private final List<Queue<Double>> timestampQueues = new ArrayList<>();
+  private double[] signalAges = new double[0];
+  private boolean[] signalTimestampValid = new boolean[0];
+  private boolean[] signalFresh = new boolean[0];
+  private double[] signalValues = new double[0];
+  private double lastTimestamp = Double.NEGATIVE_INFINITY;
+  private volatile long droppedSamples = 0; // Written only by this thread
 
   private static boolean isCANFD = new CANBus(DRIVETRAIN_CONSTANTS.CANBusName).isNetworkFD();
   private static PhoenixOdometryThread instance = null;
@@ -61,9 +68,12 @@ public class PhoenixOdometryThread extends Thread {
     }
   }
 
-  /** Registers a Phoenix signal to be read from the thread. */
+  /**
+   * Registers a Phoenix signal to be read from the thread. The queue receives NaN for samples taken
+   * while the signal was stale.
+   */
   public Queue<Double> registerSignal(StatusSignal<Angle> signal) {
-    Queue<Double> queue = new ArrayBlockingQueue<>(20);
+    Queue<Double> queue = new ArrayBlockingQueue<>(ODOMETRY_QUEUE_CAPACITY);
     signalsLock.lock();
     Drive.ODOMETRY_LOCK.lock();
     try {
@@ -81,7 +91,7 @@ public class PhoenixOdometryThread extends Thread {
 
   /** Registers a generic signal to be read from the thread. */
   public Queue<Double> registerSignal(DoubleSupplier signal) {
-    Queue<Double> queue = new ArrayBlockingQueue<>(20);
+    Queue<Double> queue = new ArrayBlockingQueue<>(ODOMETRY_QUEUE_CAPACITY);
     signalsLock.lock();
     Drive.ODOMETRY_LOCK.lock();
     try {
@@ -96,7 +106,7 @@ public class PhoenixOdometryThread extends Thread {
 
   /** Returns a new queue that returns timestamp values for each sample. */
   public Queue<Double> makeTimestampQueue() {
-    Queue<Double> queue = new ArrayBlockingQueue<>(20);
+    Queue<Double> queue = new ArrayBlockingQueue<>(ODOMETRY_QUEUE_CAPACITY);
     Drive.ODOMETRY_LOCK.lock();
     try {
       timestampQueues.add(queue);
@@ -106,23 +116,115 @@ public class PhoenixOdometryThread extends Thread {
     return queue;
   }
 
+  /** Returns how many samples were lost because a queue was full. */
+  public long getDroppedSamples() {
+    return droppedSamples;
+  }
+
+  /**
+   * Marks which signals are fresh. A signal is stale if its timestamp is invalid or in the future,
+   * if it lags the freshest signal by {@link DriveConstants#ODOMETRY_SIGNAL_MAX_AGE_SECONDS} or
+   * more (its device stopped updating), or if even the freshest signal is {@link
+   * DriveConstants#ODOMETRY_BUS_MAX_AGE_SECONDS} old (the bus stopped). Comparing with the freshest
+   * signal keeps a delay in this thread, which ages every signal equally, from making healthy
+   * signals stale.
+   *
+   * @param ages age of each signal's last update, in seconds
+   * @param timestampValid whether each signal's timestamp is valid
+   * @param fresh receives whether each signal is fresh
+   */
+  static void markFresh(double[] ages, boolean[] timestampValid, boolean[] fresh) {
+    double freshestAge = Double.POSITIVE_INFINITY;
+    for (int i = 0; i < ages.length; i++) {
+      if (plausibleAge(ages[i], timestampValid[i])) {
+        freshestAge = Math.min(freshestAge, ages[i]);
+      }
+    }
+    for (int i = 0; i < ages.length; i++) {
+      fresh[i] =
+          plausibleAge(ages[i], timestampValid[i])
+              && ages[i] - freshestAge < ODOMETRY_SIGNAL_MAX_AGE_SECONDS
+              && freshestAge < ODOMETRY_BUS_MAX_AGE_SECONDS;
+    }
+  }
+
+  /** A timestamp in the future is garbage; VACHE session 19 had ones 2.7e7 s ahead. */
+  private static boolean plausibleAge(double age, boolean timestampValid) {
+    return timestampValid && age > -ODOMETRY_SIGNAL_MAX_AGE_SECONDS;
+  }
+
+  /**
+   * Returns the timestamp for a sample: the FPGA time minus the mean age of the fresh signals, or
+   * the FPGA time if none is fresh. It is never after the FPGA time or more than {@link
+   * DriveConstants#ODOMETRY_BUS_MAX_AGE_SECONDS} before it, and it is kept strictly after the
+   * previous timestamp.
+   *
+   * @param fpgaSeconds FPGA time when the signals were read
+   * @param signalAges age of each Phoenix signal's last update, in seconds
+   * @param fresh whether each signal was fresh
+   * @param previousTimestamp the previous sample's timestamp
+   */
+  static double sampleTimestamp(
+      double fpgaSeconds, double[] signalAges, boolean[] fresh, double previousTimestamp) {
+    double totalAge = 0.0;
+    int freshCount = 0;
+    for (int i = 0; i < signalAges.length; i++) {
+      if (fresh[i]) {
+        totalAge += signalAges[i];
+        freshCount++;
+      }
+    }
+    double timestamp = freshCount > 0 ? fpgaSeconds - totalAge / freshCount : fpgaSeconds;
+    timestamp = MathUtil.clamp(timestamp, fpgaSeconds - ODOMETRY_BUS_MAX_AGE_SECONDS, fpgaSeconds);
+    return Math.max(timestamp, previousTimestamp + 1e-6);
+  }
+
   @Override
   public void run() {
     while (true) {
-      // Wait for updates from all signals
+      BaseStatusSignal[] signals;
+      double timestamp;
       signalsLock.lock();
       try {
-        if (isCANFD && phoenixSignals.length > 0) {
-          BaseStatusSignal.waitForAll(2.0 / Drive.ODOMETRY_FREQUENCY, phoenixSignals);
-        } else {
-          // "waitForAll" does not support blocking on multiple signals with a bus
-          // that is not CAN FD, regardless of Pro licensing. No reasoning for this
-          // behavior is provided by the documentation.
-          Thread.sleep((long) (1000.0 / Drive.ODOMETRY_FREQUENCY));
-          if (phoenixSignals.length > 0) BaseStatusSignal.refreshAll(phoenixSignals);
+        // Wait for updates from all signals
+        try {
+          if (isCANFD && phoenixSignals.length > 0) {
+            BaseStatusSignal.waitForAll(2.0 / Drive.ODOMETRY_FREQUENCY, phoenixSignals);
+          } else {
+            // "waitForAll" does not support blocking on multiple signals with a bus
+            // that is not CAN FD, regardless of Pro licensing. No reasoning for this
+            // behavior is provided by the documentation.
+            Thread.sleep((long) (1000.0 / Drive.ODOMETRY_FREQUENCY));
+            if (phoenixSignals.length > 0) BaseStatusSignal.refreshAll(phoenixSignals);
+          }
+        } catch (InterruptedException e) {
+          e.printStackTrace();
         }
-      } catch (InterruptedException e) {
-        e.printStackTrace();
+
+        // Read the signals right away, so time spent waiting for ODOMETRY_LOCK doesn't age them.
+        // A stale signal's value is replaced with NaN and its age is left out of the timestamp:
+        // a dead device's age grows without bound (when the CANivore left USB at VACHE, ages
+        // reached minutes). Sample timestamp is current FPGA time minus the average age of the
+        // fresh signals; default timestamps from Phoenix are NOT compatible with FPGA timestamps.
+        signals = phoenixSignals;
+        double fpgaSeconds = RobotController.getFPGATime() / 1e6;
+        if (signalAges.length != signals.length) {
+          signalAges = new double[signals.length];
+          signalTimestampValid = new boolean[signals.length];
+          signalFresh = new boolean[signals.length];
+          signalValues = new double[signals.length];
+        }
+        for (int i = 0; i < signals.length; i++) {
+          var signalTimestamp = signals[i].getTimestamp();
+          signalAges[i] = signalTimestamp.getLatency();
+          signalTimestampValid[i] = signalTimestamp.isValid();
+        }
+        markFresh(signalAges, signalTimestampValid, signalFresh);
+        for (int i = 0; i < signals.length; i++) {
+          signalValues[i] = signalFresh[i] ? signals[i].getValueAsDouble() : Double.NaN;
+        }
+        timestamp = sampleTimestamp(fpgaSeconds, signalAges, signalFresh, lastTimestamp);
+        lastTimestamp = timestamp;
       } finally {
         signalsLock.unlock();
       }
@@ -130,27 +232,19 @@ public class PhoenixOdometryThread extends Thread {
       // Save new data to queues
       Drive.ODOMETRY_LOCK.lock();
       try {
-        // Sample timestamp is current FPGA time minus average CAN latency
-        //     Default timestamps from Phoenix are NOT compatible with
-        //     FPGA timestamps, this solution is imperfect but close
-        double timestamp = RobotController.getFPGATime() / 1e6;
-        double totalLatency = 0.0;
-        for (BaseStatusSignal signal : phoenixSignals) {
-          totalLatency += signal.getTimestamp().getLatency();
-        }
-        if (phoenixSignals.length > 0) {
-          timestamp -= totalLatency / phoenixSignals.length;
-        }
-
-        // Add new samples to queues
-        for (int i = 0; i < phoenixSignals.length; i++) {
-          phoenixQueues.get(i).offer(phoenixSignals[i].getValueAsDouble());
+        // Add new samples to queues; a full queue loses the sample, which is counted
+        boolean dropped = false;
+        for (int i = 0; i < signals.length; i++) {
+          dropped |= !phoenixQueues.get(i).offer(signalValues[i]);
         }
         for (int i = 0; i < genericSignals.size(); i++) {
-          genericQueues.get(i).offer(genericSignals.get(i).getAsDouble());
+          dropped |= !genericQueues.get(i).offer(genericSignals.get(i).getAsDouble());
         }
         for (int i = 0; i < timestampQueues.size(); i++) {
-          timestampQueues.get(i).offer(timestamp);
+          dropped |= !timestampQueues.get(i).offer(timestamp);
+        }
+        if (dropped) {
+          droppedSamples++;
         }
       } finally {
         Drive.ODOMETRY_LOCK.unlock();

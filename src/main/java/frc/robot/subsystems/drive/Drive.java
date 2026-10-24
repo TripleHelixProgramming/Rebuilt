@@ -31,7 +31,6 @@ import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
@@ -45,6 +44,7 @@ import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.RobotState;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -70,19 +70,19 @@ public class Drive extends SubsystemBase {
   private final SysIdRoutine sysId;
   private final Alert gyroDisconnectedAlert =
       new Alert("Disconnected gyro, using kinematics as fallback.", AlertType.kError);
+  private final Alert odometryModuleAlert =
+      new Alert("Odometry is estimating a module that stopped reporting.", AlertType.kWarning);
+  private final Alert odometryTimestampAlert =
+      new Alert("Odometry timestamps are invalid; using the loop time.", AlertType.kWarning);
   private final BooleanPublisher alignEncodersPub;
 
   private SwerveDriveKinematics kinematics = new SwerveDriveKinematics(MODULE_TRANSLATIONS);
+  private final OdometrySampleProcessor odometryProcessor =
+      new OdometrySampleProcessor(MODULE_TRANSLATIONS);
   private Rotation2d rawGyroRotation = Rotation2d.kZero;
-  private SwerveModulePosition[] lastModulePositions = // For delta tracking
-      new SwerveModulePosition[] {
-        new SwerveModulePosition(),
-        new SwerveModulePosition(),
-        new SwerveModulePosition(),
-        new SwerveModulePosition()
-      };
   private SwerveDrivePoseEstimator visionPose =
-      new SwerveDrivePoseEstimator(kinematics, rawGyroRotation, lastModulePositions, new Pose2d());
+      new SwerveDrivePoseEstimator(
+          kinematics, rawGyroRotation, odometryProcessor.lastPositions(), new Pose2d());
   private boolean firstVisionEstimate = true;
   private boolean poseInitialized = false;
 
@@ -91,14 +91,15 @@ public class Drive extends SubsystemBase {
   // Pre-allocated for getModuleStates()/getModulePositions() to avoid array allocation each call
   private final SwerveModuleState[] measuredStates = new SwerveModuleState[4];
   private final SwerveModulePosition[] measuredPositions = new SwerveModulePosition[4];
-  private SwerveModulePosition[] modulePositions = new SwerveModulePosition[4];
-  // Pre-allocated to avoid allocations in odometry loop - fields are mutated in place
-  private final SwerveModulePosition[] moduleDeltas =
-      new SwerveModulePosition[] {
-        new SwerveModulePosition(), new SwerveModulePosition(),
-        new SwerveModulePosition(), new SwerveModulePosition()
-      };
+  // Pre-allocated for the odometry loop; the processor reads them and keeps nothing
+  private final SwerveModulePosition[] rawModulePositions = new SwerveModulePosition[4];
+  private final boolean[] moduleSampleValid = new boolean[4];
   private ChassisSpeeds chassisSpeeds;
+  // Odometry counts from the first loop, which drains everything queued since boot, are left out
+  private boolean firstOdometryLoop = true;
+  private long rebaseBaseline = 0;
+  private long substitutedTimestampBaseline = 0;
+  private long droppedSampleBaseline = 0;
 
   // PathPlanner trajectory logging (stored each loop for AKit compatibility)
   private Pose2d[] lastTrajectory = new Pose2d[0];
@@ -195,38 +196,57 @@ public class Drive extends SubsystemBase {
     }
     long t5 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
-    // Update odometry
+    // Update odometry. Each sample goes through the processor, which estimates modules that
+    // stopped reporting, absorbs wheel position resets, and replaces impossible timestamps.
+    double now = Timer.getTimestamp();
     double[] sampleTimestamps =
         modules[0].getOdometryTimestamps(); // All signals are sampled together
     int sampleCount = sampleTimestamps.length;
+    for (var module : modules) {
+      sampleCount = Math.min(sampleCount, module.getOdometryPositions().length);
+    }
+    if (gyroInputs.connected) {
+      sampleCount = Math.min(sampleCount, gyroInputs.odometryYawPositions.length);
+    }
     Logger.recordOutput("Drive/sampleCount", sampleCount);
+    long substitutedBefore = odometryProcessor.substitutedTimestampCount();
     for (int i = 0; i < sampleCount; i++) {
-      // Read wheel positions and deltas from each module
       for (int moduleIndex = 0; moduleIndex < 4; moduleIndex++) {
-        modulePositions[moduleIndex] = modules[moduleIndex].getOdometryPositions()[i];
-        // Mutate pre-allocated delta objects to avoid allocations
-        moduleDeltas[moduleIndex].distanceMeters =
-            modulePositions[moduleIndex].distanceMeters
-                - lastModulePositions[moduleIndex].distanceMeters;
-        moduleDeltas[moduleIndex].angle = modulePositions[moduleIndex].angle;
-        lastModulePositions[moduleIndex] = modulePositions[moduleIndex];
+        rawModulePositions[moduleIndex] = modules[moduleIndex].getOdometryPositions()[i];
+        moduleSampleValid[moduleIndex] = modules[moduleIndex].getOdometryValid()[i];
       }
-
-      // Update gyro angle
-      if (gyroInputs.connected) {
-        // Use the real gyro angle
-        rawGyroRotation = gyroInputs.odometryYawPositions[i];
-      } else {
-        // Use the angle delta from the kinematics and module deltas
-        Twist2d twist = kinematics.toTwist2d(moduleDeltas);
-        rawGyroRotation = rawGyroRotation.plus(new Rotation2d(twist.dtheta));
-      }
+      var sample =
+          odometryProcessor.process(
+              sampleTimestamps[i],
+              now,
+              rawModulePositions,
+              moduleSampleValid,
+              gyroInputs.connected ? gyroInputs.odometryYawPositions[i] : null);
+      rawGyroRotation = sample.gyroRotation();
 
       // Apply update
-      visionPose.updateWithTime(sampleTimestamps[i], rawGyroRotation, modulePositions);
+      visionPose.updateWithTime(sample.timestamp(), rawGyroRotation, sample.modulePositions());
 
-      chassisSpeeds = kinematics.toChassisSpeeds(getModuleStates());
+      chassisSpeeds =
+          odometryProcessor.chassisSpeeds(
+              getModuleStates(), gyroInputs.connected ? gyroInputs.yawVelocityRadPerSec : null);
     }
+    long droppedSamples = PhoenixOdometryThread.getInstance().getDroppedSamples();
+    if (firstOdometryLoop && sampleCount > 0) {
+      firstOdometryLoop = false;
+      rebaseBaseline = odometryProcessor.rebaseCount();
+      substitutedTimestampBaseline = odometryProcessor.substitutedTimestampCount();
+      droppedSampleBaseline = droppedSamples;
+    } else {
+      odometryTimestampAlert.set(odometryProcessor.substitutedTimestampCount() > substitutedBefore);
+    }
+    odometryModuleAlert.set(sampleCount > 0 && odometryProcessor.validModuleCount() < 4);
+    Logger.recordOutput("Drive/Odometry/ValidModules", odometryProcessor.validModuleCount());
+    Logger.recordOutput("Drive/Odometry/Rebases", odometryProcessor.rebaseCount() - rebaseBaseline);
+    Logger.recordOutput(
+        "Drive/Odometry/SubstitutedTimestamps",
+        odometryProcessor.substitutedTimestampCount() - substitutedTimestampBaseline);
+    Logger.recordOutput("Drive/Odometry/DroppedSamples", droppedSamples - droppedSampleBaseline);
     long t6 = FeatureFlags.PROFILING_ENABLED ? System.nanoTime() : 0;
 
     // Update gyro alert
@@ -416,7 +436,10 @@ public class Drive extends SubsystemBase {
 
   /** Resets the pose estimator to the given pose. */
   public void setPose(Pose2d pose) {
-    visionPose.resetPosition(rawGyroRotation, getModulePositions(), pose);
+    // Seed with the current module positions as the odometry processor sees them (with its
+    // offsets, and estimated positions for modules that aren't reporting)
+    visionPose.resetPosition(
+        rawGyroRotation, odometryProcessor.resetPositions(getModulePositions()), pose);
     poseInitialized = true;
   }
 

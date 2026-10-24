@@ -110,6 +110,8 @@ public class ModuleIOSimWPI implements ModuleIO {
     inputs.odometryTimestamps = new double[] {Timer.getFPGATimestamp()};
     inputs.odometryDrivePositionsRad = new double[] {inputs.drivePositionRad};
     inputs.odometryTurnPositions = new Rotation2d[] {inputs.turnPosition};
+    inputs.odometryDriveValid = new boolean[] {true};
+    inputs.odometryTurnValid = new boolean[] {true};
   }
 
   @Override

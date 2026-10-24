@@ -102,6 +102,36 @@ public class DriveConstants {
           MAX_CHASSIS_ANGULAR_VELOCITY.in(RadiansPerSecond),
           MAX_CHASSIS_ANGULAR_ACCELERATION.in(RadiansPerSecondPerSecond));
 
+  // Odometry sample checks (see PhoenixOdometryThread and OdometrySampleProcessor)
+  /** A Phoenix odometry signal lagging the freshest one by this much is stale (sample invalid). */
+  public static final double ODOMETRY_SIGNAL_MAX_AGE_SECONDS = 0.05;
+
+  /** When even the freshest Phoenix odometry signal is this old, every signal is stale. */
+  public static final double ODOMETRY_BUS_MAX_AGE_SECONDS = 0.25;
+
+  /** Capacity of each odometry queue: 0.4 s at 250 Hz, enough to ride out a main-loop stall. */
+  public static final int ODOMETRY_QUEUE_CAPACITY = 100;
+
+  /** A wheel moving faster than this between samples was reset, not driven. Twice the limit. */
+  public static final double ODOMETRY_MAX_WHEEL_SPEED_MPS =
+      2.0 * DRIVETRAIN_SPEED_LIMIT.in(MetersPerSecond);
+
+  /** Added to the wheel step allowed between samples, to cover timestamp jitter. */
+  public static final double ODOMETRY_WHEEL_STEP_MARGIN_METERS = 0.05;
+
+  /**
+   * A sample stamped this long before the current loop is mis-stamped and moved to the loop time.
+   * Longer than any loop stall seen in match logs (0.73 s); the pose estimator keeps 1.5 s anyway.
+   */
+  public static final double ODOMETRY_MAX_SAMPLE_AGE_SECONDS = 1.0;
+
+  /**
+   * A sample stamped this far after the current loop's start is mis-stamped. Samples drained late
+   * in a loop (after a slow auto start, say) are rightly stamped after its start; garbage
+   * timestamps seen in logs were thousands of seconds ahead.
+   */
+  public static final double ODOMETRY_MAX_SAMPLE_LEAD_SECONDS = 0.5;
+
   // Turn motor configuration
   public static final boolean TURN_INVERTED = false;
   public static final double TURN_MOTOR_REDUCTION = (32.0 / 15.0) * (60.0 / 10.0); // SDS MK4
