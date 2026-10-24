@@ -763,12 +763,10 @@ public class Robot extends LoggedRobot {
     autoSelector.addAuto(
         new AutoOption(
             Alliance.Red, 4, new NewR_RightTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
-   autoSelector.addAuto(
-        new AutoOption(
-            Alliance.Blue, 5, new BlueMiddleShootAuto(drive, feeder, intake, launcher)));
     autoSelector.addAuto(
-        new AutoOption(
-            Alliance.Red, 5, new RedMiddleShootAuto(drive, feeder, intake, launcher)));
+        new AutoOption(Alliance.Blue, 5, new BlueMiddleShootAuto(drive, feeder, intake, launcher)));
+    autoSelector.addAuto(
+        new AutoOption(Alliance.Red, 5, new RedMiddleShootAuto(drive, feeder, intake, launcher)));
   }
 
   public static Alliance getAlliance() {

@@ -14,7 +14,6 @@ public class RedMiddleShootAuto extends AutoMode {
   private final AutoRoutine routine;
   private final AutoTrajectory redMiddleShoot;
 
-
   public RedMiddleShootAuto(
       Drive drivetrain,
       Feeder feederSubsystem,
