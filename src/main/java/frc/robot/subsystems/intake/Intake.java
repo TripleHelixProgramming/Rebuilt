@@ -216,8 +216,7 @@ public class Intake extends SubsystemBase {
  public Command dropIntake() {
     return Commands.sequence(
             hopperInterlock(),
-            Commands.runOnce(this::deployArm, this),
-            this.idle().withTimeout(0.5))
+            Commands.runOnce(this::deployArm, this))
         .withName("Intake");
   }
 
