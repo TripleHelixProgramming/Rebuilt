@@ -791,7 +791,9 @@ public class Robot extends LoggedRobot {
                 allianceSelector::fieldRotated)
             .withName("Desaturate turret"),
         Commands.sequence(
-            Commands.waitUntil(launcher::isTurretDesaturated), feeder.getSpinForwardCommand()));
+            Commands.waitUntil(launcher::isTurretDesaturated),
+            feeder.getSpinForwardCommand(),
+            intake.getDeployCommand()));
   }
 
   private static void logHIDs() {
