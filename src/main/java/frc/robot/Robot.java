@@ -41,10 +41,11 @@ import frc.robot.auto.B_RightTrenchAuto;
 import frc.robot.auto.BlueMiddleShootAuto;
 import frc.robot.auto.NewB_LeftTrenchMoveFirstAuto;
 import frc.robot.auto.NewB_RightTrenchMoveFirstAuto;
-import frc.robot.auto.NewR_LeftTrenchMoveFirstAuto;
+import frc.robot.auto.BlueMiddleDepotShootAuto;
 import frc.robot.auto.NewR_RightTrenchMoveFirstAuto;
 import frc.robot.auto.R_LeftTrenchAuto;
 import frc.robot.auto.R_RightTrenchAuto;
+import frc.robot.auto.RedMiddleDepotShootAuto;
 import frc.robot.auto.RedMiddleShootAuto;
 import frc.robot.commands.DriveCommands;
 import frc.robot.subsystems.drive.Drive;
@@ -756,7 +757,7 @@ public class Robot extends LoggedRobot {
             Alliance.Blue, 3, new NewB_LeftTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
     autoSelector.addAuto(
         new AutoOption(
-            Alliance.Red, 3, new NewR_LeftTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
+            Alliance.Red, 3, new BlueMiddleDepotShootAuto(drive, feeder, intake, launcher)));
     autoSelector.addAuto(
         new AutoOption(
             Alliance.Blue, 4, new NewB_RightTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
@@ -767,6 +768,10 @@ public class Robot extends LoggedRobot {
         new AutoOption(Alliance.Blue, 5, new BlueMiddleShootAuto(drive, feeder, intake, launcher)));
     autoSelector.addAuto(
         new AutoOption(Alliance.Red, 5, new RedMiddleShootAuto(drive, feeder, intake, launcher)));
+    autoSelector.addAuto(
+        new AutoOption(Alliance.Blue, 6, new BlueMiddleDepotShootAuto(drive, feeder, intake, launcher)));
+    autoSelector.addAuto(
+        new AutoOption(Alliance.Red, 6, new RedMiddleDepotShootAuto(drive, feeder, intake, launcher)));
   }
 
   public static Alliance getAlliance() {
@@ -799,7 +804,7 @@ public class Robot extends LoggedRobot {
         Commands.sequence(
             Commands.waitUntil(launcher::isTurretDesaturated),
             feeder.getSpinForwardCommand(),
-            intake.getDeployCommand()));
+            intake.dropIntake()));
   }
 
   private static void logHIDs() {
