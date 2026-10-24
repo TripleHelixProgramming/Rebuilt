@@ -4,126 +4,69 @@
  "type":"Swerve",
  "variables":{
   "expressions":{},
-  "poses":{
-   "BLTransition":{
-    "x":{
-     "exp":"4 m",
-     "val":4.0
-    },
-    "y":{
-     "exp":"7.5 m",
-     "val":7.5
-    },
-    "heading":{
-     "exp":"180 deg",
-     "val":3.141592653589793
-    }
-   },
-   "BRTransition":{
-    "x":{
-     "exp":"4.1 m",
-     "val":4.1
-    },
-    "y":{
-     "exp":"0.65 m",
-     "val":0.65
-    },
-    "heading":{
-     "exp":"0 deg",
-     "val":0.0
-    }
-   },
-   "RLTransition":{
-    "x":{
-     "exp":"13 m",
-     "val":13.0
-    },
-    "y":{
-     "exp":"0.6 m",
-     "val":0.6
-    },
-    "heading":{
-     "exp":"0 deg",
-     "val":0.0
-    }
-   },
-   "RRTransition":{
-    "x":{
-     "exp":"12.5 m",
-     "val":12.5
-    },
-    "y":{
-     "exp":"7.5 m",
-     "val":7.5
-    },
-    "heading":{
-     "exp":"-180 deg",
-     "val":-3.141592653589793
-    }
-   }
-  }
+  "poses":{}
  },
  "config":{
   "frontLeft":{
    "x":{
-    "exp":"11.25 in",
-    "val":0.28575
+    "exp":"11 in",
+    "val":0.2794
    },
    "y":{
-    "exp":"9.75 in",
-    "val":0.24765
+    "exp":"11 in",
+    "val":0.2794
    }
   },
   "backLeft":{
    "x":{
-    "exp":"-11.25 in",
-    "val":-0.28575
+    "exp":"-11 in",
+    "val":-0.2794
    },
    "y":{
-    "exp":"9.75 in",
-    "val":0.24765
+    "exp":"11 in",
+    "val":0.2794
    }
   },
   "mass":{
-   "exp":"130 lbs",
-   "val":58.9670081
+   "exp":"150 lbs",
+   "val":68.0388555
   },
   "inertia":{
    "exp":"6 kg m ^ 2",
    "val":6.0
   },
   "gearing":{
-   "exp":"6.75",
-   "val":6.75
+   "exp":"6.5",
+   "val":6.5
   },
   "radius":{
    "exp":"2 in",
    "val":0.0508
   },
   "vmax":{
-   "exp":"3500 RPM",
-   "val":366.5191429188092
+   "exp":"6000 RPM",
+   "val":628.3185307179587
   },
   "tmax":{
-   "exp":"0.25 N * m",
-   "val":0.25
+   "exp":"1.2 N * m",
+   "val":1.2
   },
   "cof":{
-   "exp":"1",
-   "val":1.0
+   "exp":"1.5",
+   "val":1.5
   },
   "bumper":{
    "front":{
-    "exp":"17.938 in",
-    "val":0.4556251999999999
+    "exp":"16 in",
+    "val":0.4064
    },
    "side":{
-    "exp":"16.438 in",
-    "val":0.41752519999999993
+    "exp":"16 in",
+    "val":0.4064
    },
    "back":{
-    "exp":"17.938 in",
-    "val":0.4556251999999999
+    "exp":"16 in",
+    "val":0.4064
    }
   },
   "differentialTrackWidth":{

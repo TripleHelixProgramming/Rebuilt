@@ -38,12 +38,14 @@ import frc.robot.Constants.DIOPorts;
 import frc.robot.Constants.FeatureFlags;
 import frc.robot.auto.B_LeftTrenchAuto;
 import frc.robot.auto.B_RightTrenchAuto;
+import frc.robot.auto.BlueMiddleShootAuto;
 import frc.robot.auto.NewB_LeftTrenchMoveFirstAuto;
 import frc.robot.auto.NewB_RightTrenchMoveFirstAuto;
 import frc.robot.auto.NewR_LeftTrenchMoveFirstAuto;
 import frc.robot.auto.NewR_RightTrenchMoveFirstAuto;
 import frc.robot.auto.R_LeftTrenchAuto;
 import frc.robot.auto.R_RightTrenchAuto;
+import frc.robot.auto.RedMiddleShootAuto;
 import frc.robot.commands.DriveCommands;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.DriveConstants;
@@ -761,6 +763,12 @@ public class Robot extends LoggedRobot {
     autoSelector.addAuto(
         new AutoOption(
             Alliance.Red, 4, new NewR_RightTrenchMoveFirstAuto(drive, feeder, intake, launcher)));
+   autoSelector.addAuto(
+        new AutoOption(
+            Alliance.Blue, 5, new BlueMiddleShootAuto(drive, feeder, intake, launcher)));
+    autoSelector.addAuto(
+        new AutoOption(
+            Alliance.Red, 5, new RedMiddleShootAuto(drive, feeder, intake, launcher)));
   }
 
   public static Alliance getAlliance() {
