@@ -18,9 +18,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.photonvision.PhotonCamera;
+import org.photonvision.targeting.PhotonTrackedTarget;
 
 /** IO implementation for real PhotonVision hardware. */
 public class VisionIOPhotonVision implements VisionIO {
+  // No real tag can be this close to the lens; anything under it is an unsolved (identity) result
+  private static final double MIN_CAMERA_TO_TARGET_METERS = 1e-3;
+
   protected final PhotonCamera camera;
   protected final Transform3d robotToCamera;
 
@@ -119,6 +123,12 @@ public class VisionIOPhotonVision implements VisionIO {
         // Calculate robot pose
         var tagPoseOpt = Vision.getAprilTagLayout().getTagPose(target.fiducialId);
         if (tagPoseOpt.isPresent()) {
+          // The tag was detected even if there is no 3D solve, so log its ID either way
+          tagIds.add((short) target.fiducialId);
+          if (!hasPoseSolution(target)) {
+            continue;
+          }
+
           // Cache the Optional value to avoid multiple .get() calls and ensure consistency
           Pose3d tagPose = tagPoseOpt.get();
           Transform3d fieldToTarget =
@@ -127,9 +137,6 @@ public class VisionIOPhotonVision implements VisionIO {
           Transform3d fieldToCamera = fieldToTarget.plus(cameraToTarget.inverse());
           Transform3d fieldToRobot = fieldToCamera.plus(robotToCamera.inverse());
           Pose3d robotPose = new Pose3d(fieldToRobot.getTranslation(), fieldToRobot.getRotation());
-
-          // Add tag ID
-          tagIds.add((short) target.fiducialId);
 
           // Add observation
           poseObservations.add(
@@ -153,5 +160,19 @@ public class VisionIOPhotonVision implements VisionIO {
     for (int id : tagIds) {
       inputs.tagIds[i++] = id;
     }
+  }
+
+  /**
+   * Whether PhotonVision solved a 3D pose for this target. A camera without a 3D solve (for
+   * example, uncalibrated at its current resolution) still reports the tags it detects, but with an
+   * identity camera-to-target transform and an ambiguity of -1. Turning that into a robot pose puts
+   * the robot at the tag itself, and the filter scores it as unambiguous and close, so it must be
+   * dropped here.
+   *
+   * <p>At VAGLE1 Q6 the front-left camera sent only these, and they moved the pose by up to 4.6 m.
+   */
+  static boolean hasPoseSolution(PhotonTrackedTarget target) {
+    return target.poseAmbiguity >= 0.0
+        && target.bestCameraToTarget.getTranslation().getNorm() > MIN_CAMERA_TO_TARGET_METERS;
   }
 }
