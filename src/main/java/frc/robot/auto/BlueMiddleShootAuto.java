@@ -46,18 +46,7 @@ public class BlueMiddleShootAuto extends AutoMode {
                 blueMiddleShoot.resetOdometry(),
                 DriveCommands.getChassisAimingCommand(drive, launcher::getTurretDesaturationDelta)
                     .withTimeout(1.5),
-                feeder.getSpinForwardCommand().withTimeout(3.0),
-                Commands.parallel(
-                    blueMiddleShoot.cmd())));
-
-    blueMiddleShoot
-        .done()
-        .onTrue(
-            Commands.sequence(
-                stopDrive(),
-                shakeAndFeed(5.0),
-                Commands.parallel(
-                    blueMiddleShoot.cmd(), intake.getDeployCommand().withTimeout(5.0))));
+                feeder.getSpinForwardCommand().withTimeout(3.0)));
 
     blueMiddleShoot.done().onTrue(Commands.sequence(stopDrive(), shakeAndFeed(5.0)));
 

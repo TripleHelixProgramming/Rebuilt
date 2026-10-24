@@ -46,20 +46,7 @@ public class RedMiddleShootAuto extends AutoMode {
                 redMiddleShoot.resetOdometry(),
                 DriveCommands.getChassisAimingCommand(drive, launcher::getTurretDesaturationDelta)
                     .withTimeout(1.5),
-                feeder.getSpinForwardCommand().withTimeout(3.0),
-                Commands.parallel(
-                    redMiddleShoot.cmd())));
-
-    redMiddleShoot
-        .done()
-        .onTrue(
-            Commands.sequence(
-                stopDrive(),
-                shakeAndFeed(5.0),
-                Commands.parallel(
-                    redMiddleShoot.cmd(), intake.getDeployCommand().withTimeout(5.0))));
-
-    redMiddleShoot.done().onTrue(Commands.sequence(stopDrive(), shakeAndFeed(5.0)));
+                feeder.getSpinForwardCommand().withTimeout(3.0)));
 
     return routine;
   }
